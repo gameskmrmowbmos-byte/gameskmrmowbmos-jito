@@ -1,0 +1,11 @@
+{
+  "name": "Matka Management — Demo",
+  "short_name": "Matka Demo",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#F7F8FC",
+  "theme_color": "#3659E3",
+  "description": "Demo-only manual record management application",
+  "orientation": "any"
+}
+
