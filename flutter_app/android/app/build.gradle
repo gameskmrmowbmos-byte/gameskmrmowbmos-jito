@@ -1,0 +1,58 @@
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    id "dev.flutter.flutter-gradle-plugin"
+}
+
+android {
+    namespace = "com.example.matka_management"
+    compileSdk = flutter.compileSdkVersion
+    ndkVersion = flutter.ndkVersion
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_17
+    }
+
+    defaultConfig {
+        applicationId = "com.example.matka_management"
+        minSdk = flutter.minSdkVersion
+        targetSdk = flutter.targetSdkVersion
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
+    }
+
+    def signingProperties = new Properties()
+    def signingFile = rootProject.file('key.properties')
+    if (signingFile.exists()) signingProperties.load(new FileInputStream(signingFile))
+    def hasReleaseSigning = ['storeFile', 'storePassword', 'keyAlias', 'keyPassword']
+        .every { signingProperties.getProperty(it) }
+    if (hasReleaseSigning) {
+        signingConfigs {
+            release {
+                keyAlias signingProperties['keyAlias']
+                keyPassword signingProperties['keyPassword']
+                storeFile file(signingProperties['storeFile'])
+                storePassword signingProperties['storePassword']
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            if (!hasReleaseSigning) {
+                throw new RuntimeException('Release signing is not configured. Create android/key.properties with a release keystore.')
+            }
+            signingConfig = signingConfigs.release
+        }
+    }
+}
+
+flutter {
+    source = "../.."
+}
+

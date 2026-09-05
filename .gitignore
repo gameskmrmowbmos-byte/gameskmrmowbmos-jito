@@ -1,0 +1,37 @@
+.env
+*.keystore
+*.jks
+flutter_app/android/key.properties
+# Secrets
+.env
+*.pem
+
+# Node
+node_modules/
+npm-debug.log*
+coverage/
+dist/
+.npm-cache/
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+
+# Gradle generated/cache files
+.gradle/
+android/.gradle/
+
+# IDE / operating system
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Generated exports and logs
+exports/
+logs/
+*.log

@@ -1,0 +1,188 @@
+// !$*UTF8*$!
+{
+  archiveVersion = 1;
+  classes = {};
+  objectVersion = 54;
+  objects = {
+    1498D2351E8E89220040F4C2 = {isa = PBXBuildFile; fileRef = 1498D2341E8E89220040F4C2; };
+    7AFA3C8F1D35360C0083082E = {isa = PBXBuildFile; fileRef = 7AFA3C8E1D35360C0083082E; };
+    97C146F41CF9000F007C117D = {isa = PBXBuildFile; fileRef = 97C146F01CF9000F007C117D; };
+    97C146F51CF9000F007C117D = {isa = PBXBuildFile; fileRef = 97C146F11CF9000F007C117D; };
+    97C146E61CF9000F007C117D /* Project object */ = {
+      isa = PBXProject;
+      attributes = {
+        LastSwiftUpdateCheck = 1500;
+        LastUpgradeCheck = 1500;
+        ORGANIZATIONNAME = "";
+        TargetAttributes = {
+          97C146ED1CF9000F007C117D = { CreatedOnToolsVersion = 15.0; };
+        };
+      };
+      buildConfigurationList = 97C146E91CF9000F007C117D;
+      compatibilityVersion = "Xcode 12.0";
+      developmentRegion = en;
+      hasScannedForEncodings = 0;
+      knownRegions = (en, Base);
+      mainGroup = 97C146E51CF9000F007C117D;
+      productRefGroup = 97C146EF1CF9000F007C117D;
+      projectDirPath = "";
+      projectRoot = "";
+      targets = (97C146ED1CF9000F007C117D);
+    };
+    97C146ED1CF9000F007C117D /* Runner */ = {
+      isa = PBXNativeTarget;
+      buildConfigurationList = 97C146FA1CF9000F007C117D;
+      buildPhases = (
+        9740EEB61CF901F6004384FC,
+        97C146EA1CF9000F007C117D,
+        97C146EB1CF9000F007C117D,
+        97C146EC1CF9000F007C117D,
+        3B06AD1E1E4923F5004D2608
+      );
+      buildRules = ();
+      dependencies = ();
+      name = Runner;
+      productName = Runner;
+      productReference = 97C146EE1CF9000F007C117D;
+      productType = "com.apple.product-type.application";
+    };
+    97C146E51CF9000F007C117D = {
+      isa = PBXGroup;
+      children = (9740EEB11CF90186004384FC, 97C146EF1CF9000F007C117D);
+      sourceTree = "<group>";
+    };
+    9740EEB11CF90186004384FC /* Runner */ = {
+      isa = PBXGroup;
+      children = (
+        1498D2341E8E89220040F4C2,
+        7AFA3C8E1D35360C0083082E,
+        97C146FB1CF9000F007C117D,
+        97C146F01CF9000F007C117D,
+        97C146F11CF9000F007C117D,
+        97C146F21CF9000F007C117D,
+        97C146F31CF9000F007C117D
+      );
+      path = Runner;
+      sourceTree = "<group>";
+    };
+    97C146EF1CF9000F007C117D /* Products */ = {
+      isa = PBXGroup;
+      children = (97C146EE1CF9000F007C117D);
+      name = Products;
+      sourceTree = "<group>";
+    };
+    97C146EE1CF9000F007C117D = {
+      isa = PBXFileReference;
+      explicitFileType = wrapper.application;
+      includeInIndex = 0;
+      path = Runner.app;
+      sourceTree = BUILT_PRODUCTS_DIR;
+    };
+    1498D2341E8E89220040F4C2 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+    7AFA3C8E1D35360C0083082E = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = GeneratedPluginRegistrant.m; sourceTree = "<group>"; };
+    97C146FB1CF9000F007C117D = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+    97C146F01CF9000F007C117D = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Main.storyboard; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+    97C146F11CF9000F007C117D = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+    97C146F21CF9000F007C117D = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Runner-Bridging-Header.h"; sourceTree = "<group>"; };
+    97C146F31CF9000F007C117D = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GeneratedPluginRegistrant.h; sourceTree = "<group>"; };
+    97C146EA1CF9000F007C117D = {
+      isa = PBXSourcesBuildPhase;
+      buildActionMask = 2147483647;
+      files = (1498D2351E8E89220040F4C2, 7AFA3C8F1D35360C0083082E);
+      runOnlyForDeploymentPostprocessing = 0;
+    };
+    97C146EB1CF9000F007C117D = {
+      isa = PBXFrameworksBuildPhase;
+      buildActionMask = 2147483647;
+      files = ();
+      runOnlyForDeploymentPostprocessing = 0;
+    };
+    97C146EC1CF9000F007C117D = {
+      isa = PBXResourcesBuildPhase;
+      buildActionMask = 2147483647;
+      files = (97C146F41CF9000F007C117D, 97C146F51CF9000F007C117D);
+      runOnlyForDeploymentPostprocessing = 0;
+    };
+    9740EEB61CF901F6004384FC = {
+      isa = PBXShellScriptBuildPhase;
+      buildActionMask = 2147483647;
+      files = ();
+      inputPaths = ();
+      name = "Run Script";
+      outputPaths = ();
+      runOnlyForDeploymentPostprocessing = 0;
+      shellPath = /bin/sh;
+      shellScript = "/bin/sh \"$FLUTTER_ROOT/packages/flutter_tools/bin/xcode_backend.sh\" build";
+    };
+    3B06AD1E1E4923F5004D2608 = {
+      isa = PBXShellScriptBuildPhase;
+      buildActionMask = 2147483647;
+      files = ();
+      inputPaths = ("${TARGET_BUILD_DIR}/${INFOPLIST_PATH}");
+      name = "Thin Binary";
+      outputPaths = ();
+      runOnlyForDeploymentPostprocessing = 0;
+      shellPath = /bin/sh;
+      shellScript = "/bin/sh \"$FLUTTER_ROOT/packages/flutter_tools/bin/xcode_backend.sh\" embed_and_thin";
+    };
+    97C146E91CF9000F007C117D = {
+      isa = XCConfigurationList;
+      buildConfigurations = (97C147031CF9000F007C117D, 97C147041CF9000F007C117D, 249021D3217E4FDB00AE95B9);
+      defaultConfigurationIsVisible = 0;
+      defaultConfigurationName = Release;
+    };
+    97C146FA1CF9000F007C117D = {
+      isa = XCConfigurationList;
+      buildConfigurations = (97C147051CF9000F007C117D, 97C147061CF9000F007C117D, 249021D4217E4FDB00AE95B9);
+      defaultConfigurationIsVisible = 0;
+      defaultConfigurationName = Release;
+    };
+    97C147031CF9000F007C117D = {isa = XCBuildConfiguration; buildSettings = {ALWAYS_SEARCH_USER_PATHS = NO; CLANG_ENABLE_MODULES = YES; IPHONEOS_DEPLOYMENT_TARGET = 13.0; SDKROOT = iphoneos;}; name = Debug;};
+    97C147041CF9000F007C117D = {isa = XCBuildConfiguration; buildSettings = {ALWAYS_SEARCH_USER_PATHS = NO; CLANG_ENABLE_MODULES = YES; IPHONEOS_DEPLOYMENT_TARGET = 13.0; SDKROOT = iphoneos;}; name = Release;};
+    249021D3217E4FDB00AE95B9 = {isa = XCBuildConfiguration; buildSettings = {ALWAYS_SEARCH_USER_PATHS = NO; CLANG_ENABLE_MODULES = YES; IPHONEOS_DEPLOYMENT_TARGET = 13.0; SDKROOT = iphoneos;}; name = Profile;};
+    97C147051CF9000F007C117D = {
+      isa = XCBuildConfiguration;
+      baseConfigurationReference = 9740EEB21CF90195004384FC;
+      buildSettings = {
+        CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+        INFOPLIST_FILE = Runner/Info.plist;
+        LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks");
+        PRODUCT_BUNDLE_IDENTIFIER = com.example.matkaManagement;
+        PRODUCT_NAME = "$(TARGET_NAME)";
+        SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
+        SWIFT_VERSION = 5.0;
+      };
+      name = Debug;
+    };
+    97C147061CF9000F007C117D = {
+      isa = XCBuildConfiguration;
+      baseConfigurationReference = 7AFA3C8E1D35360C0083082F;
+      buildSettings = {
+        CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+        INFOPLIST_FILE = Runner/Info.plist;
+        LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks");
+        PRODUCT_BUNDLE_IDENTIFIER = com.example.matkaManagement;
+        PRODUCT_NAME = "$(TARGET_NAME)";
+        SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
+        SWIFT_VERSION = 5.0;
+      };
+      name = Release;
+    };
+    249021D4217E4FDB00AE95B9 = {
+      isa = XCBuildConfiguration;
+      baseConfigurationReference = 7AFA3C8E1D35360C0083082F;
+      buildSettings = {
+        CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+        INFOPLIST_FILE = Runner/Info.plist;
+        PRODUCT_BUNDLE_IDENTIFIER = com.example.matkaManagement;
+        PRODUCT_NAME = "$(TARGET_NAME)";
+        SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
+        SWIFT_VERSION = 5.0;
+      };
+      name = Profile;
+    };
+    9740EEB21CF90195004384FC = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Debug.xcconfig; path = Flutter/Debug.xcconfig; sourceTree = "<group>";};
+    7AFA3C8E1D35360C0083082F = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release.xcconfig; path = Flutter/Release.xcconfig; sourceTree = "<group>";};
+  };
+  rootObject = 97C146E61CF9000F007C117D;
+}

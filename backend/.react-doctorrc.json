@@ -1,0 +1,3 @@
+{
+  "exclude": ["public/**", "dist/**", "node_modules/**"]
+}
