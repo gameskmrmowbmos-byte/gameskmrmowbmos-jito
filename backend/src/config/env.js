@@ -34,12 +34,15 @@ module.exports = Object.freeze({
     process.env.JWT_ACCESS_SECRET || 'development_access_secret_change_me_123456',
   refreshSecret:
     process.env.JWT_REFRESH_SECRET || 'development_refresh_secret_change_me_12345',
-  accessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '15m',
-  refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
+  accessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '30d',
+  refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
+  refreshCookieMaxAgeDays:
+    Number(process.env.REFRESH_COOKIE_MAX_AGE_DAYS) || 30,
   allowedOrigins: splitOrigins(process.env.FRONTEND_URL),
   resetPasswordUrl:
     process.env.RESET_PASSWORD_URL || 'http://localhost:5173/reset-password',
   logLevel: process.env.LOG_LEVEL || 'info',
+  receiptTimezone: process.env.RECEIPT_TIMEZONE || 'Asia/Kolkata',
   showDevOtp:
     process.env.SHOW_DEV_OTP === 'true' || process.env.NODE_ENV !== 'production',
   otpExpiryMinutes: Number(process.env.OTP_EXPIRY_MINUTES) || 5,

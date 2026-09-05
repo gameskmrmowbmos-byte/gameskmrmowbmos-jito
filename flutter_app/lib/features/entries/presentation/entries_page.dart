@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:matka_management/core/widgets/loading_view.dart';
 import 'package:matka_management/features/entries/data/receipt_models.dart';
@@ -361,6 +362,8 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
                     ? StatusBadge(values[i])
                     : i == 8 && !header
                         ? StatusBadge(values[i])
+                        : i == 1 && !header
+                            ? _CopyableParchiNumber(values[i])
                         : i == 9 && !header && receipt != null
                             ? IconButton(
                                 tooltip: 'View receipt',
@@ -713,6 +716,36 @@ class _FilterTextField extends StatelessWidget {
   }
 }
 
+class _CopyableParchiNumber extends StatelessWidget {
+  const _CopyableParchiNumber(this.value);
+
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () async {
+        await Clipboard.setData(ClipboardData(text: value));
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Parchi number copied')),
+        );
+      },
+      child: Text(
+        value,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          color: entryBlue,
+          fontWeight: FontWeight.w800,
+          decoration: TextDecoration.underline,
+        ),
+      ),
+    );
+  }
+}
+
 class _ReceiptCard extends StatelessWidget {
   const _ReceiptCard({required this.receipt, required this.onView});
 
@@ -735,11 +768,7 @@ class _ReceiptCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: Text(
-                  receipt.receiptNumber,
-                  style: const TextStyle(
-                      color: entryBlue, fontWeight: FontWeight.w900),
-                ),
+                child: _CopyableParchiNumber(receipt.receiptNumber),
               ),
               StatusBadge(receipt.status),
             ],

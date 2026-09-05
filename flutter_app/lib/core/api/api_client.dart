@@ -69,6 +69,26 @@ class ApiClient {
         },
         onError: (error, handler) async {
           final request = error.requestOptions;
+          if (_isTransportError(error) &&
+              request.extra['apiFailoverAttempted'] != true) {
+            final fallbackBaseUrl = ApiConfig.fallbackBaseUrl(request.baseUrl);
+            if (fallbackBaseUrl != null) {
+              try {
+                final retryRequest = request.copyWith(
+                  baseUrl: fallbackBaseUrl,
+                  extra: <String, dynamic>{
+                    ...request.extra,
+                    'apiFailoverAttempted': true,
+                  },
+                );
+                final response = await _dio.fetch<dynamic>(retryRequest);
+                return handler.resolve(response);
+              } on DioException {
+                // Continue with the original error if both backends fail.
+              }
+            }
+          }
+
           final shouldRefresh = error.response?.statusCode == 401 &&
               request.path != ApiEndpoints.login &&
               request.path != ApiEndpoints.refresh &&
@@ -93,6 +113,13 @@ class ApiClient {
         },
       ),
     );
+  }
+
+  bool _isTransportError(DioException error) {
+    return error.type == DioExceptionType.connectionError ||
+        error.type == DioExceptionType.connectionTimeout ||
+        error.type == DioExceptionType.receiveTimeout ||
+        error.type == DioExceptionType.sendTimeout;
   }
 
   final SecureStorageService _storage;

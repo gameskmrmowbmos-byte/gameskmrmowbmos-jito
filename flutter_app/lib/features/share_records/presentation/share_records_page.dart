@@ -287,6 +287,7 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
                 ),
                 const SizedBox(height: 6),
                 DropdownButtonFormField<String>(
+                  key: ValueKey('market-${state.selectedMarketId ?? ''}'),
                   initialValue: state.selectedMarketId ?? '',
                   isExpanded: true,
                   decoration: const InputDecoration(
@@ -329,6 +330,7 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
                 ),
                 const SizedBox(height: 6),
                 DropdownButtonFormField<String>(
+                  key: ValueKey('session-${state.selectedSession}'),
                   initialValue: state.selectedSession,
                   isExpanded: true,
                   decoration: const InputDecoration(

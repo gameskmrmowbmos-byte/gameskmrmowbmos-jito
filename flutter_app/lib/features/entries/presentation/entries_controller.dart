@@ -148,6 +148,7 @@ class EntriesController extends StateNotifier<EntriesState> {
 
   void updateFilters(ReceiptFilters filters) {
     state = state.copyWith(filters: filters, page: 1);
+    loadReceipts(page: 1);
   }
 
   Future<void> search() => loadReceipts(page: 1);
