@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:matka_management/core/language/app_localizations.dart';
 import 'package:matka_management/core/widgets/loading_view.dart';
+import 'package:matka_management/features/auth/presentation/providers/auth_provider.dart';
 import 'package:matka_management/features/share_records/presentation/providers/share_records_provider.dart';
 import 'package:matka_management/features/share_records/presentation/widgets/a4_record_page_widget.dart';
 import 'package:matka_management/features/share_records/services/share_records_export_service.dart';
@@ -46,6 +47,7 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(shareRecordsControllerProvider);
+    final ownerName = ref.watch(authProvider).user?.ownerName;
     final isMobile = MediaQuery.sizeOf(context).width < 700;
 
     return ColoredBox(
@@ -99,6 +101,7 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
                         child: A4RecordPageWidget(
                           pageData: state.pages[i],
                           width: A4RecordPageWidget.exportWidth,
+                          ownerName: ownerName,
                         ),
                       ),
                   ],
@@ -241,165 +244,168 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
         border: Border.all(color: const Color(0xFFE2E8F0)),
         borderRadius: BorderRadius.circular(6),
       ),
-      child: Wrap(
-        spacing: 12,
-        runSpacing: 12,
-        crossAxisAlignment: WrapCrossAlignment.end,
-        children: [
-          // Date Filter
-          SizedBox(
-            width: isMobile ? double.infinity : 170,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  context.tr('DATE'),
-                  style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w900,
-                      color: Color(0xFF475569)),
-                ),
-                const SizedBox(height: 6),
-                OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    alignment: Alignment.centerLeft,
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    minimumSize: const Size.fromHeight(42),
-                  ),
-                  onPressed: () async {
-                    final picked = await showDatePicker(
-                      context: context,
-                      initialDate: state.filterDate,
-                      firstDate: DateTime(2020),
-                      lastDate: DateTime(2035),
-                    );
-                    if (picked != null) notifier.setFilterDate(picked);
-                  },
-                  icon: const Icon(Icons.calendar_month,
-                      size: 18, color: _bluePrimary),
-                  label: Text(dateStr,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final mobileFilterWidth = (constraints.maxWidth - 12) / 2;
+          return Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            crossAxisAlignment: WrapCrossAlignment.end,
+            children: [
+              // Date Filter
+              SizedBox(
+                width: isMobile ? mobileFilterWidth : 170,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.tr('DATE'),
                       style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF0F172A))),
-                ),
-              ],
-            ),
-          ),
-
-          // Market Filter
-          SizedBox(
-            width: isMobile ? double.infinity : 200,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  context.tr('MARKET'),
-                  style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w900,
-                      color: Color(0xFF475569)),
-                ),
-                const SizedBox(height: 6),
-                DropdownButtonFormField<String>(
-                  key: ValueKey('market-${state.selectedMarketId ?? ''}'),
-                  initialValue: state.selectedMarketId ?? '',
-                  isExpanded: true,
-                  decoration: const InputDecoration(
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    border: OutlineInputBorder(),
-                  ),
-                  items: [
-                    DropdownMenuItem(
-                      value: '',
-                      child: Text(context.tr('ALL MARKETS')),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF475569)),
                     ),
-                    for (final market in state.markets)
-                      DropdownMenuItem(
-                        value: market.id,
-                        child: Text(
-                          AppLocalizations.localizeMarketName(market.name),
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                    const SizedBox(height: 6),
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        alignment: Alignment.centerLeft,
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        minimumSize: const Size.fromHeight(42),
                       ),
-                  ],
-                  onChanged: (val) => notifier.setMarketId(val),
-                ),
-              ],
-            ),
-          ),
-
-          // Session Filter
-          SizedBox(
-            width: isMobile ? double.infinity : 170,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  context.tr('SESSION'),
-                  style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w900,
-                      color: Color(0xFF475569)),
-                ),
-                const SizedBox(height: 6),
-                DropdownButtonFormField<String>(
-                  key: ValueKey('session-${state.selectedSession}'),
-                  initialValue: state.selectedSession,
-                  isExpanded: true,
-                  decoration: const InputDecoration(
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    border: OutlineInputBorder(),
-                  ),
-                  items: [
-                    DropdownMenuItem(
-                        value: 'Open', child: Text(context.tr('OPEN'))),
-                    DropdownMenuItem(
-                        value: 'Close', child: Text(context.tr('CLOSE'))),
-                    DropdownMenuItem(
-                      value: 'All',
-                      child: Text(context.tr('ALL SESSIONS')),
+                      onPressed: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: state.filterDate,
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime(2035),
+                        );
+                        if (picked != null) notifier.setFilterDate(picked);
+                      },
+                      icon: const Icon(Icons.calendar_month,
+                          size: 18, color: _bluePrimary),
+                      label: Text(dateStr,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF0F172A))),
                     ),
                   ],
-                  onChanged: (val) {
-                    if (val != null) notifier.setSession(val);
-                  },
                 ),
-              ],
-            ),
-          ),
-
-          // Search Button
-          SizedBox(
-            width: isMobile ? double.infinity : 140,
-            height: 42,
-            child: FilledButton.icon(
-              style: FilledButton.styleFrom(backgroundColor: _bluePrimary),
-              onPressed: state.loading || state.exporting || state.sharing
-                  ? null
-                  : () => notifier.loadRecords(),
-              icon: const Icon(Icons.search, size: 18),
-              label: Text(
-                context.tr('Search'),
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontWeight: FontWeight.w800),
               ),
-            ),
-          ),
 
-          // Clear Button
-          SizedBox(
-            width: isMobile ? double.infinity : 110,
-            height: 42,
-            child: OutlinedButton(
-              onPressed: state.loading || state.exporting || state.sharing
-                  ? null
-                  : () => notifier.clearFilters(),
-              child: Text(context.tr('Clear')),
-            ),
-          ),
-        ],
+              // Market Filter
+              SizedBox(
+                width: isMobile ? mobileFilterWidth : 200,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.tr('MARKET'),
+                      style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF475569)),
+                    ),
+                    const SizedBox(height: 6),
+                    DropdownButtonFormField<String>(
+                      initialValue: state.selectedMarketId ?? '',
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        border: OutlineInputBorder(),
+                      ),
+                      items: [
+                        DropdownMenuItem(
+                          value: '',
+                          child: Text(context.tr('ALL MARKETS')),
+                        ),
+                        for (final market in state.markets)
+                          DropdownMenuItem(
+                            value: market.id,
+                            child: Text(
+                              AppLocalizations.localizeMarketName(market.name),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                      ],
+                      onChanged: (val) => notifier.setMarketId(val),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Session Filter
+              SizedBox(
+                width: isMobile ? mobileFilterWidth : 170,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.tr('SESSION'),
+                      style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF475569)),
+                    ),
+                    const SizedBox(height: 6),
+                    DropdownButtonFormField<String>(
+                      initialValue: state.selectedSession,
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        border: OutlineInputBorder(),
+                      ),
+                      items: [
+                        DropdownMenuItem(
+                            value: 'Open', child: Text(context.tr('OPEN'))),
+                        DropdownMenuItem(
+                            value: 'Close', child: Text(context.tr('CLOSE'))),
+                        DropdownMenuItem(
+                          value: 'All',
+                          child: Text(context.tr('ALL SESSIONS')),
+                        ),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) notifier.setSession(val);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+
+              // Search Button
+              SizedBox(
+                width: isMobile ? mobileFilterWidth : 140,
+                height: 42,
+                child: FilledButton.icon(
+                  style: FilledButton.styleFrom(backgroundColor: _bluePrimary),
+                  onPressed: state.loading || state.exporting || state.sharing
+                      ? null
+                      : () => notifier.loadRecords(),
+                  icon: const Icon(Icons.search, size: 18),
+                  label: Text(
+                    context.tr('Search'),
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ),
+
+              // Clear Button
+              SizedBox(
+                width: isMobile ? mobileFilterWidth : 110,
+                height: 42,
+                child: OutlinedButton(
+                  onPressed: state.loading || state.exporting || state.sharing
+                      ? null
+                      : () => notifier.clearFilters(),
+                  child: Text(context.tr('Clear')),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -499,6 +505,10 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
                                       child: A4RecordPageWidget(
                                         pageData: pageData,
                                         width: A4RecordPageWidget.exportWidth,
+                                        ownerName: ref
+                                            .read(authProvider)
+                                            .user
+                                            ?.ownerName,
                                       ),
                                     ),
                                   ),
@@ -599,6 +609,8 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
                               ? A4RecordPageWidget(
                                   pageData: state.selectedPage!,
                                   width: A4RecordPageWidget.exportWidth,
+                                  ownerName:
+                                      ref.read(authProvider).user?.ownerName,
                                 )
                               : const SizedBox.shrink(),
                         ),
@@ -815,6 +827,10 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
                                         child: A4RecordPageWidget(
                                           pageData: pageData,
                                           width: A4RecordPageWidget.exportWidth,
+                                          ownerName: ref
+                                              .read(authProvider)
+                                              .user
+                                              ?.ownerName,
                                         ),
                                       ),
                                     ),
@@ -922,6 +938,10 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
                                   ? A4RecordPageWidget(
                                       pageData: state.selectedPage!,
                                       width: A4RecordPageWidget.exportWidth,
+                                      ownerName: ref
+                                          .read(authProvider)
+                                          .user
+                                          ?.ownerName,
                                     )
                                   : const SizedBox.shrink(),
                             ),

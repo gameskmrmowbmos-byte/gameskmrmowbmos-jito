@@ -1,3 +1,6 @@
+import 'dart:math' as math;
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:matka_management/core/language/app_localizations.dart';
@@ -16,11 +19,13 @@ class RecordBoxWidget extends StatelessWidget {
   const RecordBoxWidget({
     required this.box,
     this.compact = false,
+    this.ownerName,
     super.key,
   });
 
   final RecordBoxData box;
   final bool compact;
+  final String? ownerName;
 
   @override
   Widget build(BuildContext context) {
@@ -68,10 +73,17 @@ class RecordBoxWidget extends StatelessWidget {
         final rowSize = 12.5 * scale * compactScale;
         final amountColumnWidth =
             (40 * scale * compactScale).clamp(28.0, 44.0).toDouble();
+        final columnGap = 8 * scale;
         final dateColumnWidth =
             (58 * scale * compactScale).clamp(42.0, 62.0).toDouble();
         final totalAmount = box.isOtc ? box.boxSubtotal * 2 : box.boxSubtotal;
         final contentWidth = boxWidth - (16 * scale);
+        final numberColumnWidth = _shareNumberColumnWidth(
+          context,
+          box,
+          rowSize,
+          headerSize,
+        );
         final itemList = Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -82,6 +94,8 @@ class RecordBoxWidget extends StatelessWidget {
                 session: box.session,
                 fontSize: rowSize,
                 verticalPadding: 2.5 * scale,
+                numberColumnWidth: numberColumnWidth,
+                columnGap: columnGap,
                 amountColumnWidth: amountColumnWidth,
               ),
           ],
@@ -183,8 +197,25 @@ class RecordBoxWidget extends StatelessWidget {
                       ],
                     ),
                     SizedBox(height: 7 * scale),
+                    if (ownerName != null && ownerName!.trim().isNotEmpty) ...[
+                      Text(
+                        ownerName!.trim().toUpperCase(),
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: const Color(0xFF111820),
+                          fontSize: 13 * scale,
+                          fontWeight: FontWeight.w900,
+                          height: 1,
+                          letterSpacing: 0,
+                        ),
+                      ),
+                      SizedBox(height: 3 * scale),
+                    ],
                     Text(
                       marketTitle,
+                      textAlign: TextAlign.center,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: const Color(0xFF111820),
@@ -199,27 +230,33 @@ class RecordBoxWidget extends StatelessWidget {
                     SizedBox(height: 5 * scale),
                     Padding(
                       padding: EdgeInsets.fromLTRB(5 * scale, 0, 5 * scale, 0),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: _BoxText(
-                              context.tr('NUMBER'),
-                              fontSize: headerSize,
-                              color: const Color(0xFF111820),
-                              weight: FontWeight.w900,
+                      child: Align(
+                        alignment: Alignment.center,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox(
+                              width: numberColumnWidth,
+                              child: _BoxText(
+                                context.tr('NUMBER'),
+                                fontSize: headerSize,
+                                color: const Color(0xFF111820),
+                                weight: FontWeight.w900,
+                              ),
                             ),
-                          ),
-                          SizedBox(
-                            width: amountColumnWidth,
-                            child: _BoxText(
-                              context.tr('AMT'),
-                              textAlign: TextAlign.right,
-                              fontSize: headerSize,
-                              color: const Color(0xFF111820),
-                              weight: FontWeight.w900,
+                            SizedBox(width: columnGap),
+                            SizedBox(
+                              width: amountColumnWidth,
+                              child: _BoxText(
+                                context.tr('AMT'),
+                                textAlign: TextAlign.right,
+                                fontSize: headerSize,
+                                color: const Color(0xFF111820),
+                                weight: FontWeight.w900,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                     SizedBox(height: 2 * scale),
@@ -237,29 +274,38 @@ class RecordBoxWidget extends StatelessWidget {
                     ],
                     const _PreviewRule(),
                     SizedBox(height: 7 * scale),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _BoxText(
-                            context.tr('TOTAL'),
-                            fontSize: headerSize,
-                            color: const Color(0xFF111820),
-                            weight: FontWeight.w900,
-                          ),
-                        ),
-                        SizedBox(
-                          width: amountColumnWidth,
-                          child: _BoxText(
-                            AppLocalizations.localizeDigits(
-                              _formatAmount(totalAmount),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 5 * scale),
+                      child: Align(
+                        alignment: Alignment.center,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox(
+                              width: numberColumnWidth,
+                              child: _BoxText(
+                                context.tr('TOTAL'),
+                                fontSize: headerSize,
+                                color: const Color(0xFF111820),
+                                weight: FontWeight.w900,
+                              ),
                             ),
-                            textAlign: TextAlign.right,
-                            fontSize: headerSize,
-                            color: const Color(0xFF111820),
-                            weight: FontWeight.w900,
-                          ),
+                            SizedBox(width: columnGap),
+                            SizedBox(
+                              width: amountColumnWidth,
+                              child: _BoxText(
+                                AppLocalizations.localizeDigits(
+                                  _formatAmount(totalAmount),
+                                ),
+                                textAlign: TextAlign.right,
+                                fontSize: headerSize,
+                                color: const Color(0xFF111820),
+                                weight: FontWeight.w900,
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   ],
                 ),
@@ -272,12 +318,63 @@ class RecordBoxWidget extends StatelessWidget {
   }
 }
 
+double _shareNumberColumnWidth(
+  BuildContext context,
+  RecordBoxData box,
+  double rowSize,
+  double headerSize,
+) {
+  var width = _measureShareText(
+    context.tr('NUMBER'),
+    TextStyle(fontSize: headerSize, fontWeight: FontWeight.w900),
+    Directionality.of(context),
+  );
+
+  for (final item in box.items) {
+    width = math.max(
+      width,
+      _measureShareText(
+        _formatShareReceiptNumber(item, box.session),
+        TextStyle(fontSize: rowSize, fontWeight: FontWeight.w800),
+        Directionality.of(context),
+      ),
+    );
+    for (final entry in item.jackpotEntries) {
+      width = math.max(
+        width,
+        _measureShareText(
+          '${entry.number} >',
+          TextStyle(fontSize: rowSize, fontWeight: FontWeight.w900),
+          Directionality.of(context),
+        ),
+      );
+    }
+  }
+
+  return width;
+}
+
+double _measureShareText(
+  String text,
+  TextStyle style,
+  ui.TextDirection textDirection,
+) {
+  final painter = TextPainter(
+    text: TextSpan(text: text, style: style),
+    textDirection: textDirection,
+    maxLines: 1,
+  )..layout();
+  return painter.width;
+}
+
 class _ShareReceiptItemRow extends StatelessWidget {
   const _ShareReceiptItemRow({
     required this.item,
     required this.session,
     required this.fontSize,
     required this.verticalPadding,
+    required this.numberColumnWidth,
+    required this.columnGap,
     required this.amountColumnWidth,
   });
 
@@ -285,6 +382,8 @@ class _ShareReceiptItemRow extends StatelessWidget {
   final String session;
   final double fontSize;
   final double verticalPadding;
+  final double numberColumnWidth;
+  final double columnGap;
   final double amountColumnWidth;
 
   @override
@@ -342,88 +441,73 @@ class _ShareReceiptItemRow extends StatelessWidget {
                     if (topLabel != null)
                       Padding(
                         padding: EdgeInsets.only(bottom: verticalPadding),
-                        child: Text(
-                          context.trMaybe(topLabel),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: _receiptAlphabetTextStyle(fontSize),
+                        child: Align(
+                          alignment: Alignment.center,
+                          child: SizedBox(
+                            width: numberColumnWidth +
+                                columnGap +
+                                amountColumnWidth,
+                            child: Text(
+                              context.trMaybe(topLabel),
+                              textAlign: TextAlign.left,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: _receiptAlphabetTextStyle(fontSize),
+                            ),
+                          ),
                         ),
                       ),
                     if (item.showMainEntry)
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
-                        children: [
-                          Expanded(
-                            child: Text.rich(
-                              TextSpan(
-                                children: [
-                                  if (numberParts.leadingArrow.isNotEmpty)
-                                    TextSpan(
-                                      text: '${numberParts.leadingArrow} ',
-                                      style: labelTextStyle,
-                                    ),
-                                  if (numberParts.beforeSuffix.isNotEmpty)
-                                    TextSpan(
-                                      text: AppLocalizations.localizeDigits(
-                                        numberParts.beforeSuffix,
-                                      ),
-                                      style: numberTextStyle,
-                                    ),
-                                  if (numberParts.suffix.isNotEmpty)
-                                    TextSpan(
-                                      text: AppLocalizations.localizeDigits(
-                                        '${numberParts.beforeSuffix.isEmpty ? '' : ' '}${numberParts.suffix}',
-                                      ),
-                                      style: labelTextStyle,
-                                    ),
-                                  if (numberParts.trailingArrow.isNotEmpty)
-                                    TextSpan(
-                                      text: ' ${numberParts.trailingArrow}',
-                                      style: labelTextStyle,
-                                    ),
-                                ],
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: numberTextStyle,
-                            ),
-                          ),
-                          SizedBox(
-                            width: amountColumnWidth,
-                            child: _BoxText(
-                              AppLocalizations.localizeDigits(
-                                item.effectiveDisplayAmount,
-                              ),
-                              textAlign: TextAlign.right,
-                              fontSize: fontSize,
-                              color: const Color(0xFF111820),
-                              weight: FontWeight.w900,
-                            ),
-                          ),
-                        ],
-                      ),
-                    for (final entry in visibleJackpotEntries)
-                      Padding(
-                        padding: EdgeInsets.only(top: verticalPadding),
+                      Align(
+                        alignment: Alignment.center,
                         child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
                           children: [
-                            Expanded(
-                              child: AlignedJackpotMarker(
-                                parentText: numberText,
-                                childText: AppLocalizations.localizeDigits(
-                                  '${entry.number} >',
+                            SizedBox(
+                              width: numberColumnWidth,
+                              child: Text.rich(
+                                TextSpan(
+                                  children: [
+                                    if (numberParts.leadingArrow.isNotEmpty)
+                                      TextSpan(
+                                        text: '${numberParts.leadingArrow} ',
+                                        style: labelTextStyle,
+                                      ),
+                                    if (numberParts.beforeSuffix.isNotEmpty)
+                                      TextSpan(
+                                        text: AppLocalizations.localizeDigits(
+                                          numberParts.beforeSuffix,
+                                        ),
+                                        style: numberTextStyle,
+                                      ),
+                                    if (numberParts.suffix.isNotEmpty)
+                                      TextSpan(
+                                        text: AppLocalizations.localizeDigits(
+                                          '${numberParts.beforeSuffix.isEmpty ? '' : ' '}${numberParts.suffix}',
+                                        ),
+                                        style: labelTextStyle,
+                                      ),
+                                    if (numberParts.trailingArrow.isNotEmpty)
+                                      TextSpan(
+                                        text: ' ${numberParts.trailingArrow}',
+                                        style: labelTextStyle,
+                                      ),
+                                  ],
                                 ),
-                                parentStyle: numberTextStyle,
-                                arrowStyle: jackpotArrowStyle,
-                                childStyle: jackpotTextStyle,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: numberTextStyle,
                               ),
                             ),
+                            SizedBox(width: columnGap),
                             SizedBox(
                               width: amountColumnWidth,
                               child: _BoxText(
-                                AppLocalizations.localizeDigits(entry.amount),
+                                AppLocalizations.localizeDigits(
+                                  item.effectiveDisplayAmount,
+                                ),
                                 textAlign: TextAlign.right,
                                 fontSize: fontSize,
                                 color: const Color(0xFF111820),
@@ -431,6 +515,42 @@ class _ShareReceiptItemRow extends StatelessWidget {
                               ),
                             ),
                           ],
+                        ),
+                      ),
+                    for (final entry in visibleJackpotEntries)
+                      Padding(
+                        padding: EdgeInsets.only(top: verticalPadding),
+                        child: Align(
+                          alignment: Alignment.center,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              SizedBox(
+                                width: numberColumnWidth,
+                                child: AlignedJackpotMarker(
+                                  parentText: numberText,
+                                  childText: AppLocalizations.localizeDigits(
+                                    '${entry.number} >',
+                                  ),
+                                  parentStyle: numberTextStyle,
+                                  arrowStyle: jackpotArrowStyle,
+                                  childStyle: jackpotTextStyle,
+                                ),
+                              ),
+                              SizedBox(width: columnGap),
+                              SizedBox(
+                                width: amountColumnWidth,
+                                child: _BoxText(
+                                  AppLocalizations.localizeDigits(entry.amount),
+                                  textAlign: TextAlign.right,
+                                  fontSize: fontSize,
+                                  color: const Color(0xFF111820),
+                                  weight: FontWeight.w900,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                   ],

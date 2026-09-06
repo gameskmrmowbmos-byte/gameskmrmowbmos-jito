@@ -7,6 +7,7 @@ class A4RecordPageWidget extends StatelessWidget {
   const A4RecordPageWidget({
     required this.pageData,
     this.width = exportWidth,
+    this.ownerName,
     super.key,
   });
 
@@ -16,6 +17,7 @@ class A4RecordPageWidget extends StatelessWidget {
 
   final A4RecordPageData pageData;
   final double width;
+  final String? ownerName;
 
   double get height => width / 1.414;
 
@@ -236,7 +238,10 @@ class A4RecordPageWidget extends StatelessWidget {
 
   Widget _boxForIndex(int index) {
     if (index >= pageData.boxes.length) return const SizedBox.expand();
-    return RecordBoxWidget(box: pageData.boxes[index]);
+    return RecordBoxWidget(
+      box: pageData.boxes[index],
+      ownerName: ownerName,
+    );
   }
 }
 
