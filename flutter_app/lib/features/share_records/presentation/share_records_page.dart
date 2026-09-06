@@ -292,87 +292,87 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
                 ),
               ),
 
-              // Market Filter
-              SizedBox(
-                width: isMobile ? mobileFilterWidth : 200,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      context.tr('MARKET'),
-                      style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w900,
-                          color: Color(0xFF475569)),
-                    ),
-                    const SizedBox(height: 6),
-                    DropdownButtonFormField<String>(
-                      initialValue: state.selectedMarketId ?? '',
-                      isExpanded: true,
-                      decoration: const InputDecoration(
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        border: OutlineInputBorder(),
-                      ),
-                      items: [
-                        DropdownMenuItem(
-                          value: '',
-                          child: Text(context.tr('ALL MARKETS')),
-                        ),
-                        for (final market in state.markets)
-                          DropdownMenuItem(
-                            value: market.id,
-                            child: Text(
-                              AppLocalizations.localizeMarketName(market.name),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                      ],
-                      onChanged: (val) => notifier.setMarketId(val),
-                    ),
-                  ],
+          // Market Filter
+          SizedBox(
+            width: isMobile ? double.infinity : 200,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.tr('MARKET'),
+                  style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF475569)),
                 ),
-              ),
+                const SizedBox(height: 6),
+                DropdownButtonFormField<String>(
+                  initialValue: state.selectedMarketId ?? '',
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    border: OutlineInputBorder(),
+                  ),
+                  items: [
+                    DropdownMenuItem(
+                      value: '',
+                      child: Text(context.tr('ALL MARKETS')),
+                    ),
+                    for (final market in state.markets)
+                      DropdownMenuItem(
+                        value: market.id,
+                        child: Text(
+                          AppLocalizations.localizeMarketName(market.name),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                  ],
+                  onChanged: (val) => notifier.setMarketId(val),
+                ),
+              ],
+            ),
+          ),
 
-              // Session Filter
-              SizedBox(
-                width: isMobile ? mobileFilterWidth : 170,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      context.tr('SESSION'),
-                      style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w900,
-                          color: Color(0xFF475569)),
-                    ),
-                    const SizedBox(height: 6),
-                    DropdownButtonFormField<String>(
-                      initialValue: state.selectedSession,
-                      isExpanded: true,
-                      decoration: const InputDecoration(
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        border: OutlineInputBorder(),
-                      ),
-                      items: [
-                        DropdownMenuItem(
-                            value: 'Open', child: Text(context.tr('OPEN'))),
-                        DropdownMenuItem(
-                            value: 'Close', child: Text(context.tr('CLOSE'))),
-                        DropdownMenuItem(
-                          value: 'All',
-                          child: Text(context.tr('ALL SESSIONS')),
-                        ),
-                      ],
-                      onChanged: (val) {
-                        if (val != null) notifier.setSession(val);
-                      },
+          // Session Filter
+          SizedBox(
+            width: isMobile ? double.infinity : 170,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.tr('SESSION'),
+                  style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF475569)),
+                ),
+                const SizedBox(height: 6),
+                DropdownButtonFormField<String>(
+                  initialValue: state.selectedSession,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    border: OutlineInputBorder(),
+                  ),
+                  items: [
+                    DropdownMenuItem(
+                        value: 'Open', child: Text(context.tr('OPEN'))),
+                    DropdownMenuItem(
+                        value: 'Close', child: Text(context.tr('CLOSE'))),
+                    DropdownMenuItem(
+                      value: 'All',
+                      child: Text(context.tr('ALL SESSIONS')),
                     ),
                   ],
+                  onChanged: (val) {
+                    if (val != null) notifier.setSession(val);
+                  },
                 ),
-              ),
+              ],
+            ),
+          ),
 
               // Search Button
               SizedBox(
