@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:matka_management/features/entries/data/receipt_models.dart';
 import 'package:matka_management/features/entries/data/receipt_repository.dart';
@@ -7,19 +9,15 @@ final searchReceiptControllerProvider =
   return SearchReceiptController(ref.read(receiptRepositoryProvider));
 });
 
-enum SearchMethod { receiptNumber, qrCode, printId, mobile }
+enum SearchMethod { receiptNumber, printId }
 
 extension SearchMethodLabel on SearchMethod {
   String get label {
     switch (this) {
       case SearchMethod.receiptNumber:
         return 'Parchi No.';
-      case SearchMethod.qrCode:
-        return 'QR Code';
       case SearchMethod.printId:
         return 'Print ID';
-      case SearchMethod.mobile:
-        return 'Mobile No.';
     }
   }
 
@@ -27,12 +25,8 @@ extension SearchMethodLabel on SearchMethod {
     switch (this) {
       case SearchMethod.receiptNumber:
         return 'Enter receipt number';
-      case SearchMethod.qrCode:
-        return 'Paste or scan QR text';
       case SearchMethod.printId:
         return 'Enter print ID';
-      case SearchMethod.mobile:
-        return 'Enter mobile number';
     }
   }
 }
@@ -42,7 +36,6 @@ class SearchReceiptState {
     this.method = SearchMethod.receiptNumber,
     this.query = '',
     this.detail,
-    this.mobileMatches = const [],
     this.loading = false,
     this.reprinting = false,
     this.error,
@@ -52,7 +45,6 @@ class SearchReceiptState {
   final SearchMethod method;
   final String query;
   final ReceiptDetail? detail;
-  final List<ReceiptSummary> mobileMatches;
   final bool loading;
   final bool reprinting;
   final String? error;
@@ -63,7 +55,6 @@ class SearchReceiptState {
     String? query,
     ReceiptDetail? detail,
     bool clearDetail = false,
-    List<ReceiptSummary>? mobileMatches,
     bool? loading,
     bool? reprinting,
     String? error,
@@ -75,7 +66,6 @@ class SearchReceiptState {
       method: method ?? this.method,
       query: query ?? this.query,
       detail: clearDetail ? null : detail ?? this.detail,
-      mobileMatches: mobileMatches ?? this.mobileMatches,
       loading: loading ?? this.loading,
       reprinting: reprinting ?? this.reprinting,
       error: clearError ? null : error ?? this.error,
@@ -88,13 +78,22 @@ class SearchReceiptController extends StateNotifier<SearchReceiptState> {
   SearchReceiptController(this._repository) : super(const SearchReceiptState());
 
   final ReceiptRepository _repository;
+  Timer? _searchDebounce;
+  int _searchRequestId = 0;
+
+  @override
+  void dispose() {
+    _searchDebounce?.cancel();
+    super.dispose();
+  }
 
   void setMethod(SearchMethod method) {
+    _searchDebounce?.cancel();
+    _searchRequestId++;
     state = state.copyWith(
       method: method,
       query: '',
       clearDetail: true,
-      mobileMatches: const [],
       clearError: true,
       clearMessage: true,
     );
@@ -102,54 +101,51 @@ class SearchReceiptController extends StateNotifier<SearchReceiptState> {
 
   void setQuery(String value) {
     state = state.copyWith(query: value, clearError: true, clearMessage: true);
+    _searchDebounce?.cancel();
+    if (value.trim().isEmpty) {
+      _searchRequestId++;
+      state = state.copyWith(clearDetail: true, loading: false);
+      return;
+    }
+    _searchDebounce = Timer(const Duration(milliseconds: 400), search);
   }
 
   void clear() {
+    _searchDebounce?.cancel();
+    _searchRequestId++;
     state = SearchReceiptState(method: state.method);
   }
 
   Future<void> search() async {
+    _searchDebounce?.cancel();
     final query = state.query.trim();
     if (query.isEmpty) {
       state = state.copyWith(error: 'Enter a search value');
       return;
     }
+    final requestId = ++_searchRequestId;
+    final method = state.method;
     state = state.copyWith(
       loading: true,
       clearError: true,
       clearMessage: true,
       clearDetail: true,
-      mobileMatches: const [],
     );
     try {
-      switch (state.method) {
+      switch (method) {
         case SearchMethod.receiptNumber:
           final detail = await _repository.searchReceiptNumber(query);
-          state = state.copyWith(loading: false, detail: detail);
-          break;
-        case SearchMethod.qrCode:
-          final detail = await _repository.searchQrText(query);
+          if (requestId != _searchRequestId) return;
           state = state.copyWith(loading: false, detail: detail);
           break;
         case SearchMethod.printId:
           final detail = await _repository.searchPrintId(query);
+          if (requestId != _searchRequestId) return;
           state = state.copyWith(loading: false, detail: detail);
-          break;
-        case SearchMethod.mobile:
-          final result = await _repository.searchMobile(query);
-          state = state.copyWith(
-            loading: false,
-            mobileMatches: result.receipts,
-            message: result.receipts.isEmpty
-                ? 'No receipts found for this mobile number'
-                : null,
-          );
-          if (result.receipts.length == 1) {
-            await selectReceipt(result.receipts.first.id);
-          }
           break;
       }
     } on Object catch (error) {
+      if (requestId != _searchRequestId) return;
       state = state.copyWith(loading: false, error: error.toString());
     }
   }

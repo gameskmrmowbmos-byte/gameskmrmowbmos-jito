@@ -28,6 +28,10 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(shareRecordsControllerProvider.notifier).refresh();
+    });
   }
 
   @override
@@ -211,6 +215,16 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
                 ],
               ),
             ),
+          ),
+        if (isMobile)
+          IconButton(
+            tooltip: context.tr('Refresh'),
+            onPressed: state.loading || state.exporting || state.sharing
+                ? null
+                : () => ref
+                    .read(shareRecordsControllerProvider.notifier)
+                    .loadRecords(),
+            icon: const Icon(Icons.refresh, color: _bluePrimary),
           ),
       ],
     );

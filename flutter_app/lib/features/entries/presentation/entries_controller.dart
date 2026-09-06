@@ -102,6 +102,10 @@ class EntriesController extends StateNotifier<EntriesState> {
     await Future.wait([loadMarkets(), loadReceipts()]);
   }
 
+  Future<void> refresh() async {
+    await Future.wait([loadMarkets(), loadReceipts()]);
+  }
+
   Future<void> loadMarkets() async {
     try {
       final markets = await _repository.getMarkets();
@@ -148,6 +152,7 @@ class EntriesController extends StateNotifier<EntriesState> {
 
   void updateFilters(ReceiptFilters filters) {
     state = state.copyWith(filters: filters, page: 1);
+    loadReceipts(page: 1);
   }
 
   Future<void> search() => loadReceipts(page: 1);

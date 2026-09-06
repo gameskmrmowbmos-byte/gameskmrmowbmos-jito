@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:matka_management/core/widgets/loading_view.dart';
 import 'package:matka_management/features/entries/data/receipt_models.dart';
@@ -16,6 +17,15 @@ class EntriesPage extends ConsumerStatefulWidget {
 class _EntriesPageState extends ConsumerState<EntriesPage> {
   final _receiptController = TextEditingController();
   final _numberController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(entriesControllerProvider.notifier).refresh();
+    });
+  }
 
   @override
   void dispose() {
@@ -54,10 +64,25 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
           icon: Icons.receipt_long_outlined,
           title: 'Entries',
           subtitle: 'View and manage all saved entries',
-          trailing: OutlinedButton.icon(
-            onPressed: null,
-            icon: const Icon(Icons.ios_share),
-            label: const Text('Export'),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              OutlinedButton.icon(
+                onPressed: null,
+                icon: const Icon(Icons.ios_share),
+                label: const Text('Export'),
+              ),
+              const SizedBox(width: 8),
+              OutlinedButton.icon(
+                onPressed: state.loading
+                    ? null
+                    : () => ref
+                        .read(entriesControllerProvider.notifier)
+                        .refresh(),
+                icon: const Icon(Icons.refresh),
+                label: const Text('Refresh'),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 24),
@@ -107,6 +132,19 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
           ref.read(entriesControllerProvider.notifier).loadReceipts(),
       child: ListView(
         children: [
+          Align(
+            alignment: Alignment.centerRight,
+            child: OutlinedButton.icon(
+              onPressed: state.loading
+                  ? null
+                  : () => ref
+                      .read(entriesControllerProvider.notifier)
+                      .refresh(),
+              icon: const Icon(Icons.refresh),
+              label: const Text('Refresh'),
+            ),
+          ),
+          const SizedBox(height: 12),
           _filters(state, compact: true),
           const SizedBox(height: 18),
           const NumberedTitle('2', 'Entries List'),
@@ -361,6 +399,8 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
                     ? StatusBadge(values[i])
                     : i == 8 && !header
                         ? StatusBadge(values[i])
+                        : i == 1 && !header
+                            ? _CopyableParchiNumber(values[i])
                         : i == 9 && !header && receipt != null
                             ? IconButton(
                                 tooltip: 'View receipt',
@@ -713,6 +753,36 @@ class _FilterTextField extends StatelessWidget {
   }
 }
 
+class _CopyableParchiNumber extends StatelessWidget {
+  const _CopyableParchiNumber(this.value);
+
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () async {
+        await Clipboard.setData(ClipboardData(text: value));
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Parchi number copied')),
+        );
+      },
+      child: Text(
+        value,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          color: entryBlue,
+          fontWeight: FontWeight.w800,
+          decoration: TextDecoration.underline,
+        ),
+      ),
+    );
+  }
+}
+
 class _ReceiptCard extends StatelessWidget {
   const _ReceiptCard({required this.receipt, required this.onView});
 
@@ -735,11 +805,7 @@ class _ReceiptCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: Text(
-                  receipt.receiptNumber,
-                  style: const TextStyle(
-                      color: entryBlue, fontWeight: FontWeight.w900),
-                ),
+                child: _CopyableParchiNumber(receipt.receiptNumber),
               ),
               StatusBadge(receipt.status),
             ],

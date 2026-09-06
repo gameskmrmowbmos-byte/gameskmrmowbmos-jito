@@ -8,7 +8,7 @@ class ShareRecordsState {
   const ShareRecordsState({
     required this.filterDate,
     this.selectedMarketId,
-    this.selectedSession = 'Open',
+    this.selectedSession = 'All',
     this.markets = const [],
     this.records = const [],
     this.pages = const [],
@@ -93,6 +93,7 @@ class ShareRecordsNotifier extends StateNotifier<ShareRecordsState> {
   }
 
   final ShareRecordsRepository _repository;
+  int _loadRequestId = 0;
 
   Future<void> init() async {
     state = state.copyWith(loading: true, clearError: true);
@@ -109,6 +110,7 @@ class ShareRecordsNotifier extends StateNotifier<ShareRecordsState> {
   }
 
   Future<void> loadRecords() async {
+    final requestId = ++_loadRequestId;
     state = state.copyWith(
         loading: true, clearError: true, clearStatusMessage: true);
     try {
@@ -133,6 +135,7 @@ class ShareRecordsNotifier extends StateNotifier<ShareRecordsState> {
         sessionName: state.selectedSession,
       );
 
+      if (requestId != _loadRequestId) return;
       state = state.copyWith(
         loading: false,
         records: response.records,
@@ -141,6 +144,7 @@ class ShareRecordsNotifier extends StateNotifier<ShareRecordsState> {
         selectedPageIndex: 0,
       );
     } catch (e) {
+      if (requestId != _loadRequestId) return;
       state = state.copyWith(
         loading: false,
         error: 'Failed to fetch share records',
@@ -148,8 +152,22 @@ class ShareRecordsNotifier extends StateNotifier<ShareRecordsState> {
     }
   }
 
+  Future<void> refresh() async {
+    try {
+      final markets = await _repository.getMarkets();
+      state = state.copyWith(markets: markets);
+      await loadRecords();
+    } catch (e) {
+      state = state.copyWith(
+        loading: false,
+        error: 'Failed to refresh share records',
+      );
+    }
+  }
+
   void setFilterDate(DateTime date) {
     state = state.copyWith(filterDate: date);
+    loadRecords();
   }
 
   void setMarketId(String? marketId) {
@@ -157,17 +175,19 @@ class ShareRecordsNotifier extends StateNotifier<ShareRecordsState> {
       selectedMarketId: marketId,
       clearMarket: marketId == null || marketId.isEmpty,
     );
+    loadRecords();
   }
 
   void setSession(String session) {
     state = state.copyWith(selectedSession: session);
+    loadRecords();
   }
 
   void clearFilters() {
     state = state.copyWith(
       filterDate: DateTime.now(),
       clearMarket: true,
-      selectedSession: 'Open',
+      selectedSession: 'All',
     );
     loadRecords();
   }

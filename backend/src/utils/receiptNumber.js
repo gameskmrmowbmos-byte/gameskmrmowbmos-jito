@@ -1,19 +1,64 @@
 const Receipt = require('../models/Receipt');
+const env = require('../config/env');
+
+function zonedDateParts(date) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: env.receiptTimezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+  return Object.fromEntries(
+    parts
+      .filter(({ type }) => type !== 'literal')
+      .map(({ type, value }) => [type, Number(value)]),
+  );
+}
+
+function zonedMidnightUtc(year, month, day) {
+  const approximate = new Date(Date.UTC(year, month - 1, day));
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: env.receiptTimezone,
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
+    second: 'numeric',
+    hourCycle: 'h23',
+  }).formatToParts(approximate);
+  const values = Object.fromEntries(
+    parts
+      .filter(({ type }) => type !== 'literal')
+      .map(({ type, value }) => [type, Number(value)]),
+  );
+  const observed = Date.UTC(
+    values.year,
+    values.month - 1,
+    values.day,
+    values.hour,
+    values.minute,
+    values.second,
+  );
+  return new Date(approximate.getTime() - (observed - approximate.getTime()));
+}
 
 /**
  * Generates a unique receipt number like RC-20260803-0012
  */
 async function generateReceiptNumber() {
-  const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, ''); // YYYYMMDD
-  
-  // Find the latest receipt for today to determine the sequence number
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
-  const todayEnd = new Date();
-  todayEnd.setHours(23, 59, 59, 999);
+  const now = new Date();
+  const { year, month, day } = zonedDateParts(now);
+  const dateStr = `${year}${String(month).padStart(2, '0')}${String(day).padStart(2, '0')}`;
+  const todayStart = zonedMidnightUtc(year, month, day);
+  const tomorrowStart = zonedMidnightUtc(
+    new Date(Date.UTC(year, month - 1, day + 1)).getUTCFullYear(),
+    new Date(Date.UTC(year, month - 1, day + 1)).getUTCMonth() + 1,
+    new Date(Date.UTC(year, month - 1, day + 1)).getUTCDate(),
+  );
 
   const lastReceipt = await Receipt.findOne({
-    date: { $gte: todayStart, $lte: todayEnd }
+    date: { $gte: todayStart, $lt: tomorrowStart },
   }).sort({ createdAt: -1 });
 
   let sequence = 1;
