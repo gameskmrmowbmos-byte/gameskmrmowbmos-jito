@@ -176,61 +176,65 @@ const createReceipt = asyncHandler(async (req, res) => {
   const totalAmount = isOtc ? baseTotalAmount * 2 : baseTotalAmount;
   const totalItems = validated.items.length;
 
-  const sessionDB = await mongoose.startSession();
-  sessionDB.startTransaction();
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const sessionDB = await mongoose.startSession();
+    sessionDB.startTransaction();
+    let committed = false;
 
-  try {
-    const receiptNumber = await generateReceiptNumber();
+    try {
+      const receiptNumber = await generateReceiptNumber();
 
-    const receipt = new Receipt({
-      receiptNumber,
-      date: new Date(),
-      market: validated.market._id,
-      session: validated.session,
-      totalAmount,
-      totalItems,
-      isOtc,
-      operator: req.user._id,
-      customerName,
-      customerMobile,
-      notes,
-    });
+      const receipt = new Receipt({
+        receiptNumber,
+        date: new Date(),
+        market: validated.market._id,
+        session: validated.session,
+        totalAmount,
+        totalItems,
+        isOtc,
+        operator: req.user._id,
+        customerName,
+        customerMobile,
+        notes,
+      });
 
-    await receipt.save({ session: sessionDB });
+      await receipt.save({ session: sessionDB });
 
-    const receiptItemsToInsert = validated.items.map(item => ({
-      receipt: receipt._id,
-      type: item.type,
-      number: item.number?.toString(),
-      amount: item.amount,
-      mode: item.mode,
-      betType: item.betType,
-      betSubtype: item.betSubtype,
-      sessionOverride: item.sessionOverride,
-      isJackpot: item.isJackpot,
-      components: item.components,
-    }));
+      const receiptItemsToInsert = validated.items.map(item => ({
+        receipt: receipt._id,
+        type: item.type,
+        number: item.number?.toString(),
+        amount: item.amount,
+        mode: item.mode,
+        betType: item.betType,
+        betSubtype: item.betSubtype,
+        sessionOverride: item.sessionOverride,
+        isJackpot: item.isJackpot,
+        components: item.components,
+      }));
 
-    const receiptItems = await ReceiptItem.insertMany(receiptItemsToInsert, {
-      session: sessionDB,
-    });
+      const receiptItems = await ReceiptItem.insertMany(receiptItemsToInsert, {
+        session: sessionDB,
+      });
 
-    await sessionDB.commitTransaction();
-    sessionDB.endSession();
+      await sessionDB.commitTransaction();
+      committed = true;
+      sessionDB.endSession();
 
-    const populatedReceipt = await Receipt.findById(receipt._id)
-      .populate('market', 'name code')
-      .populate('operator', 'fullName username');
+      const populatedReceipt = await Receipt.findById(receipt._id)
+        .populate('market', 'name code')
+        .populate('operator', 'fullName username');
 
-    return success(res, {
-      statusCode: 201,
-      message: 'Receipt created successfully',
-      data: { receipt: populatedReceipt, items: receiptItems },
-    });
-  } catch (error) {
-    await sessionDB.abortTransaction();
-    sessionDB.endSession();
-    throw error;
+      return success(res, {
+        statusCode: 201,
+        message: 'Receipt created successfully',
+        data: { receipt: populatedReceipt, items: receiptItems },
+      });
+    } catch (error) {
+      if (!committed) await sessionDB.abortTransaction();
+      sessionDB.endSession();
+      if (committed || error?.code !== 11000 || attempt === 2) throw error;
+    }
   }
 });
 
