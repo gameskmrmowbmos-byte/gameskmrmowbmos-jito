@@ -129,6 +129,13 @@ class ApiClient {
 
   Dio get dio => _dio;
 
+  Future<bool> hasValidAccessToken() async {
+    final token = await _storage.readAccessToken();
+    return token != null &&
+        token.isNotEmpty &&
+        !_isTokenExpiredOrExpiring(token);
+  }
+
   bool _isTokenExpiredOrExpiring(String token) {
     try {
       final parts = token.split('.');

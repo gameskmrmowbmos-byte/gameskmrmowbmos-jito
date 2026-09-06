@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { api, apiMessage } from '../api/client.js';
+import { formatDate } from '../utils/dateFormatters.js';
 
 export default function Users() {
   const qc = useQueryClient();
@@ -31,60 +32,107 @@ export default function Users() {
         <input aria-label="Search users by name, mobile, or username" placeholder="Search name/mobile/username" value={search} onChange={(e) => setSearch(e.target.value)} />
         <button onClick={() => refetch()} disabled={isFetching}>{isFetching ? 'Refreshing...' : 'Refresh'}</button>
       </div>
-      {isError && <div className="alert error">Unable to fetch users. {apiMessage(error)} <button onClick={() => refetch()}>Retry</button></div>}
-      {action.error && <div className="alert error">{apiMessage(action.error)}</div>}
-      <div className="table-wrap">
-        <table>
-          <thead><tr><th>Name</th><th>Mobile</th><th>Email</th><th>Registered On</th><th>Approval</th><th>Entry Access</th><th>Subscription</th><th>Device Login</th><th>Actions</th></tr></thead>
-          <tbody>
-            {isLoading && <tr><td colSpan="9">Loading...</td></tr>}
-            {!isLoading && !isError && !(data || []).length && <tr><td colSpan="9">No registered users found.</td></tr>}
-            {!isError && (data || []).map((user) => (
-              <tr key={user.id}>
-                <td><strong>{user.fullName}</strong><br /><span className="muted">{user.email}</span></td>
-                <td>{user.phoneNumber || '-'}</td>
-                <td><Badge value={user.emailVerified ? 'VERIFIED' : 'NOT VERIFIED'} /></td>
-                <td>{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '-'}</td>
-                <td><Badge value={user.approvalStatus} /></td>
-                <td><Badge value={user.entryAccessBlocked ? 'BLOCKED' : 'ALLOWED'} /></td>
-                <td><Badge value={`${user.accessStatus?.subscriptionType || user.subscriptionType} ${user.accessStatus?.subscriptionStatus || ''}`} /></td>
-                <td>{user.activeDeviceIdMasked ? <><Badge value="Active Device" /><br /><span className="muted">{user.activeDeviceIdMasked}</span></> : <Badge value="Not Bound" />}</td>
-                <td className="actions">
-                  {user.approvalStatus !== 'APPROVED' && <button onClick={() => runAction(user, 'approve')}>Approve</button>}
-                  {user.entryAccessBlocked ? (
-                    <button onClick={() => runAction(user, 'unblock')}>Unblock</button>
-                  ) : (
-                    user.approvalStatus === 'APPROVED' && <button onClick={() => runAction(user, 'block')}>Block</button>
-                  )}
-                  <button onClick={() => runAction(user, 'reset-device')}>Reset Device Login</button>
-                  <button className="primary" onClick={() => setRechargeUser(user)}>Recharge</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <UserAlerts
+        isError={isError}
+        error={error}
+        onRetry={refetch}
+        actionError={action.error}
+      />
+      <UsersTable
+        users={data}
+        isLoading={isLoading}
+        isError={isError}
+        onAction={runAction}
+        onRecharge={setRechargeUser}
+      />
       {rechargeUser && <RechargeModal user={rechargeUser} onClose={() => setRechargeUser(null)} />}
       {confirmAction && (
-        <div className="modal-backdrop">
-          <div className="modal">
-            <h2>{confirmAction.type === 'approve' ? 'Approve User?' : 'Reset Device Login?'}</h2>
-            <p>
-              {confirmAction.type === 'approve'
-                ? `Approve "${confirmAction.user.fullName}" and start their trial if it has not started yet?`
-                : 'This will sign this account out from its currently registered device and allow login from another device.'}
-            </p>
-            <div className="modal-actions">
-              <button onClick={() => setConfirmAction(null)}>Cancel</button>
-              <button className="primary" onClick={() => {
-                action.mutate({ id: confirmAction.user.id, type: confirmAction.type });
-                setConfirmAction(null);
-              }}>{confirmAction.type === 'approve' ? 'Approve' : 'Reset Device'}</button>
-            </div>
-          </div>
-        </div>
+        <ConfirmActionModal
+          action={confirmAction}
+          onCancel={() => setConfirmAction(null)}
+          onConfirm={() => {
+            action.mutate({ id: confirmAction.user.id, type: confirmAction.type });
+            setConfirmAction(null);
+          }}
+        />
       )}
     </section>
+  );
+}
+
+function UserAlerts({ isError, error, onRetry, actionError }) {
+  return (
+    <>
+      {isError && <div className="alert error">Unable to fetch users. {apiMessage(error)} <button onClick={onRetry}>Retry</button></div>}
+      {actionError && <div className="alert error">{apiMessage(actionError)}</div>}
+    </>
+  );
+}
+
+function UsersTable({ users, isLoading, isError, onAction, onRecharge }) {
+  const rows = users || [];
+  return (
+    <div className="table-wrap">
+      <table>
+        <thead><tr><th>Name</th><th>Mobile</th><th>Email</th><th>Registered On</th><th>Approval</th><th>Entry Access</th><th>Subscription</th><th>Device Login</th><th>Actions</th></tr></thead>
+        <tbody>
+          {isLoading && <tr><td colSpan="9">Loading...</td></tr>}
+          {!isLoading && !isError && !rows.length && <tr><td colSpan="9">No registered users found.</td></tr>}
+          {!isError && rows.map((user) => <UserRow key={user.id} user={user} onAction={onAction} onRecharge={onRecharge} />)}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function UserRow({ user, onAction, onRecharge }) {
+  return (
+    <tr>
+      <td><strong>{user.fullName}</strong><br /><span className="muted">{user.email}</span></td>
+      <td>{user.phoneNumber || '-'}</td>
+      <td><Badge value={user.emailVerified ? 'VERIFIED' : 'NOT VERIFIED'} /></td>
+      <td>{formatDate(user.createdAt)}</td>
+      <td><Badge value={user.approvalStatus} /></td>
+      <td><Badge value={user.entryAccessBlocked ? 'BLOCKED' : 'ALLOWED'} /></td>
+      <td><Badge value={`${user.accessStatus?.subscriptionType || user.subscriptionType} ${user.accessStatus?.subscriptionStatus || ''}`} /></td>
+      <td>{user.activeDeviceIdMasked ? <><Badge value="Active Device" /><br /><span className="muted">{user.activeDeviceIdMasked}</span></> : <Badge value="Not Bound" />}</td>
+      <td className="actions">
+        <UserActionButtons user={user} onAction={onAction} onRecharge={onRecharge} />
+      </td>
+    </tr>
+  );
+}
+
+function UserActionButtons({ user, onAction, onRecharge }) {
+  return (
+    <>
+      {user.approvalStatus !== 'APPROVED' && <button onClick={() => onAction(user, 'approve')}>Approve</button>}
+      {user.entryAccessBlocked ? (
+        <button onClick={() => onAction(user, 'unblock')}>Unblock</button>
+      ) : (
+        user.approvalStatus === 'APPROVED' && <button onClick={() => onAction(user, 'block')}>Block</button>
+      )}
+      <button onClick={() => onAction(user, 'reset-device')}>Reset Device Login</button>
+      <button className="primary" onClick={() => onRecharge(user)}>Recharge</button>
+    </>
+  );
+}
+
+function ConfirmActionModal({ action, onCancel, onConfirm }) {
+  const isApprove = action.type === 'approve';
+  return (
+    <div className="modal-backdrop">
+      <div className="modal">
+        <h2>{isApprove ? 'Approve User?' : 'Reset Device Login?'}</h2>
+        <p>{isApprove
+          ? `Approve "${action.user.fullName}" and start their trial if it has not started yet?`
+          : 'This will sign this account out from its currently registered device and allow login from another device.'}</p>
+        <div className="modal-actions">
+          <button onClick={onCancel}>Cancel</button>
+          <button className="primary" onClick={onConfirm}>{isApprove ? 'Approve' : 'Reset Device'}</button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -113,7 +161,7 @@ function RechargeModal({ user, onClose }) {
     <div className="modal-backdrop">
       <div className="modal">
         <h2>Recharge {user.fullName}</h2>
-        <p>Current expiry: {user.subscriptionExpiryDate ? new Date(user.subscriptionExpiryDate).toLocaleDateString() : 'Not active'}</p>
+        <p>Current expiry: {user.subscriptionExpiryDate ? formatDate(user.subscriptionExpiryDate) : 'Not active'}</p>
         <label>Plan<select onChange={(e) => {
           const plan = (plans || []).find((item) => item._id === e.target.value);
           setForm({ ...form, planId: plan?._id, validityDays: plan?.validityDays || form.validityDays, amount: plan?.price ?? form.amount });

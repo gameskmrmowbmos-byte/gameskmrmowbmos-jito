@@ -13,6 +13,7 @@ import { useAuth } from './context/AuthContext.jsx';
 
 function RequireAdmin({ children }) {
   const auth = useAuth();
+  if (!auth.ready) return null;
   return auth.isAuthenticated ? children : <Navigate to="/login" replace />;
 }
 

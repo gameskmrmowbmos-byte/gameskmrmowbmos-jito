@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { api, apiMessage } from '../api/client.js';
+import { formatDate } from '../utils/dateFormatters.js';
 
 export default function Dashboard() {
   const { data, isLoading, isError, error, refetch } = useQuery({
@@ -63,7 +64,7 @@ function Panel({ title, rows }) {
               <tr key={row.id || row._id}>
                 <td>{row.fullName || row.username}</td>
                 <td><span className="badge">{row.accessStatus?.subscriptionStatus}</span></td>
-                <td>{row.subscriptionExpiryDate ? new Date(row.subscriptionExpiryDate).toLocaleDateString() : '-'}</td>
+                <td>{formatDate(row.subscriptionExpiryDate)}</td>
               </tr>
             ))}
             {!rows.length && <tr><td colSpan="3">No records</td></tr>}

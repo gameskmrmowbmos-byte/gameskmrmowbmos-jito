@@ -180,6 +180,7 @@ class RecordBoxWidget extends StatelessWidget {
                                 fontSize: tinySize,
                                 color: const Color(0xFF111820),
                                 weight: FontWeight.w800,
+                                fitText: true,
                               ),
                               SizedBox(height: 3 * scale),
                               _BoxText(
@@ -190,6 +191,7 @@ class RecordBoxWidget extends StatelessWidget {
                                 fontSize: tinySize,
                                 color: const Color(0xFF111820),
                                 weight: FontWeight.w800,
+                                fitText: true,
                               ),
                             ],
                           ),
@@ -646,6 +648,7 @@ class _BoxText extends StatelessWidget {
     required this.weight,
     this.textAlign = TextAlign.left,
     this.shadows,
+    this.fitText = false,
   });
 
   final String text;
@@ -654,9 +657,33 @@ class _BoxText extends StatelessWidget {
   final FontWeight weight;
   final TextAlign textAlign;
   final List<Shadow>? shadows;
+  final bool fitText;
 
   @override
   Widget build(BuildContext context) {
+    final textWidget = Text(
+      text,
+      maxLines: 1,
+      overflow: fitText ? TextOverflow.visible : TextOverflow.ellipsis,
+      textAlign: textAlign,
+      style: TextStyle(
+        fontSize: fontSize,
+        fontWeight: weight,
+        color: color,
+        height: 1,
+        letterSpacing: 0,
+        shadows: shadows,
+      ),
+    );
+    if (fitText) {
+      return FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: textAlign == TextAlign.right
+            ? Alignment.centerRight
+            : Alignment.centerLeft,
+        child: textWidget,
+      );
+    }
     return Text(
       text,
       maxLines: 1,
