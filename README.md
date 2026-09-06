@@ -45,48 +45,44 @@ shared demonstration.
 ## Root Folder Structure
 
 ```text
-matkamanagement/
-|-- admin/
+gameskmrmowbmos-jito/
+|-- admin/                         # React/Vite browser administration panel
 |   |-- src/
-|   |   |-- App.jsx
-|   |   |-- main.jsx
-|   |   |-- api/
-|   |   |-- context/
-|   |   |-- layouts/
-|   |   |-- pages/
-|   |   `-- styles.css
+|   |   |-- api/                   # API client and request helpers
+|   |   |-- context/               # Authentication and shared React state
+|   |   |-- layouts/               # Admin shell and navigation layouts
+|   |   |-- pages/                 # Dashboard, markets, users, settings, etc.
+|   |   |-- App.jsx                # Admin routes and page composition
+|   |   |-- main.jsx               # React entry point
+|   |   `-- styles.css             # Admin panel styles
+|   |-- index.html
 |   |-- package.json
 |   |-- eslint.config.js
-|   |-- index.html
 |   |-- vite.config.js
-|   `-- vercel.json
-|   |-- .env.example
-|-- backend/
-|   |-- src/
-|   |-- scripts/
-|   |-- tests/
-|   |-- public/
+|   `-- vercel.json                # Vercel deployment configuration
+|-- backend/                       # Node.js/Express/MongoDB API
+|   |-- src/                       # Application source
+|   |-- scripts/                   # Seed, migration, and syntax scripts
+|   |-- tests/                     # Node test-runner tests
+|   |-- public/                    # Generated Flutter web bundle for deployment
 |   |-- package.json
 |   |-- .env.example
 |   |-- doctor.config.json
 |   `-- README.md
-|-- flutter_app/
-|   |-- lib/
-|   |-- test/
-|   |-- android/
-|   |-- ios/
-|   |-- web/
-|   |-- windows/
-|   |-- linux/
-|   |-- macos/
-|   |-- assets/
+|-- flutter_app/                   # Flutter client application
+|   |-- lib/                       # Dart application source
+|   |-- test/                      # Dart unit and widget tests
+|   |-- assets/                    # Images and icons referenced by pubspec.yaml
+|   |-- android/ | ios/             # Mobile platform runners
+|   |-- web/                       # Flutter web bootstrap files
+|   |-- windows/ | linux/ | macos/  # Desktop platform runners
 |   |-- pubspec.yaml
 |   `-- README.md
-|-- project_documentation/
-|-- scratch/
-|-- .gitignore
-|-- README copy.md
-`-- README.md
+|-- project_documentation/         # Architecture, API, setup, and deployment docs
+|-- scratch/                       # Temporary local scripts and experiments
+|-- README.md                      # Main project guide
+|-- README copy.md                 # Older README copy
+`-- .gitignore                     # Local, build, dependency, and secret exclusions
 ```
 
 `backend/public/` contains the compiled Flutter web application served by the
@@ -184,35 +180,58 @@ request concerns, and validators protect input contracts.
 ```text
 flutter_app/
 |-- lib/
-|   |-- main.dart
+|   |-- main.dart                    # Flutter entry point
 |   |-- core/
+|   |   |-- api/                     # Dio client, endpoints, exceptions, adapters
+|   |   |-- config/                  # API URL and environment configuration
+|   |   |-- constants/               # Shared app constants
+|   |   |-- language/                # Localization and language selection
+|   |   |-- network/                 # Network client helpers
+|   |   |-- providers/               # Global Riverpod providers
+|   |   |-- routing/                 # GoRouter route definitions
+|   |   |-- storage/                 # Secure token and local storage services
+|   |   |-- theme/                   # Material theme configuration
+|   |   |-- utils/                   # Formatting and context helpers
+|   |   `-- widgets/                 # Reusable core widgets
 |   |-- features/
-|   |-- layout/
-|   `-- shared/
-|-- test/
+|   |   |-- auth/                    # Login, registration, password, auth state
+|   |   |-- entries/                 # Entry list, filters, details, receipt models
+|   |   |-- new_entry/               # Manual entry form, validation, receipt preview
+|   |   |-- printed_receipts/        # Printed receipt history and printing services
+|   |   |-- receipt_search/          # Parchi number and print ID search
+|   |   `-- share_records/           # Share PNG filters, layouts, export, sharing
+|   |-- layout/                      # Main responsive app layout and navigation
+|   `-- shared/                      # Cross-feature widgets and shared UI helpers
 |-- assets/
-|-- android/
-|-- ios/
-|   |-- core/                    # api, config, language, routing, theme, storage
-|   |-- features/                # auth, entries, new_entry, reports, sharing
-|   |-- layout/                  # application shell and responsive layout
-|   `-- shared/                  # reusable widgets and shared helpers
-|-- test/                        # Flutter widget, unit, and integration tests
-|-- assets/                      # icons and images declared in pubspec.yaml
-|-- android/ | ios/ | web/       # platform runners and web bootstrap
-|-- windows/ | linux/ | macos/   # desktop runners
-| --- | --- |
-| `flutter_app/lib/main.dart` | Flutter app entry point. |
-| `flutter_app/lib/core/routing/app_router.dart` | GoRouter route definitions. |
-| `flutter_app/lib/core/api/api_client.dart` | Main API client wrapper. |
-| `flutter_app/lib/core/api/api_endpoints.dart` | API endpoint constants. |
-| `flutter_app/lib/core/config/api_config.dart` | API base URL and environment config. |
-| `flutter_app/lib/core/storage/secure_storage_service.dart` | Token/local storage wrapper. |
-| `flutter_app/lib/core/theme/app_theme.dart` | Material theme configuration. |
-| `flutter_app/lib/layout/main_layout.dart` | Main app shell/layout. |
-| `flutter_app/lib/shared/widgets/app_sidebar.dart` | Sidebar and menu ordering. |
-| `flutter_app/pubspec.yaml` | Flutter dependencies, SDK constraints, and assets. |
+|   |-- icons/                       # Application icons
+|   `-- images/                      # Application images
+|-- test/                            # Unit, widget, and feature tests
+|-- android/                         # Android Gradle project
+|-- ios/                             # iOS Xcode/CocoaPods project
+|-- web/                             # Web index and Flutter bootstrap
+|-- windows/                         # Windows runner and CMake files
+|-- linux/                           # Linux runner and CMake files
+|-- macos/                           # macOS runner and Xcode project
+|-- analysis_options.yaml            # Dart analyzer rules
+|-- pubspec.yaml                     # Dependencies, assets, and app metadata
+|-- run_windows.bat                  # Windows run helper
+`-- README.md                        # Flutter-specific setup notes
+```
 
+
+### Flutter Core Files
+
+| File | Purpose |
+| --- | --- |
+| `flutter_app/lib/main.dart` | Starts the Flutter application. |
+| `flutter_app/lib/core/api/api_client.dart` | Shared Dio client, authentication headers, refresh, and failover. |
+| `flutter_app/lib/core/api/api_endpoints.dart` | Backend endpoint constants. |
+| `flutter_app/lib/core/config/api_config.dart` | Render/local API URLs and `API_BASE_URL` override handling. |
+| `flutter_app/lib/core/storage/secure_storage_service.dart` | Stores access and refresh tokens per platform. |
+| `flutter_app/lib/core/routing/app_router.dart` | Authenticated and unauthenticated routes. |
+| `flutter_app/lib/layout/main_layout.dart` | Main responsive application shell. |
+| `flutter_app/lib/shared/widgets/app_sidebar.dart` | Sidebar navigation and logout action. |
+| `flutter_app/pubspec.yaml` | Flutter SDK constraints, packages, assets, and fonts. |
 ### Flutter Feature Folders
 
 | Folder | Purpose |

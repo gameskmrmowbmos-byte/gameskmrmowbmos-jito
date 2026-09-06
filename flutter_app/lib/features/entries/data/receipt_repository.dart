@@ -164,25 +164,12 @@ class ReceiptRepository {
     return ReceiptDetail.fromJson(response);
   }
 
-  Future<ReceiptDetail> searchQrText(String value) {
-    final receiptNumber = _receiptNumberFromQr(value);
-    return searchReceiptNumber(receiptNumber);
-  }
-
   Future<ReceiptDetail> searchPrintId(String printId) async {
     final response = await _api.getJson(
       ApiEndpoints.printSearch,
       query: {'printId': printId.trim()},
     );
     return ReceiptDetail.fromJson(response);
-  }
-
-  Future<ReceiptPageResult> searchMobile(String mobile) {
-    return getReceipts(
-      filters: ReceiptFilters.defaults().copyWith(customerMobile: mobile),
-      page: 1,
-      limit: 20,
-    );
   }
 
   Future<List<ReceiptMarket>> getMarkets() async {
@@ -230,19 +217,6 @@ class ReceiptRepository {
     );
   }
 
-  String _receiptNumberFromQr(String value) {
-    final trimmed = value.trim();
-    final uri = Uri.tryParse(trimmed);
-    final queryReceipt = uri?.queryParameters['receiptNumber'] ??
-        uri?.queryParameters['receipt'] ??
-        uri?.queryParameters['rc'];
-    if (queryReceipt != null && queryReceipt.trim().isNotEmpty) {
-      return queryReceipt.trim();
-    }
-    final match =
-        RegExp(r'RC-[A-Za-z0-9-]+', caseSensitive: false).firstMatch(trimmed);
-    return match?.group(0) ?? trimmed;
-  }
 }
 
 int _intValue(Object? value, {int fallback = 0}) {

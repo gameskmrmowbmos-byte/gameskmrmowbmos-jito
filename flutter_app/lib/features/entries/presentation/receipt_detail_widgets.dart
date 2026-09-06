@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import 'package:matka_management/features/entries/data/receipt_models.dart';
 import 'package:matka_management/shared/widgets/aligned_jackpot_marker.dart';
@@ -276,12 +277,26 @@ class ReceiptDetailsPanel extends StatelessWidget {
                       style: TextStyle(fontWeight: FontWeight.w800),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      receipt.receiptNumber,
-                      style: const TextStyle(
-                        color: entryBlue,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
+                    InkWell(
+                      onTap: () async {
+                        await Clipboard.setData(
+                          ClipboardData(text: receipt.receiptNumber),
+                        );
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Parchi number copied'),
+                          ),
+                        );
+                      },
+                      child: Text(
+                        receipt.receiptNumber,
+                        style: const TextStyle(
+                          color: entryBlue,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          decoration: TextDecoration.underline,
+                        ),
                       ),
                     ),
                   ],

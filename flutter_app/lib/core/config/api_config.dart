@@ -4,9 +4,31 @@ class ApiConfig {
   ApiConfig._();
 
   static const _definedBaseUrl = String.fromEnvironment('API_BASE_URL');
+  static const _renderBaseUrl =
+      'https://gameskmrmowbmos-jito.onrender.com/api';
 
   static String get baseUrl {
-    if (_definedBaseUrl.isNotEmpty) return _normalize(_definedBaseUrl);
+    return baseUrls.first;
+  }
+
+  static List<String> get baseUrls {
+    if (_definedBaseUrl.isNotEmpty) return [_normalize(_definedBaseUrl)];
+
+    return <String>[
+      _renderBaseUrl,
+      _localBaseUrl,
+    ];
+  }
+
+  static String? fallbackBaseUrl(String currentBaseUrl) {
+    final currentIndex = baseUrls.indexOf(currentBaseUrl);
+    if (currentIndex == -1 || currentIndex + 1 >= baseUrls.length) {
+      return null;
+    }
+    return baseUrls[currentIndex + 1];
+  }
+
+  static String get _localBaseUrl {
     if (kIsWeb) return 'http://localhost:5002/api';
     if (defaultTargetPlatform == TargetPlatform.android) {
       return 'http://10.0.2.2:5002/api';

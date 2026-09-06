@@ -19,7 +19,7 @@ const cookieOptions = {
   secure: env.isProduction,
   sameSite: env.isProduction ? 'none' : 'lax',
   path: '/api/auth',
-  maxAge: 7 * 24 * 60 * 60 * 1000,
+  maxAge: env.refreshCookieMaxAgeDays * 24 * 60 * 60 * 1000,
 };
 const clearCookieOptions = {
   httpOnly: cookieOptions.httpOnly,

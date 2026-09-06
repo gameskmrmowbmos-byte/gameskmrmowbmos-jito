@@ -116,8 +116,6 @@ class _SearchReceiptPageState extends ConsumerState<SearchReceiptPage> {
             padding: EdgeInsets.all(24),
             child: Center(child: CircularProgressIndicator()),
           ),
-        if (state.mobileMatches.isNotEmpty && detail == null)
-          _mobileMatches(state.mobileMatches),
         if (detail != null) ...[
           _resultCard(detail),
           const SizedBox(height: 12),
@@ -141,7 +139,7 @@ class _SearchReceiptPageState extends ConsumerState<SearchReceiptPage> {
           const SizedBox(height: 8),
           _actions(detail, compact: true),
         ],
-        if (!state.loading && detail == null && state.mobileMatches.isEmpty)
+        if (!state.loading && detail == null)
           _emptyState(state),
       ],
     );
@@ -215,9 +213,7 @@ class _SearchReceiptPageState extends ConsumerState<SearchReceiptPage> {
           ),
         const SizedBox(height: 8),
         Text(
-          state.method == SearchMethod.qrCode
-              ? 'Paste QR content containing a receipt number or verification URL.'
-              : 'Example: RC-030826-0012',
+            'Example: RC-030826-0012',
           style: const TextStyle(color: Color(0xFF64748B), fontSize: 12),
         ),
       ],
@@ -238,13 +234,9 @@ class _SearchReceiptPageState extends ConsumerState<SearchReceiptPage> {
             : state.method.label,
         hintText: state.method.hint,
         prefixIcon: Icon(
-          state.method == SearchMethod.qrCode
-              ? Icons.qr_code_scanner
-              : state.method == SearchMethod.printId
-                  ? Icons.print_outlined
-                  : state.method == SearchMethod.mobile
-                      ? Icons.phone_android
-                      : Icons.receipt_long_outlined,
+            state.method == SearchMethod.printId
+              ? Icons.print_outlined
+              : Icons.receipt_long_outlined,
         ),
         filled: true,
         fillColor: Colors.white,
@@ -367,43 +359,6 @@ class _SearchReceiptPageState extends ConsumerState<SearchReceiptPage> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _mobileMatches(List<ReceiptSummary> receipts) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const NumberedTitle('2', 'Matching Receipts'),
-        const SizedBox(height: 8),
-        for (final receipt in receipts)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Material(
-              color: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(5),
-                side: const BorderSide(color: entryLine),
-              ),
-              child: ListTile(
-                title: Text(
-                  receipt.receiptNumber,
-                  style: const TextStyle(
-                    color: entryBlue,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                subtitle: Text(
-                  '${formatDateTime(receipt.date)}\n${receipt.market?.name ?? '-'} - ${receipt.session.toUpperCase()}',
-                ),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => ref
-                    .read(searchReceiptControllerProvider.notifier)
-                    .selectReceipt(receipt.id),
-              ),
-            ),
-          ),
-      ],
     );
   }
 
@@ -547,7 +502,7 @@ class _QuickTips extends StatelessWidget {
         borderRadius: BorderRadius.circular(5),
       ),
       child: const Text(
-        'Quick Tips\nEnter the full receipt number for quick search.\nQR mode accepts pasted scanner text.\nPrint ID search resolves the related receipt.',
+        'Quick Tips\nEnter a receipt number or print ID.\nResults update automatically as you type.',
         style: TextStyle(height: 1.45),
       ),
     );
