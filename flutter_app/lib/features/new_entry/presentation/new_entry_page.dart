@@ -1493,6 +1493,25 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
     _persistCurrentDraft();
   }
 
+  void _fillAmountBelow(int index) {
+    if (index < 0 || index >= _manualEntries.length) return;
+    final value = _manualEntries[index].amount.text.trim();
+    if (!_isValidAmountText(value) || index >= _manualEntries.length - 1) {
+      return;
+    }
+    setState(() {
+      for (var targetIndex = index + 1;
+          targetIndex < _manualEntries.length;
+          targetIndex++) {
+        _manualEntries[targetIndex].amount.value = TextEditingValue(
+          text: value,
+          selection: TextSelection.collapsed(offset: value.length),
+        );
+      }
+    });
+    _handleManualEntriesChanged();
+  }
+
   void _selectAutoType(String typeId) {
     setState(() {
       _selectedAutoTypeId = typeId;
@@ -2081,6 +2100,7 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
                       onAmountFillStart: _startAmountFill,
                       onAmountFillHover: _hoverAmountFill,
                       onAmountFillEnd: _endAmountFill,
+                      onMobileAmountFill: _fillAmountBelow,
                     ),
                 ],
               ),
@@ -2126,7 +2146,6 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
         const SizedBox(height: 12),
         _ActionBar(
           onClear: _clearAll,
-          onSave: () => _save(print: false),
           onSaveAndPrint: () => _save(print: true),
           canSave: _canSave,
           isLoading: _saving || _isLoadingData,
@@ -2219,6 +2238,7 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
             onAmountFillStart: _startAmountFill,
             onAmountFillHover: _hoverAmountFill,
             onAmountFillEnd: _endAmountFill,
+            onMobileAmountFill: _fillAmountBelow,
           ),
         const SizedBox(height: 16),
         const _SectionTitle(number: '5.', label: 'PREVIEW (RECEIPT)'),
@@ -2248,7 +2268,6 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
         const SizedBox(height: 8),
         _ActionBar(
           onClear: _clearAll,
-          onSave: () => _save(print: false),
           onSaveAndPrint: () => _save(print: true),
           canSave: _canSave,
           isLoading: _saving || _isLoadingData,
@@ -2597,6 +2616,7 @@ class _BetTable extends StatelessWidget {
     required this.onAmountFillStart,
     required this.onAmountFillHover,
     required this.onAmountFillEnd,
+    required this.onMobileAmountFill,
   });
 
   final List<_BetEntry> entries;
@@ -2614,6 +2634,7 @@ class _BetTable extends StatelessWidget {
   final ValueChanged<int> onAmountFillStart;
   final ValueChanged<int> onAmountFillHover;
   final VoidCallback onAmountFillEnd;
+  final ValueChanged<int> onMobileAmountFill;
 
   @override
   Widget build(BuildContext context) {
@@ -2667,6 +2688,7 @@ class _BetTable extends StatelessWidget {
                 onAmountFillStart: onAmountFillStart,
                 onAmountFillHover: onAmountFillHover,
                 onAmountFillEnd: onAmountFillEnd,
+                onMobileAmountFill: onMobileAmountFill,
                 onChanged: onChanged,
                 onSubmitted: () => onSubmitRow(index),
                 onDelete: () => onDelete(index),
@@ -2713,6 +2735,7 @@ class _BetRow extends StatefulWidget {
     required this.onAmountFillStart,
     required this.onAmountFillHover,
     required this.onAmountFillEnd,
+    required this.onMobileAmountFill,
     required this.onChanged,
     required this.onSubmitted,
     required this.onDelete,
@@ -2727,6 +2750,7 @@ class _BetRow extends StatefulWidget {
   final ValueChanged<int> onAmountFillStart;
   final ValueChanged<int> onAmountFillHover;
   final VoidCallback onAmountFillEnd;
+  final ValueChanged<int> onMobileAmountFill;
   final VoidCallback onChanged;
   final VoidCallback onSubmitted;
   final VoidCallback onDelete;
@@ -2825,6 +2849,23 @@ class _BetRowState extends State<_BetRow> {
     _focusJackpotNumber(newIndex);
   }
 
+  void _fillJackpotAmountBelow(int index) {
+    if (index < 0 || index >= entry.jackpotAmounts.length) return;
+    final value = entry.jackpotAmounts[index].text.trim();
+    if (!_isValidAmountText(value) || index >= entry.jackpotRowCount - 1) {
+      return;
+    }
+    for (var targetIndex = index + 1;
+        targetIndex < entry.jackpotRowCount;
+        targetIndex++) {
+      entry.jackpotAmounts[targetIndex].value = TextEditingValue(
+        text: value,
+        selection: TextSelection.collapsed(offset: value.length),
+      );
+    }
+    onChanged();
+  }
+
   @override
   Widget build(BuildContext context) {
     final isFamily = _familyNumber(entry.number.text) != null;
@@ -2902,6 +2943,7 @@ class _BetRowState extends State<_BetRow> {
                   onFillStart: () => widget.onAmountFillStart(index),
                   onFillHover: () => widget.onAmountFillHover(index),
                   onFillEnd: widget.onAmountFillEnd,
+                  onMobileFill: () => widget.onMobileAmountFill(index),
                   onSubmitted: widget.onSubmitted,
                   onChanged: onChanged,
                 ),
@@ -2984,6 +3026,7 @@ class _BetRowState extends State<_BetRow> {
                 onAdd: entry.jackpotRowCount >= 10 ? null : _addJackpotRow,
                 onNumberSubmitted: _submitJackpotNumber,
                 onAmountSubmitted: _submitJackpotAmount,
+                onMobileAmountFill: _fillJackpotAmountBelow,
                 onChanged: onChanged,
               ),
             ),
@@ -3004,6 +3047,7 @@ class _JackpotEntryRows extends StatelessWidget {
     required this.onAdd,
     required this.onNumberSubmitted,
     required this.onAmountSubmitted,
+    required this.onMobileAmountFill,
     required this.onChanged,
   });
 
@@ -3016,6 +3060,7 @@ class _JackpotEntryRows extends StatelessWidget {
   final VoidCallback? onAdd;
   final ValueChanged<int> onNumberSubmitted;
   final ValueChanged<int> onAmountSubmitted;
+  final ValueChanged<int> onMobileAmountFill;
   final VoidCallback onChanged;
 
   @override
@@ -3056,6 +3101,7 @@ class _JackpotEntryRows extends StatelessWidget {
                       ? TextInputAction.next
                       : TextInputAction.done,
                   onSubmitted: () => onAmountSubmitted(index),
+                  onMobileFill: () => onMobileAmountFill(index),
                   onChanged: onChanged,
                 ),
               ],
@@ -3093,6 +3139,7 @@ class _JackpotSmallField extends StatelessWidget {
     this.allowDecimal = false,
     this.textInputAction,
     this.onSubmitted,
+    this.onMobileFill,
   });
 
   final TextEditingController controller;
@@ -3105,50 +3152,79 @@ class _JackpotSmallField extends StatelessWidget {
   final bool allowDecimal;
   final TextInputAction? textInputAction;
   final VoidCallback? onSubmitted;
+  final VoidCallback? onMobileFill;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       width: width,
       height: height,
-      child: TextField(
-        controller: controller,
-        focusNode: focusNode,
-        textAlign: TextAlign.center,
-        textInputAction: textInputAction,
-        keyboardType: allowDecimal
-            ? const TextInputType.numberWithOptions(decimal: true)
-            : TextInputType.number,
-        inputFormatters: [
-          allowDecimal
-              ? const _DecimalAmountInputFormatter()
-              : const _LocalizedDigitsOnlyInputFormatter(),
-          LengthLimitingTextInputFormatter(maxLength),
-        ],
-        onChanged: (_) => onChanged(),
-        onSubmitted: (_) => onSubmitted?.call(),
-        style: TextStyle(
-          fontSize: compact ? 11 : 12,
-          fontWeight: FontWeight.w900,
-          height: 1,
-        ),
-        decoration: InputDecoration(
-          counterText: '',
-          filled: true,
-          fillColor: Colors.white,
-          contentPadding: EdgeInsets.zero,
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(2),
-            borderSide: const BorderSide(color: Color(0xFF566175)),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(2),
-            borderSide: const BorderSide(
-              color: _NewEntryPageState._blue,
-              width: 2,
+      child: Stack(
+        children: [
+          TextField(
+            controller: controller,
+            focusNode: focusNode,
+            textAlign: TextAlign.center,
+            textInputAction: textInputAction,
+            keyboardType: allowDecimal
+                ? const TextInputType.numberWithOptions(decimal: true)
+                : TextInputType.number,
+            inputFormatters: [
+              allowDecimal
+                  ? const _DecimalAmountInputFormatter()
+                  : const _LocalizedDigitsOnlyInputFormatter(),
+              LengthLimitingTextInputFormatter(maxLength),
+            ],
+            onChanged: (_) => onChanged(),
+            onSubmitted: (_) => onSubmitted?.call(),
+            style: TextStyle(
+              fontSize: compact ? 11 : 12,
+              fontWeight: FontWeight.w900,
+              height: 1,
+            ),
+            decoration: InputDecoration(
+              counterText: '',
+              filled: true,
+              fillColor: Colors.white,
+              contentPadding: EdgeInsets.zero,
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(2),
+                borderSide: const BorderSide(color: Color(0xFF566175)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(2),
+                borderSide: const BorderSide(
+                  color: _NewEntryPageState._blue,
+                  width: 2,
+                ),
+              ),
             ),
           ),
-        ),
+          if (allowDecimal && onMobileFill != null)
+            Positioned(
+              right: 0,
+              bottom: 0,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: compact ? onMobileFill : null,
+                child: SizedBox(
+                  width: compact ? 18 : 8,
+                  height: compact ? 18 : 8,
+                  child: Align(
+                    alignment: Alignment.bottomRight,
+                    child: Container(
+                      width: compact ? 7 : 5,
+                      height: compact ? 7 : 5,
+                      decoration: BoxDecoration(
+                        color: _NewEntryPageState._blue,
+                        border: Border.all(color: Colors.white, width: 1),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -3310,6 +3386,7 @@ class _AmountFillField extends StatelessWidget {
     required this.onFillStart,
     required this.onFillHover,
     required this.onFillEnd,
+    required this.onMobileFill,
     required this.onChanged,
     required this.onSubmitted,
   });
@@ -3322,6 +3399,7 @@ class _AmountFillField extends StatelessWidget {
   final VoidCallback onFillStart;
   final VoidCallback onFillHover;
   final VoidCallback onFillEnd;
+  final VoidCallback onMobileFill;
   final VoidCallback onChanged;
   final VoidCallback onSubmitted;
 
@@ -3354,14 +3432,15 @@ class _AmountFillField extends StatelessWidget {
               bottom: compact ? 1 : 2,
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
+                onTap: compact ? onMobileFill : null,
                 onPanStart: (_) => onFillStart(),
                 onPanEnd: (_) => onFillEnd(),
                 onPanCancel: onFillEnd,
                 child: MouseRegion(
                   cursor: SystemMouseCursors.precise,
                   child: Container(
-                    width: compact ? 12 : 10,
-                    height: compact ? 12 : 10,
+                      width: compact ? 28 : 10,
+                      height: compact ? 28 : 10,
                     alignment: Alignment.bottomRight,
                     child: Container(
                       width: compact ? 8 : 6,
@@ -3521,30 +3600,6 @@ class _AutoConfigPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (compact) ...[
-            _AutoConfigTypeSelector(
-              configs: configs,
-              selectedId: selectedType?.id ?? '',
-              compact: true,
-              onSelected: onTypeSelected,
-            ),
-            const SizedBox(height: 10),
-          ],
-          _AutoConfigHeader(
-            type: selectedType,
-            subtype: selectedSubtype,
-            compact: compact,
-          ),
-          if (selectedType?.requiresSubtype == true) ...[
-            const SizedBox(height: 10),
-            _AutoConfigSubtypeSelector(
-              subtypes: selectedType?.subtypes ?? const [],
-              selectedId: selectedSubtype?.id,
-              useDropdown: _isMotorAutoType(selectedType),
-              onSelected: onSubtypeSelected,
-            ),
-          ],
-          const SizedBox(height: 12),
           _AutoConfigSearchBar(
             searchController: searchController,
             columns: showNumberTable ? const <int>[] : availableColumns,
@@ -6316,7 +6371,6 @@ class _TotalTile extends StatelessWidget {
 class _ActionBar extends StatelessWidget {
   const _ActionBar({
     required this.onClear,
-    required this.onSave,
     required this.onSaveAndPrint,
     required this.canSave,
     required this.compact,
@@ -6324,7 +6378,6 @@ class _ActionBar extends StatelessWidget {
   });
 
   final VoidCallback onClear;
-  final VoidCallback onSave;
   final VoidCallback onSaveAndPrint;
   final bool canSave;
   final bool compact;
@@ -6342,17 +6395,6 @@ class _ActionBar extends StatelessWidget {
               background: Colors.white,
               foreground: _NewEntryPageState._red,
               onPressed: onClear,
-              compact: true,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _ActionButton(
-              label: isLoading ? 'SAVING...' : 'SAVE (F5)',
-              icon: Icons.save_outlined,
-              background: _NewEntryPageState._blue,
-              foreground: Colors.white,
-              onPressed: !isLoading ? onSave : null,
               compact: true,
             ),
           ),
@@ -6380,16 +6422,6 @@ class _ActionBar extends StatelessWidget {
             background: Colors.white,
             foreground: _NewEntryPageState._red,
             onPressed: onClear,
-          ),
-        ),
-        const SizedBox(width: 24),
-        Expanded(
-          child: _ActionButton(
-            label: 'SAVE (F5)',
-            icon: Icons.save_outlined,
-            background: _NewEntryPageState._blue,
-            foreground: Colors.white,
-            onPressed: !isLoading ? onSave : null,
           ),
         ),
         const SizedBox(width: 24),
