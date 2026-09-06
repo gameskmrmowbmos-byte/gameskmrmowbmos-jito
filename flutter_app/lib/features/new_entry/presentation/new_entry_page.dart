@@ -10,10 +10,12 @@ import 'package:matka_management/core/language/language_provider.dart';
 import 'package:matka_management/features/auth/data/models/access_status.dart';
 import 'package:matka_management/features/auth/presentation/providers/auth_provider.dart';
 import 'package:matka_management/features/entries/data/receipt_models.dart';
+import 'package:matka_management/features/entries/presentation/entries_controller.dart';
 import 'package:matka_management/features/new_entry/data/entry_type_config.dart';
 import 'package:matka_management/features/new_entry/data/game_config_models.dart';
 import 'package:matka_management/features/new_entry/presentation/new_entry_controller.dart';
 import 'package:matka_management/features/new_entry/presentation/new_entry_draft_provider.dart';
+import 'package:matka_management/features/share_records/presentation/providers/share_records_provider.dart';
 import 'package:matka_management/shared/widgets/aligned_jackpot_marker.dart';
 import 'package:matka_management/shared/widgets/status_screens.dart';
 
@@ -1819,6 +1821,13 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
         throw StateError(AppLocalizations.trCurrent('Receipt was not saved.'));
       }
       if (!mounted) return;
+
+      unawaited(
+        ref.read(entriesControllerProvider.notifier).refresh(),
+      );
+      unawaited(
+        ref.read(shareRecordsControllerProvider.notifier).refresh(),
+      );
 
       final mId = market.id;
       _clearAll();

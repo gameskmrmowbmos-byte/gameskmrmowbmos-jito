@@ -102,6 +102,10 @@ class EntriesController extends StateNotifier<EntriesState> {
     await Future.wait([loadMarkets(), loadReceipts()]);
   }
 
+  Future<void> refresh() async {
+    await Future.wait([loadMarkets(), loadReceipts()]);
+  }
+
   Future<void> loadMarkets() async {
     try {
       final markets = await _repository.getMarkets();

@@ -152,6 +152,19 @@ class ShareRecordsNotifier extends StateNotifier<ShareRecordsState> {
     }
   }
 
+  Future<void> refresh() async {
+    try {
+      final markets = await _repository.getMarkets();
+      state = state.copyWith(markets: markets);
+      await loadRecords();
+    } catch (e) {
+      state = state.copyWith(
+        loading: false,
+        error: 'Failed to refresh share records',
+      );
+    }
+  }
+
   void setFilterDate(DateTime date) {
     state = state.copyWith(filterDate: date);
     loadRecords();

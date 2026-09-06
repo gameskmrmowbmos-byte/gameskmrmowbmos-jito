@@ -19,6 +19,15 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
   final _numberController = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(entriesControllerProvider.notifier).refresh();
+    });
+  }
+
+  @override
   void dispose() {
     _receiptController.dispose();
     _numberController.dispose();
@@ -55,10 +64,25 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
           icon: Icons.receipt_long_outlined,
           title: 'Entries',
           subtitle: 'View and manage all saved entries',
-          trailing: OutlinedButton.icon(
-            onPressed: null,
-            icon: const Icon(Icons.ios_share),
-            label: const Text('Export'),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              OutlinedButton.icon(
+                onPressed: null,
+                icon: const Icon(Icons.ios_share),
+                label: const Text('Export'),
+              ),
+              const SizedBox(width: 8),
+              OutlinedButton.icon(
+                onPressed: state.loading
+                    ? null
+                    : () => ref
+                        .read(entriesControllerProvider.notifier)
+                        .refresh(),
+                icon: const Icon(Icons.refresh),
+                label: const Text('Refresh'),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 24),
@@ -108,6 +132,19 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
           ref.read(entriesControllerProvider.notifier).loadReceipts(),
       child: ListView(
         children: [
+          Align(
+            alignment: Alignment.centerRight,
+            child: OutlinedButton.icon(
+              onPressed: state.loading
+                  ? null
+                  : () => ref
+                      .read(entriesControllerProvider.notifier)
+                      .refresh(),
+              icon: const Icon(Icons.refresh),
+              label: const Text('Refresh'),
+            ),
+          ),
+          const SizedBox(height: 12),
           _filters(state, compact: true),
           const SizedBox(height: 18),
           const NumberedTitle('2', 'Entries List'),
