@@ -28,6 +28,13 @@ class OtpRequestResult {
   }
 }
 
+class AuthLoginResult {
+  const AuthLoginResult({required this.user, required this.accessStatus});
+
+  final AuthUser user;
+  final AccessStatus accessStatus;
+}
+
 class AuthRepository {
   const AuthRepository(this._api, this._storage);
 
@@ -36,7 +43,7 @@ class AuthRepository {
 
   Future<bool> hasRefreshSession() => _storage.hasRefreshSession();
 
-  Future<AuthUser> login({
+  Future<AuthLoginResult> login({
     required String identifier,
     required String password,
   }) async {
@@ -50,7 +57,17 @@ class AuthRepository {
         'deviceId': deviceId,
       },
     );
-    return _saveSession(response);
+    final data = response['data'] as Map<String, dynamic>;
+    await _storage.writeTokens(
+      accessToken: data['accessToken'].toString(),
+      refreshToken: data['refreshToken']?.toString(),
+    );
+    return AuthLoginResult(
+      user: AuthUser.fromJson(data['user'] as Map<String, dynamic>),
+      accessStatus: AccessStatus.fromJson(
+        data['accessStatus'] as Map<String, dynamic>? ?? const {},
+      ),
+    );
   }
 
   Future<OtpRequestResult> sendRegistrationOtp({
@@ -89,6 +106,7 @@ class AuthRepository {
 
   Future<AuthUser> refresh() async {
     try {
+      if (await _api.hasValidAccessToken()) return me();
       await _api.refreshSession();
       return me();
     } on Object {
@@ -176,14 +194,5 @@ class AuthRepository {
       data: {'currentPassword': currentPassword, 'password': password},
     );
     await _storage.clear();
-  }
-
-  Future<AuthUser> _saveSession(Map<String, dynamic> response) async {
-    final data = response['data'] as Map<String, dynamic>;
-    await _storage.writeTokens(
-      accessToken: data['accessToken'].toString(),
-      refreshToken: data['refreshToken']?.toString(),
-    );
-    return AuthUser.fromJson(data['user'] as Map<String, dynamic>);
   }
 }

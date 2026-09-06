@@ -33,7 +33,6 @@ export default function Login() {
           <input
             value={form.identifier}
             onChange={(e) => setForm({ ...form, identifier: e.target.value })}
-            autoFocus
           />
         </label>
         <label>

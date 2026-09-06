@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 5174",
     "build": "vite build",
-    "lint": "eslint src --ext js,jsx"
+    "lint": "eslint src --ext js,jsx",
+    "doctor": "npx react-doctor@latest"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^4.3.4",

@@ -65,15 +65,14 @@ class AuthController extends StateNotifier<AuthState> {
   Future<void> login(String identifier, String password) async {
     state = const AuthState.initializing();
     try {
-      final user = await _repository.login(
+      final loginResult = await _repository.login(
         identifier: identifier,
         password: password,
       );
-      final access = await _repository.accessStatus();
       state = AuthState(
         status: AuthStatus.authenticated,
-        user: user,
-        accessStatus: access,
+        user: loginResult.user,
+        accessStatus: loginResult.accessStatus,
       );
     } on Object catch (error) {
       state = AuthState(

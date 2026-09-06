@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../api/client.js';
+import { formatDate } from '../utils/dateFormatters.js';
 
 export default function Recharges() {
   const { data, isLoading } = useQuery({
@@ -19,8 +20,8 @@ export default function Recharges() {
                 <td>{row.user?.fullName || row.user?.username}</td>
                 <td>{row.planName}</td>
                 <td>₹ {row.amount}</td>
-                <td>{new Date(row.startDate).toLocaleDateString()}</td>
-                <td>{new Date(row.expiryDate).toLocaleDateString()}</td>
+                <td>{formatDate(row.startDate)}</td>
+                <td>{formatDate(row.expiryDate)}</td>
                 <td><span className="badge">{row.status}</span></td>
                 <td>{row.createdByAdmin?.username}</td>
                 <td>{row.note || '-'}</td>

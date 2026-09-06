@@ -1,6 +1,9 @@
 import axios from 'axios';
 
 const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5002/api';
+const adminUserKey = 'matka_admin:v1:user';
+
+let adminAccessToken = null;
 
 export const api = axios.create({
   baseURL,
@@ -15,7 +18,7 @@ let refreshPromise = null;
 
 export function clearAdminSession() {
   setAdminToken(null);
-  localStorage.removeItem('admin_user');
+  localStorage.removeItem(adminUserKey);
   window.dispatchEvent(new Event('admin-session-expired'));
 }
 
@@ -37,7 +40,7 @@ export async function refreshAdminSession() {
 }
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('admin_access_token');
+  const token = adminAccessToken;
   if (token && !config.url?.includes('/auth/login')) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -55,8 +58,11 @@ api.interceptors.response.use(
 );
 
 export function setAdminToken(token) {
-  if (token) localStorage.setItem('admin_access_token', token);
-  else localStorage.removeItem('admin_access_token');
+  adminAccessToken = token || null;
+}
+
+export function hasAdminToken() {
+  return adminAccessToken != null;
 }
 
 export function apiMessage(error) {

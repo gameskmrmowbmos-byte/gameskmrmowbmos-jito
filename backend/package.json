@@ -14,7 +14,8 @@
     "seed:panna-numbers": "node scripts/seedPannaNumbers.js",
     "migrate:access": "node scripts/migrateAccessFields.js",
     "test": "node --test tests/*.test.js",
-    "check": "node scripts/checkSyntax.js"
+    "check": "node scripts/checkSyntax.js",
+    "doctor": "npx react-doctor@latest"
   },
   "engines": {
     "node": ">=20"

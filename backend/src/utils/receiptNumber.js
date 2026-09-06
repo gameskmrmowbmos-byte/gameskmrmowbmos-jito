@@ -1,37 +1,39 @@
 const Receipt = require('../models/Receipt');
 const env = require('../config/env');
+const zonedDatePartsFormatter = new Intl.DateTimeFormat('en-CA', {
+  timeZone: env.receiptTimezone,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+const zonedMidnightFormatter = new Intl.DateTimeFormat('en-US', {
+  timeZone: env.receiptTimezone,
+  year: 'numeric',
+  month: 'numeric',
+  day: 'numeric',
+  hour: 'numeric',
+  minute: 'numeric',
+  second: 'numeric',
+  hourCycle: 'h23',
+});
+
+function numericDateParts(parts) {
+  const values = {};
+  for (const { type, value } of parts) {
+    if (type !== 'literal') values[type] = Number(value);
+  }
+  return values;
+}
 
 function zonedDateParts(date) {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: env.receiptTimezone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts(date);
-  return Object.fromEntries(
-    parts
-      .filter(({ type }) => type !== 'literal')
-      .map(({ type, value }) => [type, Number(value)]),
-  );
+  const parts = zonedDatePartsFormatter.formatToParts(date);
+  return numericDateParts(parts);
 }
 
 function zonedMidnightUtc(year, month, day) {
   const approximate = new Date(Date.UTC(year, month - 1, day));
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: env.receiptTimezone,
-    year: 'numeric',
-    month: 'numeric',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: 'numeric',
-    second: 'numeric',
-    hourCycle: 'h23',
-  }).formatToParts(approximate);
-  const values = Object.fromEntries(
-    parts
-      .filter(({ type }) => type !== 'literal')
-      .map(({ type, value }) => [type, Number(value)]),
-  );
+  const parts = zonedMidnightFormatter.formatToParts(approximate);
+  const values = numericDateParts(parts);
   const observed = Date.UTC(
     values.year,
     values.month - 1,
