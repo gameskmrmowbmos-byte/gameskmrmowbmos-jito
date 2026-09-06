@@ -79,10 +79,8 @@ class NewEntryController extends AutoDisposeAsyncNotifier<NewEntryData> {
     String printerName = 'POS-58',
     String? overrideParchiNo,
   }) async {
-    // If the state is not data yet, or already loading, do nothing
-    if (state.isLoading) return null;
-
     final printSession = shouldPrint ? prepareCustomerParchiPrint() : null;
+    final previousData = state.valueOrNull;
 
     try {
       state = const AsyncLoading();
@@ -126,7 +124,15 @@ class NewEntryController extends AutoDisposeAsyncNotifier<NewEntryData> {
         }
       }
 
-      state = AsyncData(await _fetchData(marketId: market));
+      try {
+        state = AsyncData(await _fetchData(marketId: market));
+      } catch (refreshError, refreshStack) {
+        if (previousData != null) {
+          state = AsyncData(previousData);
+        } else {
+          state = AsyncError(refreshError, refreshStack);
+        }
+      }
       return receipt;
     } catch (e, st) {
       state = AsyncError(e, st);

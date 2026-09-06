@@ -568,6 +568,12 @@ String _formatShareReceiptNumber(ShareRecordItem item, String session) {
   var formattedNumber =
       item.displayNumber.replaceAll('*', ' * ').replaceAll('-', ' * ');
   final normalizedSession = session.trim().toLowerCase();
+  final hasFamilyMarker = item.isFamily ||
+      RegExp(r'^[fF]\s*').hasMatch(formattedNumber) ||
+      RegExp(r'\s*[fF]$').hasMatch(formattedNumber);
+  if (hasFamilyMarker) {
+    formattedNumber = _familyNumberWithSuffix(formattedNumber);
+  }
   if (item.isCpJodi) {
     final cpNumber = formattedNumber
         .replaceFirst(RegExp(r'^[cC][pP]\s*'), '')
@@ -582,17 +588,9 @@ String _formatShareReceiptNumber(ShareRecordItem item, String session) {
   }
   if (_isSimpleJodi(item)) return formattedNumber.trim();
   if (normalizedSession == 'open') {
-    if (item.isFamily) {
-      formattedNumber = _familyNumberWithSuffix(formattedNumber);
-    }
     formattedNumber = '$formattedNumber >';
   } else if (normalizedSession == 'close') {
-    if (item.isFamily) {
-      formattedNumber = _familyNumberWithSuffix(formattedNumber);
-    }
     formattedNumber = '> $formattedNumber';
-  } else if (item.isFamily) {
-    formattedNumber = _familyNumberWithSuffix(formattedNumber);
   }
   return formattedNumber;
 }

@@ -3448,8 +3448,8 @@ class _AmountFillField extends StatelessWidget {
                 child: MouseRegion(
                   cursor: SystemMouseCursors.precise,
                   child: Container(
-                      width: compact ? 28 : 10,
-                      height: compact ? 28 : 10,
+                    width: compact ? 28 : 10,
+                    height: compact ? 28 : 10,
                     alignment: Alignment.bottomRight,
                     child: Container(
                       width: compact ? 8 : 6,
@@ -3757,134 +3757,6 @@ class _AutoConfigButton extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
         ),
       ),
-    );
-  }
-}
-
-class _AutoConfigHeader extends StatelessWidget {
-  const _AutoConfigHeader({
-    required this.type,
-    required this.subtype,
-    required this.compact,
-  });
-
-  final GameBetTypeConfig? type;
-  final GameBetSubtypeConfig? subtype;
-  final bool compact;
-
-  @override
-  Widget build(BuildContext context) {
-    final label = type == null
-        ? 'Not configured'
-        : subtype == null
-            ? type!.label
-            : '${type!.label} / ${subtype!.label}';
-    final length = subtype?.allowedLength ?? type?.allowedLength ?? 0;
-    return Wrap(
-      crossAxisAlignment: WrapCrossAlignment.center,
-      spacing: 8,
-      runSpacing: 6,
-      children: [
-        Text(
-          context.tr('Selected Type :'),
-          style: TextStyle(
-            fontSize: compact ? 12 : 13,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-        Text(
-          context.trMaybe(label),
-          style: TextStyle(
-            color: _NewEntryPageState._blue,
-            fontSize: compact ? 12 : 13,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-        if (length > 0)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: const Color(0xFFEAF2FF),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              context.tr(
-                '{length}-digit configured',
-                params: {'length': length},
-              ),
-              style: const TextStyle(
-                color: _NewEntryPageState._blue,
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class _AutoConfigSubtypeSelector extends StatelessWidget {
-  const _AutoConfigSubtypeSelector({
-    required this.subtypes,
-    required this.selectedId,
-    required this.useDropdown,
-    required this.onSelected,
-  });
-
-  final List<GameBetSubtypeConfig> subtypes;
-  final String? selectedId;
-  final bool useDropdown;
-  final ValueChanged<String> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    if (useDropdown) {
-      final selectedValue = subtypes.any((subtype) => subtype.id == selectedId)
-          ? selectedId
-          : null;
-      return DropdownButtonFormField<String>(
-        initialValue: selectedValue,
-        decoration: InputDecoration(
-          labelText: context.tr('Motor Type'),
-          filled: true,
-          fillColor: Colors.white,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(5)),
-        ),
-        items: [
-          for (final subtype in subtypes)
-            DropdownMenuItem<String>(
-              value: subtype.id,
-              child: Text(context.trMaybe(subtype.label)),
-            ),
-        ],
-        onChanged: (value) {
-          if (value != null) onSelected(value);
-        },
-      );
-    }
-
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        for (final subtype in subtypes)
-          ChoiceChip(
-            label: Text(context.trMaybe(subtype.label)),
-            selected: subtype.id == selectedId,
-            onSelected: (_) => onSelected(subtype.id),
-            labelStyle: TextStyle(
-              color: subtype.id == selectedId ? Colors.white : Colors.black,
-              fontWeight: FontWeight.w900,
-            ),
-            selectedColor: _NewEntryPageState._blue,
-            backgroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(5),
-              side: BorderSide(color: _NewEntryPageState._line),
-            ),
-          ),
-      ],
     );
   }
 }

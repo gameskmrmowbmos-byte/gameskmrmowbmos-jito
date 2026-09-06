@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:matka_management/core/language/language_switcher.dart';
 import 'package:matka_management/features/auth/presentation/providers/auth_provider.dart';
 import 'package:matka_management/features/new_entry/presentation/new_entry_draft_provider.dart';
 
@@ -83,6 +84,8 @@ class AppSidebar extends StatelessWidget {
           children: [
             SizedBox(height: collapsed ? 18 : 30),
             _SidebarLogo(collapsed: collapsed),
+            SizedBox(height: collapsed ? 16 : 20),
+            const LanguageSwitcher(),
             SizedBox(height: collapsed ? 26 : 32),
             Expanded(
               child: ListView(
