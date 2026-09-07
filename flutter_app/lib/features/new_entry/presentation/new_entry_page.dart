@@ -43,6 +43,23 @@ class _LocalizedDigitsController extends TextEditingController {
     notifyListeners();
   }
 
+  void applyKeypadValue(String value) {
+    final normalized = AppLocalizations.normalizeDigits(value);
+    if (normalized.isEmpty) {
+      clear();
+      return;
+    }
+    final nextValue = text + normalized;
+    text = nextValue;
+    selection = TextSelection.collapsed(offset: text.length);
+  }
+
+  void removeLastKeypadValue() {
+    if (text.isEmpty) return;
+    text = text.substring(0, text.length - 1);
+    selection = TextSelection.collapsed(offset: text.length);
+  }
+
   @override
   TextSpan buildTextSpan({
     required BuildContext context,
@@ -323,17 +340,18 @@ List<_JackpotLine> _visibleJackpotLines(_ReceiptLine line) {
 }
 
 final _singleSpDpPattern = RegExp(
-  r'^([0-9]) *(sp|dp)$',
+  r'^(?:([0-9]) *(sp|dp)|(sp|dp) *([0-9]))$',
   caseSensitive: false,
 );
 final _singleCutPPattern = RegExp(
-  r'^(?:[cC][tT] *([0-9])|([0-9]) *[cC][tT])$',
+  r'^(?:(?:ct|cut *p) *([0-9])|([0-9]) *(?:ct|cut *p))$',
+  caseSensitive: false,
 );
 final _singleSpDpDraftPattern = RegExp(
-  r'^[0-9] *(?:[sS][pP]?|[dD][pP]?)?$',
+  r'^(?:[0-9]? *(?:[sS][pP]?|[dD][pP]?)|(?:[sS][pP]?|[dD][pP]?) *[0-9]?)$',
 );
 final _singleCutPDraftPattern = RegExp(
-  r'^(?:[cC][tT]? *[0-9]?|[0-9]? *[cC][tT]?)$',
+  r'^(?:(?:[cC][tT]?|[cC][uU]?[tT]?(?: *[pP])?) *[0-9]?|[0-9]? *(?:[cC][tT]?|[cC][uU]?[tT]?(?: *[pP])?))$',
 );
 final _commonInputPattern = RegExp(
   r'^(?:[cC][mM] *([0-9])|([0-9]) *(?:[cC][mM]|[cC][oO][mM][mM][oO][nN]))$',
@@ -362,6 +380,7 @@ final _cpJodiDraftPattern = RegExp(
 );
 final _letterPattern = RegExp(r'[A-Za-z]');
 final _amountPattern = RegExp(r'^\d+(?:\.\d{1,2})?$');
+final _jackpotNumberPattern = RegExp(r'^\d$');
 const _commonMultiplier = 36;
 const _familyDigitPairs = {
   '0': '5',
@@ -391,6 +410,18 @@ String? _singleCutPNumber(String rawNumber) {
   return match.group(1) ?? match.group(2);
 }
 
+String? _singleSpDpNumber(String rawNumber) {
+  final match = _singleSpDpPattern.firstMatch(rawNumber.trim());
+  if (match == null) return null;
+  return match.group(1) ?? match.group(4);
+}
+
+String? _singleSpDpType(String rawNumber) {
+  final match = _singleSpDpPattern.firstMatch(rawNumber.trim());
+  if (match == null) return null;
+  return match.group(2) ?? match.group(3);
+}
+
 String _formatAmount(num amount) {
   final text = amount.toStringAsFixed(2);
   return text.replaceFirst(RegExp(r'\.?0+$'), '');
@@ -417,6 +448,16 @@ int _motorPanaMultiplier(String number) {
 bool _isValidAmountText(String value) {
   final text = value.trim();
   return _amountPattern.hasMatch(text) && _isPositiveAmount(text);
+}
+
+bool _isValidJackpotNumber(String value) {
+  return _jackpotNumberPattern.hasMatch(value.trim());
+}
+
+String? _jackpotNumberError(String value) {
+  final number = value.trim();
+  if (number.isEmpty || _isValidJackpotNumber(number)) return null;
+  return 'Jackpot requires a single digit';
 }
 
 String? _familyNumber(String rawNumber) {
@@ -530,7 +571,7 @@ String? _manualNumberError(String rawNumber, {bool isCloseSession = false}) {
   }
   if (_letterPattern.hasMatch(value)) {
     if (_commonInputPattern.hasMatch(value)) return null;
-    if (_singleSpDpPattern.hasMatch(value)) return null;
+    if (_singleSpDpNumber(value) != null) return null;
     if (_singleCutPPattern.hasMatch(value)) return null;
     final bazarSangamNumber = _bazarSangamNumber(value);
     if (bazarSangamNumber != null) {
@@ -593,7 +634,7 @@ List<_JackpotLine> _filledJackpotEntries(
     final parsedAmount = num.tryParse(rawAmount);
     final calculatedAmount =
         parsedAmount == null ? '' : _formatAmount(parsedAmount * multiplier);
-    if (number.isNotEmpty) {
+    if (_isValidJackpotNumber(number)) {
       rows.add(_JackpotLine(
         number: number,
         amount: parsedAmount == null ? rawAmount : _formatAmount(parsedAmount),
@@ -912,6 +953,12 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
     if (_isManualJodiNumber(entry.number.text) && entry.isJackpot) {
       return 'Jackpot not allowed in Jodi';
     }
+    if (entry.isJackpot) {
+      for (var index = 0; index < entry.jackpotRowCount; index++) {
+        final error = _jackpotNumberError(entry.jackpotNumbers[index].text);
+        if (error != null) return error;
+      }
+    }
     return _manualNumberError(
       entry.number.text,
       isCloseSession: isCloseSession,
@@ -1067,11 +1114,11 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
           final bazarSangamNumber = _bazarSangamNumber(rawNumber);
           final String entryNumber = bazarSangamNumber ?? rawNumber;
 
-          final spDpSingleMatch = _singleSpDpPattern.firstMatch(entryNumber);
+          final spDpDigit = _singleSpDpNumber(entryNumber);
+          final spDpType = _singleSpDpType(entryNumber)?.toLowerCase();
 
-          if (spDpSingleMatch != null) {
-            final digit = spDpSingleMatch.group(1)!;
-            final spDpType = spDpSingleMatch.group(2)!.toLowerCase();
+          if (spDpDigit != null && spDpType != null) {
+            final digit = spDpDigit;
             final baseAmount = _parseAmount(entry.amount.text);
             final multiplier = spDpType == 'sp' ? 12 : 10;
             final calculatedAmount = baseAmount * multiplier;
@@ -2656,6 +2703,82 @@ class _BetTable extends StatelessWidget {
       fontWeight: FontWeight.w900,
       letterSpacing: 0,
     );
+
+    TextEditingController? previousManualController(
+      TextEditingController controller,
+    ) {
+      for (var index = 0; index < entries.length; index++) {
+        final entry = entries[index];
+        if (identical(controller, entry.amount)) return entry.number;
+        if (identical(controller, entry.number) && index > 0) {
+          return entries[index - 1].amount;
+        }
+      }
+      return null;
+    }
+
+    TextEditingController? nextManualController(
+      TextEditingController controller,
+    ) {
+      for (var index = 0; index < entries.length; index++) {
+        final entry = entries[index];
+        if (identical(controller, entry.number)) return entry.amount;
+        if (identical(controller, entry.amount) && index + 1 < entries.length) {
+          return entries[index + 1].number;
+        }
+      }
+      return null;
+    }
+
+    TextEditingController? enterManualController(
+      TextEditingController controller,
+    ) {
+      final next = nextManualController(controller);
+      if (next != null) return next;
+
+      for (var index = 0; index < entries.length; index++) {
+        if (identical(controller, entries[index].amount)) {
+          onSubmitRow(index);
+          return nextManualController(controller);
+        }
+      }
+      return null;
+    }
+
+    void focusManualController(TextEditingController controller) {
+      for (final entry in entries) {
+        if (identical(controller, entry.number)) {
+          entry.numberFocus.requestFocus();
+          return;
+        }
+        if (identical(controller, entry.amount)) {
+          entry.amountFocus.requestFocus();
+          return;
+        }
+      }
+    }
+
+    void validateManualKeypadValue(TextEditingController controller) {
+      for (final entry in entries) {
+        if (!identical(controller, entry.number)) continue;
+        final effectiveSession =
+            _effectiveEntrySession(session, entry.sessionOverride);
+        final raw = entry.number.text.trim();
+        final shouldClearJackpot = (effectiveSession == 'Close' ||
+                _cpJodiNumber(raw) != null ||
+                _familyNumber(raw) != null ||
+                _isManualSangamNumber(raw)) &&
+            entry.isJackpot;
+        if (shouldClearJackpot) entry.isJackpot = false;
+        entry.error = _manualNumberError(
+          raw,
+          isCloseSession: effectiveSession == 'Close',
+        );
+        break;
+      }
+      onChanged();
+    }
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(5),
       child: DecoratedBox(
@@ -2700,6 +2823,18 @@ class _BetTable extends StatelessWidget {
                 onMobileAmountFill: onMobileAmountFill,
                 onChanged: onChanged,
                 onSubmitted: () => onSubmitRow(index),
+                previousEntryAmountController:
+                    index > 0 ? entries[index - 1].amount : null,
+                previousEntryAmountFocus:
+                    index > 0 ? entries[index - 1].amountFocus : null,
+                nextEntryNumberController: () => index + 1 < entries.length
+                    ? entries[index + 1].number
+                    : null,
+                keypadBackTargetFor: previousManualController,
+                keypadNextTargetFor: nextManualController,
+                keypadEnterTargetFor: enterManualController,
+                keypadOnActiveControllerChanged: focusManualController,
+                keypadOnActiveValueChanged: validateManualKeypadValue,
                 onDelete: () => onDelete(index),
               ),
             Container(
@@ -2747,6 +2882,14 @@ class _BetRow extends StatefulWidget {
     required this.onMobileAmountFill,
     required this.onChanged,
     required this.onSubmitted,
+    required this.previousEntryAmountController,
+    required this.previousEntryAmountFocus,
+    required this.nextEntryNumberController,
+    required this.keypadBackTargetFor,
+    required this.keypadNextTargetFor,
+    required this.keypadEnterTargetFor,
+    required this.keypadOnActiveControllerChanged,
+    required this.keypadOnActiveValueChanged,
     required this.onDelete,
   });
 
@@ -2762,6 +2905,17 @@ class _BetRow extends StatefulWidget {
   final ValueChanged<int> onMobileAmountFill;
   final VoidCallback onChanged;
   final VoidCallback onSubmitted;
+  final TextEditingController? previousEntryAmountController;
+  final FocusNode? previousEntryAmountFocus;
+  final TextEditingController? Function() nextEntryNumberController;
+  final TextEditingController? Function(TextEditingController controller)
+      keypadBackTargetFor;
+  final TextEditingController? Function(TextEditingController controller)
+      keypadNextTargetFor;
+  final TextEditingController? Function(TextEditingController controller)
+      keypadEnterTargetFor;
+  final ValueChanged<TextEditingController> keypadOnActiveControllerChanged;
+  final ValueChanged<TextEditingController> keypadOnActiveValueChanged;
   final VoidCallback onDelete;
 
   @override
@@ -2848,6 +3002,108 @@ class _BetRowState extends State<_BetRow> {
     widget.onSubmitted();
   }
 
+  void _submitMainAmount() {
+    if (entry.isJackpot && entry.jackpotRowCount > 0) {
+      _focusJackpotNumber(0);
+      return;
+    }
+    widget.onSubmitted();
+  }
+
+  int _jackpotNumberIndex(TextEditingController controller) {
+    return entry.jackpotNumbers.indexWhere(
+      (candidate) => identical(candidate, controller),
+    );
+  }
+
+  int _jackpotAmountIndex(TextEditingController controller) {
+    return entry.jackpotAmounts.indexWhere(
+      (candidate) => identical(candidate, controller),
+    );
+  }
+
+  TextEditingController? _advanceFromJackpotAmount(int index) {
+    final nextIndex = index + 1;
+    if (nextIndex < entry.jackpotRowCount) {
+      return entry.jackpotNumbers[nextIndex];
+    }
+    if (entry.jackpotRowCount < 10) {
+      setState(() {
+        entry.jackpotRowCount++;
+      });
+      onChanged();
+      return entry.jackpotNumbers[nextIndex];
+    }
+    widget.onSubmitted();
+    return widget.nextEntryNumberController();
+  }
+
+  TextEditingController? _keypadBackTargetFor(
+    TextEditingController controller,
+  ) {
+    final numberIndex = _jackpotNumberIndex(controller);
+    if (numberIndex >= 0) {
+      return numberIndex == 0
+          ? entry.amount
+          : entry.jackpotAmounts[numberIndex - 1];
+    }
+    final amountIndex = _jackpotAmountIndex(controller);
+    if (amountIndex >= 0) return entry.jackpotNumbers[amountIndex];
+    return widget.keypadBackTargetFor(controller);
+  }
+
+  TextEditingController? _keypadNextTargetFor(
+    TextEditingController controller,
+  ) {
+    if (identical(controller, entry.amount) && entry.isJackpot) {
+      return entry.jackpotNumbers.first;
+    }
+    final numberIndex = _jackpotNumberIndex(controller);
+    if (numberIndex >= 0) return entry.jackpotAmounts[numberIndex];
+    final amountIndex = _jackpotAmountIndex(controller);
+    if (amountIndex >= 0) return _advanceFromJackpotAmount(amountIndex);
+    return widget.keypadNextTargetFor(controller);
+  }
+
+  TextEditingController? _keypadEnterTargetFor(
+    TextEditingController controller,
+  ) {
+    if (identical(controller, entry.amount) && entry.isJackpot) {
+      return entry.jackpotNumbers.first;
+    }
+
+    final numberIndex = _jackpotNumberIndex(controller);
+    if (numberIndex >= 0) return entry.jackpotAmounts[numberIndex];
+
+    final amountIndex = _jackpotAmountIndex(controller);
+    if (amountIndex >= 0) return _advanceFromJackpotAmount(amountIndex);
+
+    return widget.keypadEnterTargetFor(controller);
+  }
+
+  void _focusKeypadController(TextEditingController controller) {
+    final numberIndex = _jackpotNumberIndex(controller);
+    if (numberIndex >= 0) {
+      _focusJackpotNumber(numberIndex);
+      return;
+    }
+    final amountIndex = _jackpotAmountIndex(controller);
+    if (amountIndex >= 0) {
+      _focusJackpotAmount(amountIndex);
+      return;
+    }
+    widget.keypadOnActiveControllerChanged(controller);
+  }
+
+  void _handleKeypadValueChanged(TextEditingController controller) {
+    if (_jackpotNumberIndex(controller) >= 0 ||
+        _jackpotAmountIndex(controller) >= 0) {
+      onChanged();
+      return;
+    }
+    widget.keypadOnActiveValueChanged(controller);
+  }
+
   void _addJackpotRow() {
     if (entry.jackpotRowCount >= 10) return;
     final newIndex = entry.jackpotRowCount;
@@ -2856,6 +3112,21 @@ class _BetRowState extends State<_BetRow> {
     });
     onChanged();
     _focusJackpotNumber(newIndex);
+  }
+
+  TextEditingController? _openJackpot() {
+    final isFamily = _familyNumber(entry.number.text) != null;
+    final isCpJodi = _cpJodiNumber(entry.number.text) != null;
+    final isSangam = _isManualSangamNumber(entry.number.text);
+    final canUseJackpot =
+        session == 'Open' && !isCpJodi && !isFamily && !isSangam;
+    if (!canUseJackpot) return null;
+    setState(() {
+      entry.isJackpot = true;
+    });
+    onChanged();
+    _focusJackpotNumber(0);
+    return entry.jackpotNumbers.first;
   }
 
   void _fillJackpotAmountBelow(int index) {
@@ -2903,16 +3174,13 @@ class _BetRowState extends State<_BetRow> {
                   !canUseJackpot
                       ? const SizedBox.shrink()
                       : IconButton(
+                          tooltip: context.tr('Jackpot'),
                           padding: EdgeInsets.zero,
-                          icon: const Icon(Icons.arrow_forward, size: 18),
+                          isSelected: entry.isJackpot,
+                          icon: const Icon(Icons.stars_outlined, size: 18),
+                          selectedIcon: const Icon(Icons.stars, size: 18),
                           color: entry.isJackpot ? Colors.green : Colors.grey,
-                          onPressed: () {
-                            if (!mounted) return;
-                            setState(() {
-                              entry.isJackpot = !entry.isJackpot;
-                            });
-                            onChanged();
-                          },
+                          onPressed: _openJackpot,
                         ),
                   flex: 15,
                 ),
@@ -2929,6 +3197,24 @@ class _BetRowState extends State<_BetRow> {
                   textInputAction: entry.amount.text.trim().isEmpty
                       ? TextInputAction.next
                       : TextInputAction.done,
+                  keypadBackController:
+                      widget.previousEntryAmountController ?? entry.number,
+                  keypadNextController: entry.amount,
+                  keypadOnChanged: _validateNumber,
+                  keypadBackOnChanged: onChanged,
+                  keypadNextOnChanged: onChanged,
+                  keypadOnBack: () => widget.previousEntryAmountFocus == null
+                      ? entry.numberFocus.requestFocus()
+                      : widget.previousEntryAmountFocus!.requestFocus(),
+                  keypadOnNext: () => entry.amountFocus.requestFocus(),
+                  keypadOnEnter: () => entry.amountFocus.requestFocus(),
+                  keypadOnJackpot: _openJackpot,
+                  nextEntryNumberController: () => entry.amount,
+                  keypadBackTargetFor: _keypadBackTargetFor,
+                  keypadNextTargetFor: _keypadNextTargetFor,
+                  keypadEnterTargetFor: _keypadEnterTargetFor,
+                  keypadOnActiveControllerChanged: _focusKeypadController,
+                  keypadOnActiveValueChanged: _handleKeypadValueChanged,
                   onSubmitted: () {
                     if (entry.amount.text.trim().isEmpty) {
                       entry.amountFocus.requestFocus();
@@ -2953,7 +3239,21 @@ class _BetRowState extends State<_BetRow> {
                   onFillHover: () => widget.onAmountFillHover(index),
                   onFillEnd: widget.onAmountFillEnd,
                   onMobileFill: () => widget.onMobileAmountFill(index),
-                  onSubmitted: widget.onSubmitted,
+                  keypadBackController: entry.number,
+                  keypadNextController: widget.nextEntryNumberController(),
+                  keypadOnChanged: onChanged,
+                  keypadBackOnChanged: _validateNumber,
+                  keypadNextOnChanged: onChanged,
+                  keypadOnBack: () => entry.numberFocus.requestFocus(),
+                  keypadOnNext: _submitMainAmount,
+                  keypadOnEnter: _submitMainAmount,
+                  keypadOnJackpot: _openJackpot,
+                  keypadBackTargetFor: _keypadBackTargetFor,
+                  keypadNextTargetFor: _keypadNextTargetFor,
+                  keypadEnterTargetFor: _keypadEnterTargetFor,
+                  keypadOnActiveControllerChanged: _focusKeypadController,
+                  keypadOnActiveValueChanged: _handleKeypadValueChanged,
+                  onSubmitted: _submitMainAmount,
                   onChanged: onChanged,
                 ),
                 flex: 16,
@@ -3033,9 +3333,16 @@ class _BetRowState extends State<_BetRow> {
                 rowCount: entry.jackpotRowCount,
                 compact: compact,
                 onAdd: entry.jackpotRowCount >= 10 ? null : _addJackpotRow,
+                mainAmountController: entry.amount,
+                mainAmountFocus: entry.amountFocus,
                 onNumberSubmitted: _submitJackpotNumber,
                 onAmountSubmitted: _submitJackpotAmount,
                 onMobileAmountFill: _fillJackpotAmountBelow,
+                keypadBackTargetFor: _keypadBackTargetFor,
+                keypadNextTargetFor: _keypadNextTargetFor,
+                keypadEnterTargetFor: _keypadEnterTargetFor,
+                keypadOnActiveControllerChanged: _focusKeypadController,
+                keypadOnActiveValueChanged: _handleKeypadValueChanged,
                 onChanged: onChanged,
               ),
             ),
@@ -3054,9 +3361,16 @@ class _JackpotEntryRows extends StatelessWidget {
     required this.rowCount,
     required this.compact,
     required this.onAdd,
+    required this.mainAmountController,
+    required this.mainAmountFocus,
     required this.onNumberSubmitted,
     required this.onAmountSubmitted,
     required this.onMobileAmountFill,
+    required this.keypadBackTargetFor,
+    required this.keypadNextTargetFor,
+    required this.keypadEnterTargetFor,
+    required this.keypadOnActiveControllerChanged,
+    required this.keypadOnActiveValueChanged,
     required this.onChanged,
   });
 
@@ -3067,9 +3381,19 @@ class _JackpotEntryRows extends StatelessWidget {
   final int rowCount;
   final bool compact;
   final VoidCallback? onAdd;
+  final TextEditingController mainAmountController;
+  final FocusNode mainAmountFocus;
   final ValueChanged<int> onNumberSubmitted;
   final ValueChanged<int> onAmountSubmitted;
   final ValueChanged<int> onMobileAmountFill;
+  final TextEditingController? Function(TextEditingController controller)
+      keypadBackTargetFor;
+  final TextEditingController? Function(TextEditingController controller)
+      keypadNextTargetFor;
+  final TextEditingController? Function(TextEditingController controller)
+      keypadEnterTargetFor;
+  final ValueChanged<TextEditingController> keypadOnActiveControllerChanged;
+  final ValueChanged<TextEditingController> keypadOnActiveValueChanged;
   final VoidCallback onChanged;
 
   @override
@@ -3093,7 +3417,22 @@ class _JackpotEntryRows extends StatelessWidget {
                   height: height,
                   maxLength: 1,
                   compact: compact,
+                  errorText: _jackpotNumberError(numberControllers[index].text),
                   textInputAction: TextInputAction.next,
+                  backController: index == 0
+                      ? mainAmountController
+                      : amountControllers[index - 1],
+                  nextController: amountControllers[index],
+                  onBack: () => index == 0
+                      ? mainAmountFocus.requestFocus()
+                      : amountFocusNodes[index - 1].requestFocus(),
+                  onNext: () => amountFocusNodes[index].requestFocus(),
+                  enterController: () => amountControllers[index],
+                  backTargetFor: keypadBackTargetFor,
+                  nextTargetFor: keypadNextTargetFor,
+                  enterTargetFor: keypadEnterTargetFor,
+                  onActiveControllerChanged: keypadOnActiveControllerChanged,
+                  onActiveValueChanged: keypadOnActiveValueChanged,
                   onSubmitted: () => onNumberSubmitted(index),
                   onChanged: onChanged,
                 ),
@@ -3109,6 +3448,26 @@ class _JackpotEntryRows extends StatelessWidget {
                   textInputAction: index + 1 < rowCount
                       ? TextInputAction.next
                       : TextInputAction.done,
+                  backController: numberControllers[index],
+                  nextController: index + 1 < rowCount
+                      ? numberControllers[index + 1]
+                      : null,
+                  onBack: () => numberFocusNodes[index].requestFocus(),
+                  onNext: () => onAmountSubmitted(index),
+                  onEnter: () => onAmountSubmitted(index),
+                  enterController: () {
+                    if (index + 1 >= rowCount && onAdd != null) {
+                      onAdd!();
+                    }
+                    return index + 1 < numberControllers.length
+                        ? numberControllers[index + 1]
+                        : null;
+                  },
+                  backTargetFor: keypadBackTargetFor,
+                  nextTargetFor: keypadNextTargetFor,
+                  enterTargetFor: keypadEnterTargetFor,
+                  onActiveControllerChanged: keypadOnActiveControllerChanged,
+                  onActiveValueChanged: keypadOnActiveValueChanged,
                   onSubmitted: () => onAmountSubmitted(index),
                   onMobileFill: () => onMobileAmountFill(index),
                   onChanged: onChanged,
@@ -3145,10 +3504,22 @@ class _JackpotSmallField extends StatelessWidget {
     required this.compact,
     required this.onChanged,
     this.focusNode,
+    this.errorText,
     this.allowDecimal = false,
     this.textInputAction,
     this.onSubmitted,
     this.onMobileFill,
+    this.backController,
+    this.nextController,
+    this.onBack,
+    this.onNext,
+    this.onEnter,
+    this.enterController,
+    this.backTargetFor,
+    this.nextTargetFor,
+    this.enterTargetFor,
+    this.onActiveControllerChanged,
+    this.onActiveValueChanged,
   });
 
   final TextEditingController controller;
@@ -3158,13 +3529,29 @@ class _JackpotSmallField extends StatelessWidget {
   final int maxLength;
   final bool compact;
   final VoidCallback onChanged;
+  final String? errorText;
   final bool allowDecimal;
   final TextInputAction? textInputAction;
   final VoidCallback? onSubmitted;
   final VoidCallback? onMobileFill;
+  final TextEditingController? backController;
+  final TextEditingController? nextController;
+  final VoidCallback? onBack;
+  final VoidCallback? onNext;
+  final VoidCallback? onEnter;
+  final TextEditingController? Function()? enterController;
+  final TextEditingController? Function(TextEditingController controller)?
+      backTargetFor;
+  final TextEditingController? Function(TextEditingController controller)?
+      nextTargetFor;
+  final TextEditingController? Function(TextEditingController controller)?
+      enterTargetFor;
+  final ValueChanged<TextEditingController>? onActiveControllerChanged;
+  final ValueChanged<TextEditingController>? onActiveValueChanged;
 
   @override
   Widget build(BuildContext context) {
+    final hasError = errorText != null;
     return SizedBox(
       width: width,
       height: height,
@@ -3184,6 +3571,34 @@ class _JackpotSmallField extends StatelessWidget {
                   : const _LocalizedDigitsOnlyInputFormatter(),
               LengthLimitingTextInputFormatter(maxLength),
             ],
+            readOnly: true,
+            onTap: () async {
+              await Scrollable.ensureVisible(
+                context,
+                alignment: 0.2,
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOut,
+              );
+              if (!context.mounted) return;
+              Scaffold.of(context).showBottomSheet(
+                (_) => MatkaNumberKeypadSheet(
+                  controller: controller,
+                  backController: backController,
+                  nextController: nextController,
+                  onChanged: onChanged,
+                  onBack: onBack,
+                  onNext: onNext,
+                  onEnter: onEnter ?? onSubmitted,
+                  enterController: enterController,
+                  backTargetFor: backTargetFor,
+                  nextTargetFor: nextTargetFor,
+                  enterTargetFor: enterTargetFor,
+                  onActiveControllerChanged: onActiveControllerChanged,
+                  onActiveValueChanged: onActiveValueChanged,
+                ),
+                backgroundColor: Colors.transparent,
+              );
+            },
             onChanged: (_) => onChanged(),
             onSubmitted: (_) => onSubmitted?.call(),
             style: TextStyle(
@@ -3194,18 +3609,22 @@ class _JackpotSmallField extends StatelessWidget {
             decoration: InputDecoration(
               counterText: '',
               filled: true,
-              fillColor: Colors.white,
+              fillColor: hasError ? Colors.red.shade100 : Colors.white,
               contentPadding: EdgeInsets.zero,
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(2),
-                borderSide: const BorderSide(color: Color(0xFF566175)),
+                borderSide: hasError
+                    ? const BorderSide(color: Colors.red, width: 2)
+                    : const BorderSide(color: Color(0xFF566175)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(2),
-                borderSide: const BorderSide(
-                  color: _NewEntryPageState._blue,
-                  width: 2,
-                ),
+                borderSide: hasError
+                    ? const BorderSide(color: Colors.red, width: 2)
+                    : const BorderSide(
+                        color: _NewEntryPageState._blue,
+                        width: 2,
+                      ),
               ),
             ),
           ),
@@ -3239,8 +3658,325 @@ class _JackpotSmallField extends StatelessWidget {
   }
 }
 
-class _EntryTextField extends StatelessWidget {
-  const _EntryTextField({
+class MatkaNumberKeypadSheet extends StatefulWidget {
+  const MatkaNumberKeypadSheet({
+    required this.controller,
+    this.backController,
+    this.nextController,
+    this.onChanged,
+    this.backOnChanged,
+    this.nextOnChanged,
+    this.onBack,
+    this.onNext,
+    this.onJackpot,
+    this.onEnter,
+    this.enterController,
+    this.backTargetFor,
+    this.nextTargetFor,
+    this.enterTargetFor,
+    this.onActiveControllerChanged,
+    this.onActiveValueChanged,
+    super.key,
+  });
+
+  final TextEditingController controller;
+  final TextEditingController? backController;
+  final TextEditingController? nextController;
+  final VoidCallback? onChanged;
+  final VoidCallback? backOnChanged;
+  final VoidCallback? nextOnChanged;
+  final VoidCallback? onBack;
+  final VoidCallback? onNext;
+  final TextEditingController? Function()? onJackpot;
+  final VoidCallback? onEnter;
+  final TextEditingController? Function()? enterController;
+  final TextEditingController? Function(TextEditingController controller)?
+      backTargetFor;
+  final TextEditingController? Function(TextEditingController controller)?
+      nextTargetFor;
+  final TextEditingController? Function(TextEditingController controller)?
+      enterTargetFor;
+  final ValueChanged<TextEditingController>? onActiveControllerChanged;
+  final ValueChanged<TextEditingController>? onActiveValueChanged;
+
+  @override
+  State<MatkaNumberKeypadSheet> createState() => _MatkaNumberKeypadSheetState();
+}
+
+class _MatkaNumberKeypadSheetState extends State<MatkaNumberKeypadSheet> {
+  late TextEditingController _activeController;
+
+  @override
+  void initState() {
+    super.initState();
+    _activeController = widget.controller;
+  }
+
+  void _setActiveController(TextEditingController controller) {
+    setState(() => _activeController = controller);
+    widget.onActiveControllerChanged?.call(controller);
+  }
+
+  void _appendKey(String key) {
+    final controller = _activeController;
+    if (controller is _LocalizedDigitsController) {
+      controller.applyKeypadValue(key);
+      return;
+    }
+
+    final text = controller.text + key;
+    controller.value = controller.value.copyWith(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+      composing: TextRange.empty,
+    );
+  }
+
+  void _removeLastKey() {
+    final controller = _activeController;
+    if (controller is _LocalizedDigitsController) {
+      controller.removeLastKeypadValue();
+      return;
+    }
+    if (controller.text.isEmpty) return;
+
+    final text = controller.text.substring(0, controller.text.length - 1);
+    controller.value = controller.value.copyWith(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+      composing: TextRange.empty,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final entries = <List<String>>[
+      ['SP', 'DP', 'CP', 'CM'],
+      ['CT', 'F', 'BZ'],
+      ['7', '8', '9', 'remove'],
+      ['4', '5', '6', 'back'],
+      ['1', '2', '3', widget.onJackpot == null ? 'next' : 'Jackpot'],
+      ['0', '*', 'Enter'],
+    ];
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(6, 6, 6, 7),
+      decoration: const BoxDecoration(
+        color: Color(0xFFF6F9FF),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+        border: Border(
+          top: BorderSide(color: Color(0xFFD9E8FF), width: 1),
+        ),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 42,
+              height: 3,
+              margin: const EdgeInsets.only(bottom: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFB7CFF7),
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+            for (final row in entries)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 3),
+                child: Row(
+                  children: [
+                    for (final key in row)
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 1.5),
+                          child: _MatkaKey(
+                            label: key,
+                            onTap: () {
+                              if (key == 'remove') {
+                                _removeLastKey();
+                                if (widget.onActiveValueChanged != null) {
+                                  widget.onActiveValueChanged!
+                                      .call(_activeController);
+                                } else {
+                                  widget.onChanged?.call();
+                                }
+                                return;
+                              }
+                              if (key == 'Jackpot') {
+                                final target = widget.onJackpot?.call();
+                                if (target != null) {
+                                  _setActiveController(target);
+                                }
+                                return;
+                              }
+                              if (key == 'back' || key == 'next') {
+                                if (key == 'back') {
+                                  final target = widget.backTargetFor
+                                          ?.call(_activeController) ??
+                                      widget.backController;
+                                  if (target != null) {
+                                    _setActiveController(target);
+                                  }
+                                  if (widget.backTargetFor == null) {
+                                    widget.backOnChanged?.call();
+                                    widget.onBack?.call();
+                                  }
+                                } else {
+                                  final target = widget.nextTargetFor
+                                          ?.call(_activeController) ??
+                                      widget.nextController;
+                                  if (target != null) {
+                                    _setActiveController(target);
+                                  }
+                                  if (widget.nextTargetFor == null) {
+                                    widget.nextOnChanged?.call();
+                                    widget.onNext?.call();
+                                  }
+                                }
+                                return;
+                              }
+                              if (key == 'Enter') {
+                                if (widget.enterTargetFor != null) {
+                                  final target = widget.enterTargetFor!
+                                      .call(_activeController);
+                                  if (target != null) {
+                                    _setActiveController(target);
+                                  }
+                                  return;
+                                }
+                                final immediateTarget =
+                                    widget.enterController?.call();
+                                if (immediateTarget != null) {
+                                  _setActiveController(immediateTarget);
+                                }
+                                widget.onEnter?.call();
+                                WidgetsBinding.instance
+                                    .addPostFrameCallback((_) {
+                                  final target = widget.enterController?.call();
+                                  if (mounted && target != null) {
+                                    _setActiveController(target);
+                                  }
+                                });
+                                return;
+                              }
+                              _appendKey(key);
+                              if (widget.onActiveValueChanged != null) {
+                                widget.onActiveValueChanged!
+                                    .call(_activeController);
+                              } else {
+                                widget.onChanged?.call();
+                              }
+                            },
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MatkaKey extends StatelessWidget {
+  const _MatkaKey({
+    required this.label,
+    required this.onTap,
+  });
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final isNavigation = label == 'back' || label == 'next';
+    final isJackpot = label == 'Jackpot';
+    final isRemove = label == 'remove';
+    final isAction = isNavigation ||
+        isJackpot ||
+        isRemove ||
+        label == '*' ||
+        label == 'Enter';
+    final isSpecial = label == 'SP' ||
+        label == 'DP' ||
+        label == 'CP' ||
+        label == 'CM' ||
+        label == 'CT' ||
+        label == 'F' ||
+        label == 'BZ';
+
+    final backgroundColor = isAction
+        ? const Color(0xFFE7F0FF)
+        : isSpecial
+            ? const Color(0xFFE8F7EE)
+            : const Color(0xFFFFFFFF);
+
+    final foregroundColor = isAction
+        ? label == 'Enter'
+            ? Colors.white
+            : isJackpot
+                ? const Color(0xFF108438)
+                : const Color(0xFF064DB5)
+        : isSpecial
+            ? const Color(0xFF108438)
+            : const Color(0xFF111820);
+
+    final borderColor = isAction
+        ? label == 'Enter'
+            ? const Color(0xFF064DB5)
+            : isJackpot
+                ? const Color(0xFFBFE8CA)
+                : const Color(0xFFBFD5FF)
+        : isSpecial
+            ? const Color(0xFFBFE8CA)
+            : const Color(0xFFD8E0EA);
+
+    return SizedBox(
+      height: 38,
+      child: Material(
+        color: label == 'Enter' ? const Color(0xFF064DB5) : backgroundColor,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+          side: BorderSide(color: borderColor, width: 1.1),
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(10),
+          onTap: onTap,
+          child: Center(
+            child: isNavigation || isJackpot || isRemove
+                ? Icon(
+                    label == 'back'
+                        ? Icons.arrow_back
+                        : label == 'next'
+                            ? Icons.arrow_forward
+                            : label == 'Jackpot'
+                                ? Icons.stars
+                                : Icons.close,
+                    color: foregroundColor,
+                    size: 20,
+                  )
+                : Text(
+                    label,
+                    style: TextStyle(
+                      color: foregroundColor,
+                      fontSize: label.length > 2 ? 14 : 20,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class MatkaEntryTextField extends StatelessWidget {
+  const MatkaEntryTextField({
     required this.controller,
     required this.compact,
     required this.maxLength,
@@ -3252,7 +3988,23 @@ class _EntryTextField extends StatelessWidget {
     this.prefixText,
     this.suffixText,
     this.textInputAction,
+    this.keypadBackController,
+    this.keypadNextController,
+    this.keypadOnChanged,
+    this.keypadBackOnChanged,
+    this.keypadNextOnChanged,
+    this.keypadOnBack,
+    this.keypadOnNext,
+    this.keypadOnJackpot,
+    this.keypadOnEnter,
+    this.nextEntryNumberController,
+    this.keypadBackTargetFor,
+    this.keypadNextTargetFor,
+    this.keypadEnterTargetFor,
+    this.keypadOnActiveControllerChanged,
+    this.keypadOnActiveValueChanged,
     this.onSubmitted,
+    super.key,
   });
 
   final TextEditingController controller;
@@ -3266,14 +4018,163 @@ class _EntryTextField extends StatelessWidget {
   final String? prefixText;
   final String? suffixText;
   final TextInputAction? textInputAction;
+  final TextEditingController? keypadBackController;
+  final TextEditingController? keypadNextController;
+  final VoidCallback? keypadOnChanged;
+  final VoidCallback? keypadBackOnChanged;
+  final VoidCallback? keypadNextOnChanged;
+  final VoidCallback? keypadOnBack;
+  final VoidCallback? keypadOnNext;
+  final TextEditingController? Function()? keypadOnJackpot;
+  final VoidCallback? keypadOnEnter;
+  final TextEditingController? Function()? nextEntryNumberController;
+  final TextEditingController? Function(TextEditingController controller)?
+      keypadBackTargetFor;
+  final TextEditingController? Function(TextEditingController controller)?
+      keypadNextTargetFor;
+  final TextEditingController? Function(TextEditingController controller)?
+      keypadEnterTargetFor;
+  final ValueChanged<TextEditingController>? keypadOnActiveControllerChanged;
+  final ValueChanged<TextEditingController>? keypadOnActiveValueChanged;
+  final VoidCallback? onSubmitted;
+
+  @override
+  Widget build(BuildContext context) {
+    return _EntryTextField(
+      controller: controller,
+      compact: compact,
+      maxLength: maxLength,
+      onChanged: onChanged,
+      fieldKey: key ?? const Key('matka_entry_keypad_trigger'),
+      focusNode: focusNode,
+      errorText: errorText,
+      showErrorText: showErrorText,
+      allowDecimal: allowDecimal,
+      prefixText: prefixText,
+      suffixText: suffixText,
+      textInputAction: textInputAction,
+      keypadBackController: keypadBackController,
+      keypadNextController: keypadNextController,
+      keypadOnChanged: keypadOnChanged,
+      keypadBackOnChanged: keypadBackOnChanged,
+      keypadNextOnChanged: keypadNextOnChanged,
+      keypadOnBack: keypadOnBack,
+      keypadOnNext: keypadOnNext,
+      keypadOnJackpot: keypadOnJackpot,
+      keypadOnEnter: keypadOnEnter,
+      nextEntryNumberController: nextEntryNumberController,
+      keypadBackTargetFor: keypadBackTargetFor,
+      keypadNextTargetFor: keypadNextTargetFor,
+      keypadEnterTargetFor: keypadEnterTargetFor,
+      keypadOnActiveControllerChanged: keypadOnActiveControllerChanged,
+      keypadOnActiveValueChanged: keypadOnActiveValueChanged,
+      onSubmitted: onSubmitted,
+    );
+  }
+}
+
+class _EntryTextField extends StatelessWidget {
+  const _EntryTextField({
+    required this.controller,
+    required this.compact,
+    required this.maxLength,
+    required this.onChanged,
+    this.fieldKey,
+    this.focusNode,
+    this.errorText,
+    this.showErrorText = true,
+    this.allowDecimal = false,
+    this.prefixText,
+    this.suffixText,
+    this.textInputAction,
+    this.keypadOnChanged,
+    this.keypadBackOnChanged,
+    this.keypadNextOnChanged,
+    this.keypadBackController,
+    this.keypadNextController,
+    this.keypadOnBack,
+    this.keypadOnNext,
+    this.keypadOnJackpot,
+    this.keypadOnEnter,
+    this.nextEntryNumberController,
+    this.keypadBackTargetFor,
+    this.keypadNextTargetFor,
+    this.keypadEnterTargetFor,
+    this.keypadOnActiveControllerChanged,
+    this.keypadOnActiveValueChanged,
+    this.onSubmitted,
+  });
+
+  final TextEditingController controller;
+  final Key? fieldKey;
+  final FocusNode? focusNode;
+  final bool compact;
+  final int maxLength;
+  final VoidCallback onChanged;
+  final String? errorText;
+  final bool showErrorText;
+  final bool allowDecimal;
+  final String? prefixText;
+  final String? suffixText;
+  final TextInputAction? textInputAction;
+  final TextEditingController? keypadBackController;
+  final TextEditingController? keypadNextController;
+  final VoidCallback? keypadOnChanged;
+  final VoidCallback? keypadBackOnChanged;
+  final VoidCallback? keypadNextOnChanged;
+  final VoidCallback? keypadOnBack;
+  final VoidCallback? keypadOnNext;
+  final TextEditingController? Function()? keypadOnJackpot;
+  final VoidCallback? keypadOnEnter;
+  final TextEditingController? Function()? nextEntryNumberController;
+  final TextEditingController? Function(TextEditingController controller)?
+      keypadBackTargetFor;
+  final TextEditingController? Function(TextEditingController controller)?
+      keypadNextTargetFor;
+  final TextEditingController? Function(TextEditingController controller)?
+      keypadEnterTargetFor;
+  final ValueChanged<TextEditingController>? keypadOnActiveControllerChanged;
+  final ValueChanged<TextEditingController>? keypadOnActiveValueChanged;
   final VoidCallback? onSubmitted;
 
   @override
   Widget build(BuildContext context) {
     final hasError = errorText != null;
     return TextField(
+      key: fieldKey ?? ValueKey<TextEditingController>(controller),
       controller: controller,
       focusNode: focusNode,
+      readOnly: true,
+      onTap: () async {
+        await Scrollable.ensureVisible(
+          context,
+          alignment: 0.2,
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOut,
+        );
+        if (!context.mounted) return;
+        Scaffold.of(context).showBottomSheet(
+          (_) => MatkaNumberKeypadSheet(
+            controller: controller,
+            backController: keypadBackController,
+            nextController: keypadNextController,
+            onChanged: keypadOnChanged,
+            backOnChanged: keypadBackOnChanged,
+            nextOnChanged: keypadNextOnChanged,
+            onBack: keypadOnBack,
+            onNext: keypadOnNext,
+            onJackpot: keypadOnJackpot,
+            onEnter: keypadOnEnter ?? onSubmitted,
+            enterController: nextEntryNumberController,
+            backTargetFor: keypadBackTargetFor,
+            nextTargetFor: keypadNextTargetFor,
+            enterTargetFor: keypadEnterTargetFor,
+            onActiveControllerChanged: keypadOnActiveControllerChanged,
+            onActiveValueChanged: keypadOnActiveValueChanged,
+          ),
+          backgroundColor: Colors.transparent,
+        );
+      },
       textAlign: TextAlign.center,
       textInputAction: textInputAction,
       keyboardType: allowDecimal
@@ -3292,8 +4193,10 @@ class _EntryTextField extends StatelessWidget {
       ],
       onChanged: (_) => onChanged(),
       onSubmitted: (_) => onSubmitted?.call(),
-      style:
-          TextStyle(fontSize: compact ? 12 : 14, fontWeight: FontWeight.w800),
+      style: TextStyle(
+        fontSize: compact ? 12 : 14,
+        fontWeight: FontWeight.w800,
+      ),
       decoration: InputDecoration(
         errorText:
             hasError && showErrorText ? context.trMaybe(errorText!) : null,
@@ -3398,6 +4301,20 @@ class _AmountFillField extends StatelessWidget {
     required this.onMobileFill,
     required this.onChanged,
     required this.onSubmitted,
+    this.keypadBackController,
+    this.keypadNextController,
+    this.keypadOnChanged,
+    this.keypadBackOnChanged,
+    this.keypadNextOnChanged,
+    this.keypadOnBack,
+    this.keypadOnNext,
+    this.keypadOnJackpot,
+    this.keypadOnEnter,
+    this.keypadBackTargetFor,
+    this.keypadNextTargetFor,
+    this.keypadEnterTargetFor,
+    this.keypadOnActiveControllerChanged,
+    this.keypadOnActiveValueChanged,
   });
 
   final TextEditingController controller;
@@ -3411,6 +4328,23 @@ class _AmountFillField extends StatelessWidget {
   final VoidCallback onMobileFill;
   final VoidCallback onChanged;
   final VoidCallback onSubmitted;
+  final TextEditingController? keypadBackController;
+  final TextEditingController? keypadNextController;
+  final VoidCallback? keypadOnChanged;
+  final VoidCallback? keypadBackOnChanged;
+  final VoidCallback? keypadNextOnChanged;
+  final VoidCallback? keypadOnBack;
+  final VoidCallback? keypadOnNext;
+  final TextEditingController? Function()? keypadOnJackpot;
+  final VoidCallback? keypadOnEnter;
+  final TextEditingController? Function(TextEditingController controller)?
+      keypadBackTargetFor;
+  final TextEditingController? Function(TextEditingController controller)?
+      keypadNextTargetFor;
+  final TextEditingController? Function(TextEditingController controller)?
+      keypadEnterTargetFor;
+  final ValueChanged<TextEditingController>? keypadOnActiveControllerChanged;
+  final ValueChanged<TextEditingController>? keypadOnActiveValueChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -3433,6 +4367,20 @@ class _AmountFillField extends StatelessWidget {
               maxLength: 8,
               allowDecimal: true,
               textInputAction: TextInputAction.done,
+              keypadBackController: keypadBackController,
+              keypadNextController: keypadNextController,
+              keypadOnChanged: keypadOnChanged,
+              keypadBackOnChanged: keypadBackOnChanged,
+              keypadNextOnChanged: keypadNextOnChanged,
+              keypadOnBack: keypadOnBack,
+              keypadOnNext: keypadOnNext,
+              keypadOnJackpot: keypadOnJackpot,
+              keypadOnEnter: keypadOnEnter,
+              keypadBackTargetFor: keypadBackTargetFor,
+              keypadNextTargetFor: keypadNextTargetFor,
+              keypadEnterTargetFor: keypadEnterTargetFor,
+              keypadOnActiveControllerChanged: keypadOnActiveControllerChanged,
+              keypadOnActiveValueChanged: keypadOnActiveValueChanged,
               onSubmitted: onSubmitted,
               onChanged: onChanged,
             ),
