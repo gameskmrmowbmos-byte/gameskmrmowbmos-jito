@@ -469,38 +469,41 @@ class _ShareReceiptItemRow extends StatelessWidget {
                           children: [
                             SizedBox(
                               width: numberColumnWidth,
-                              child: Text.rich(
-                                TextSpan(
-                                  children: [
-                                    if (numberParts.leadingArrow.isNotEmpty)
-                                      TextSpan(
-                                        text: '${numberParts.leadingArrow} ',
-                                        style: labelTextStyle,
-                                      ),
-                                    if (numberParts.beforeSuffix.isNotEmpty)
-                                      TextSpan(
-                                        text: AppLocalizations.localizeDigits(
-                                          numberParts.beforeSuffix,
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: Text.rich(
+                                  TextSpan(
+                                    children: [
+                                      if (numberParts.leadingArrow.isNotEmpty)
+                                        TextSpan(
+                                          text: '${numberParts.leadingArrow} ',
+                                          style: labelTextStyle,
                                         ),
-                                        style: numberTextStyle,
-                                      ),
-                                    if (numberParts.suffix.isNotEmpty)
-                                      TextSpan(
-                                        text: AppLocalizations.localizeDigits(
-                                          '${numberParts.beforeSuffix.isEmpty ? '' : ' '}${numberParts.suffix}',
+                                      if (numberParts.beforeSuffix.isNotEmpty)
+                                        TextSpan(
+                                          text: AppLocalizations.localizeDigits(
+                                            numberParts.beforeSuffix,
+                                          ),
+                                          style: numberTextStyle,
                                         ),
-                                        style: labelTextStyle,
-                                      ),
-                                    if (numberParts.trailingArrow.isNotEmpty)
-                                      TextSpan(
-                                        text: ' ${numberParts.trailingArrow}',
-                                        style: labelTextStyle,
-                                      ),
-                                  ],
+                                      if (numberParts.suffix.isNotEmpty)
+                                        TextSpan(
+                                          text: AppLocalizations.localizeDigits(
+                                            '${numberParts.beforeSuffix.isEmpty ? '' : ' '}${numberParts.suffix}',
+                                          ),
+                                          style: labelTextStyle,
+                                        ),
+                                      if (numberParts.trailingArrow.isNotEmpty)
+                                        TextSpan(
+                                          text: ' ${numberParts.trailingArrow}',
+                                          style: labelTextStyle,
+                                        ),
+                                    ],
+                                  ),
+                                  maxLines: 1,
+                                  style: numberTextStyle,
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: numberTextStyle,
                               ),
                             ),
                             SizedBox(width: columnGap),
