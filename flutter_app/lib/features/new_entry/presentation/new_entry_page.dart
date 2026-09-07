@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import 'package:matka_management/core/language/app_localizations.dart';
 import 'package:matka_management/core/language/language_provider.dart';
@@ -15,6 +16,7 @@ import 'package:matka_management/features/new_entry/data/entry_type_config.dart'
 import 'package:matka_management/features/new_entry/data/game_config_models.dart';
 import 'package:matka_management/features/new_entry/presentation/new_entry_controller.dart';
 import 'package:matka_management/features/new_entry/presentation/new_entry_draft_provider.dart';
+import 'package:matka_management/features/printed_receipts/data/printer_store.dart';
 import 'package:matka_management/features/share_records/presentation/providers/share_records_provider.dart';
 import 'package:matka_management/shared/widgets/aligned_jackpot_marker.dart';
 import 'package:matka_management/shared/widgets/status_screens.dart';
@@ -1775,6 +1777,10 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
   Future<void> _save({required bool print}) async {
     final market = _selectedMarket;
     if (market == null || !_canSave) return;
+    if (print && await PrinterStore().loadActivePrinter() == null) {
+      if (mounted) context.push('/settings');
+      return;
+    }
 
     bool hasError = false;
     setState(() {
@@ -7230,7 +7236,7 @@ class _ActionBar extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: _ActionButton(
-              label: isLoading ? 'SAVING...' : 'SAVE & PRINT (F6)',
+              label: isLoading ? 'SAVING...' : 'PRINT RECEIPT (F6)',
               icon: Icons.print_outlined,
               background: _NewEntryPageState._green,
               foreground: Colors.white,
@@ -7256,7 +7262,7 @@ class _ActionBar extends StatelessWidget {
         const SizedBox(width: 24),
         Expanded(
           child: _ActionButton(
-            label: 'SAVE & PRINT (F6)',
+            label: 'PRINT RECEIPT (F6)',
             icon: Icons.print_outlined,
             background: _NewEntryPageState._green,
             foreground: Colors.white,

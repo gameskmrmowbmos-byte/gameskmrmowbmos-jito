@@ -9,6 +9,7 @@ import 'package:matka_management/features/auth/presentation/screens/splash_scree
 import 'package:matka_management/features/entries/presentation/entries_page.dart';
 import 'package:matka_management/features/new_entry/presentation/new_entry_page.dart';
 import 'package:matka_management/features/receipt_search/presentation/search_receipt_page.dart';
+import 'package:matka_management/features/settings/presentation/settings_page.dart';
 import 'package:matka_management/features/share_records/presentation/share_records_page.dart';
 import 'package:matka_management/layout/main_layout.dart';
 
@@ -84,6 +85,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/share-records',
             builder: (context, state) => const ShareRecordsPage(),
+          ),
+          GoRoute(
+            path: '/settings',
+            builder: (context, state) => const SettingsPage(),
           ),
         ],
       ),
