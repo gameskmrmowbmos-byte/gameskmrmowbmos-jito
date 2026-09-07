@@ -23,6 +23,9 @@ dependencies:
   share_plus: ^10.1.4
   shared_preferences: ^2.5.5
 
+  esc_pos_bluetooth: ^0.4.1
+  esc_pos_utils: ^1.1.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
