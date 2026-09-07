@@ -13,6 +13,7 @@ router.get('/', controller.listReceipts);
 router.get('/search', controller.searchReceipt);
 router.get('/:id', controller.getReceipt);
 router.post('/', requireActiveSubscription, controller.createReceipt);
-router.post('/:id/cancel', authorize('admin'), controller.cancelReceipt); // Only admin (or via PIN check)
+router.delete('/:id', authorize('admin', 'operator'), controller.deleteReceipt);
+router.post('/:id/cancel', authorize('admin'), controller.cancelReceipt);
 
 module.exports = router;

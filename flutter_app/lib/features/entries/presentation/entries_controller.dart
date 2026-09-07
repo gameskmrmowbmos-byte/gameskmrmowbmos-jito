@@ -177,19 +177,15 @@ class EntriesController extends StateNotifier<EntriesState> {
     }
   }
 
-  Future<void> cancelSelected(String reason) async {
+  Future<void> deleteSelected() async {
     final selected = state.selected;
-    if (selected == null || selected.receipt.isCancelled) return;
+    if (selected == null) return;
     state = state.copyWith(cancelling: true, clearError: true);
     try {
-      await _repository.cancelReceipt(
-        receiptId: selected.receipt.id,
-        reason: reason,
-      );
-      final detail = await _repository.getReceiptById(selected.receipt.id);
+      await _repository.deleteReceipt(receiptId: selected.receipt.id);
       state = state.copyWith(
         cancelling: false,
-        selected: detail,
+        clearSelected: true,
         clearError: true,
       );
       await loadReceipts(page: state.page);

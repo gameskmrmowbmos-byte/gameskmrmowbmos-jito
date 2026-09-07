@@ -9,6 +9,7 @@ const { getPagination, paginationMeta } = require('../utils/pagination');
 const { success } = require('../utils/response');
 const { generateReceiptNumber } = require('../utils/receiptNumber');
 const { validateReceiptPayload } = require('../services/gameConfig.service');
+const { deleteReceiptData } = require('../services/cleanup.service');
 
 function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -268,10 +269,38 @@ const cancelReceipt = asyncHandler(async (req, res) => {
   });
 });
 
+const deleteReceipt = asyncHandler(async (req, res) => {
+  const receipt = await Receipt.findOne(
+    receiptScope(req, { _id: req.params.id }),
+  );
+  if (!receipt) throw ApiError.notFound('Receipt not found');
+
+  await recordAudit({
+    req,
+    user: req.user,
+    action: 'receipt_deletion',
+    module: 'receipts',
+    recordId: receipt._id,
+    previousValue: {
+      receiptNumber: receipt.receiptNumber,
+      status: receipt.status,
+      operator: receipt.operator,
+      totalAmount: receipt.totalAmount,
+    },
+  });
+
+  const deleted = await deleteReceiptData(receipt._id);
+  return success(res, {
+    message: 'Receipt deleted permanently',
+    data: deleted,
+  });
+});
+
 module.exports = {
   listReceipts,
   getReceipt,
   searchReceipt,
   createReceipt,
   cancelReceipt,
+  deleteReceipt,
 };

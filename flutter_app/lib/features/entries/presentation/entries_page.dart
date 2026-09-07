@@ -446,7 +446,7 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
         ReceiptDetailsPanel(
           detail: detail,
           cancelling: state.cancelling,
-          onCancel: () => _confirmCancel(),
+                  onCancel: () => _confirmDelete(),
         ),
         const SizedBox(height: 14),
         const NumberedTitle('4', 'Parchi Preview'),
@@ -522,7 +522,7 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
                 ReceiptDetailsPanel(
                   detail: detail,
                   cancelling: state.cancelling,
-                  onCancel: () => _confirmCancel(),
+                  onCancel: () => _confirmDelete(),
                 ),
                 const SizedBox(height: 16),
                 const NumberedTitle('4', 'Parchi Preview'),
@@ -542,20 +542,13 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
     );
   }
 
-  Future<void> _confirmCancel() async {
-    final controller = TextEditingController();
-    final reason = await showDialog<String>(
+  Future<void> _confirmDelete() async {
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Cancel Parchi'),
-        content: TextField(
-          controller: controller,
-          minLines: 2,
-          maxLines: 4,
-          decoration: const InputDecoration(
-            labelText: 'Cancellation reason',
-            border: OutlineInputBorder(),
-          ),
+        title: const Text('Delete Parchi permanently?'),
+        content: const Text(
+          'This will delete the parchi, all bet entries, and print history from the database.',
         ),
         actions: [
           TextButton(
@@ -563,18 +556,14 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
             child: const Text('Close'),
           ),
           FilledButton(
-            onPressed: () {
-              final value = controller.text.trim();
-              if (value.isNotEmpty) Navigator.of(context).pop(value);
-            },
-            child: const Text('Cancel Parchi'),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete Parchi'),
           ),
         ],
       ),
     );
-    controller.dispose();
-    if (reason == null || reason.isEmpty) return;
-    await ref.read(entriesControllerProvider.notifier).cancelSelected(reason);
+    if (confirmed != true) return;
+    await ref.read(entriesControllerProvider.notifier).deleteSelected();
   }
 
   Widget _reprintButton(ReceiptDetail detail, EntriesState state) {

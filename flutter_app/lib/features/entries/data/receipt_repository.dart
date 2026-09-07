@@ -195,6 +195,13 @@ class ReceiptRepository {
     );
   }
 
+  Future<void> deleteReceipt({required String receiptId}) async {
+    await _api.sendJson(
+      'DELETE',
+      '${ApiEndpoints.receipts}/$receiptId',
+    );
+  }
+
   Future<PrintLogModel> reprintReceipt({
     required String receiptId,
     required String reason,

@@ -332,14 +332,14 @@ class ReceiptDetailsPanel extends StatelessWidget {
           if (showActions) ...[
             const SizedBox(height: 10),
             OutlinedButton.icon(
-              onPressed: receipt.isCancelled || cancelling ? null : onCancel,
+              onPressed: cancelling ? null : onCancel,
               icon: cancelling
                   ? const SizedBox.square(
                       dimension: 16,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Icon(Icons.cancel_outlined),
-              label: const Text('Cancel Parchi'),
+                    : const Icon(Icons.delete_outline),
+                  label: const Text('Delete Parchi'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: entryRed,
                 side: const BorderSide(color: entryRed),
