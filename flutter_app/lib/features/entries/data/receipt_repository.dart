@@ -223,7 +223,6 @@ class ReceiptRepository {
       data['printLog'] as Map<String, dynamic>? ?? const {},
     );
   }
-
 }
 
 int _intValue(Object? value, {int fallback = 0}) {

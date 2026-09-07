@@ -76,9 +76,8 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
               OutlinedButton.icon(
                 onPressed: state.loading
                     ? null
-                    : () => ref
-                        .read(entriesControllerProvider.notifier)
-                        .refresh(),
+                    : () =>
+                        ref.read(entriesControllerProvider.notifier).refresh(),
                 icon: const Icon(Icons.refresh),
                 label: const Text('Refresh'),
               ),
@@ -137,9 +136,8 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
             child: OutlinedButton.icon(
               onPressed: state.loading
                   ? null
-                  : () => ref
-                      .read(entriesControllerProvider.notifier)
-                      .refresh(),
+                  : () =>
+                      ref.read(entriesControllerProvider.notifier).refresh(),
               icon: const Icon(Icons.refresh),
               label: const Text('Refresh'),
             ),
@@ -401,31 +399,32 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
                         ? StatusBadge(values[i])
                         : i == 1 && !header
                             ? _CopyableParchiNumber(values[i])
-                        : i == 9 && !header && receipt != null
-                            ? IconButton(
-                                tooltip: 'View receipt',
-                                visualDensity: VisualDensity.compact,
-                                onPressed: () => ref
-                                    .read(entriesControllerProvider.notifier)
-                                    .selectReceipt(receipt.id),
-                                icon: const Icon(
-                                  Icons.remove_red_eye_outlined,
-                                  color: entryBlue,
-                                  size: 19,
-                                ),
-                              )
-                            : Text(
-                                values[i],
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: header ? 11 : 12,
-                                  fontWeight: header
-                                      ? FontWeight.w900
-                                      : FontWeight.w700,
-                                ),
-                              ),
+                            : i == 9 && !header && receipt != null
+                                ? IconButton(
+                                    tooltip: 'View receipt',
+                                    visualDensity: VisualDensity.compact,
+                                    onPressed: () => ref
+                                        .read(
+                                            entriesControllerProvider.notifier)
+                                        .selectReceipt(receipt.id),
+                                    icon: const Icon(
+                                      Icons.remove_red_eye_outlined,
+                                      color: entryBlue,
+                                      size: 19,
+                                    ),
+                                  )
+                                : Text(
+                                    values[i],
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: header ? 11 : 12,
+                                      fontWeight: header
+                                          ? FontWeight.w900
+                                          : FontWeight.w700,
+                                    ),
+                                  ),
               ),
             ),
         ],
@@ -446,7 +445,7 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
         ReceiptDetailsPanel(
           detail: detail,
           cancelling: state.cancelling,
-                  onCancel: () => _confirmDelete(),
+          onCancel: () => _confirmDelete(),
         ),
         const SizedBox(height: 14),
         const NumberedTitle('4', 'Parchi Preview'),

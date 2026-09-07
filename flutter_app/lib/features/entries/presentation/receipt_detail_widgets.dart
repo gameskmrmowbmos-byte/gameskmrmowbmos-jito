@@ -338,8 +338,8 @@ class ReceiptDetailsPanel extends StatelessWidget {
                       dimension: 16,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                    : const Icon(Icons.delete_outline),
-                  label: const Text('Delete Parchi'),
+                  : const Icon(Icons.delete_outline),
+              label: const Text('Delete Parchi'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: entryRed,
                 side: const BorderSide(color: entryRed),
