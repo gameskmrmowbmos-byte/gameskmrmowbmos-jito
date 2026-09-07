@@ -60,4 +60,16 @@ async function runRetentionCleanup({ force = false } = {}) {
   };
 }
 
-module.exports = { runRetentionCleanup };
+async function deleteReceiptData(receiptId) {
+  const items = await ReceiptItem.deleteMany({ receipt: receiptId });
+  const printLogs = await PrintLog.deleteMany({ receipt: receiptId });
+  const receipt = await Receipt.deleteOne({ _id: receiptId });
+
+  return {
+    receiptDeleted: receipt.deletedCount,
+    itemsDeleted: items.deletedCount,
+    printLogsDeleted: printLogs.deletedCount,
+  };
+}
+
+module.exports = { runRetentionCleanup, deleteReceiptData };
