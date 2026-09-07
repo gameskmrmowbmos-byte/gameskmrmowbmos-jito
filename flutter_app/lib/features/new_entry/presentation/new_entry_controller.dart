@@ -76,7 +76,7 @@ class NewEntryController extends AutoDisposeAsyncNotifier<NewEntryData> {
     String? notes,
     bool isOtc = false,
     required bool shouldPrint,
-    String printerName = 'POS-58',
+    String? printerName,
     String? overrideParchiNo,
   }) async {
     final printSession = shouldPrint ? prepareCustomerParchiPrint() : null;
@@ -115,7 +115,9 @@ class NewEntryController extends AutoDisposeAsyncNotifier<NewEntryData> {
           final printRepo = ref.read(printRepositoryProvider);
           await printRepo.createOriginalPrint(
             receiptId: receipt.receipt.id,
-            printerName: printerName,
+            printerName: printerName ??
+                await printSession?.activePrinterName ??
+                'Unknown printer',
             status: printed ? 'Success' : 'Failed',
             errorMessage: printError?.toString(),
           );

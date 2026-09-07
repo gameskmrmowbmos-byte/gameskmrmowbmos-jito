@@ -52,6 +52,12 @@ const appNavigationItems = [
     icon: Icons.search,
   ),
   AppNavigationItem(
+    label: 'Printer Settings',
+    shortLabel: 'Printer',
+    path: '/settings',
+    icon: Icons.print_outlined,
+  ),
+  AppNavigationItem(
     label: 'Logout',
     shortLabel: 'Logout',
     path: '/login',

@@ -4,6 +4,7 @@ import 'dart:js_interop';
 import 'package:intl/intl.dart';
 import 'package:matka_management/core/language/app_localizations.dart';
 import 'package:matka_management/features/entries/data/receipt_models.dart';
+import 'package:matka_management/features/printed_receipts/services/printer_service_common.dart';
 import 'package:web/web.dart' as web;
 
 const _parchiEntriesPerPage = 10;
@@ -12,6 +13,23 @@ class CustomerParchiPrintSession {
   const CustomerParchiPrintSession._(this._window);
 
   final web.Window? _window;
+
+  Future<String?> get activePrinterName async => null;
+
+  Stream<List<DiscoveredBluetoothPrinter>> get scanResults =>
+      Stream<List<DiscoveredBluetoothPrinter>>.empty();
+
+  Stream<bool> get isScanning => Stream<bool>.value(false);
+
+  void startScan() {}
+
+  void stopScan() {}
+
+  Future<void> dispose() async {}
+
+  Future<void> printTest(Object printer) async {
+    throw UnsupportedError('Direct thermal printing is unavailable on the web');
+  }
 
   Future<void> printReceipt(ReceiptDetail detail,
       {String? overrideParchiNo, String? marketName, String? ownerName}) async {

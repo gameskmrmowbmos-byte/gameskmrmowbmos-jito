@@ -1,107 +1,62 @@
-import 'dart:async';
+import 'package:matka_management/features/entries/data/receipt_models.dart';
 
-import 'package:esc_pos_bluetooth/esc_pos_bluetooth.dart';
-import 'package:esc_pos_utils/esc_pos_utils.dart';
-import 'package:flutter/foundation.dart';
+import 'package:matka_management/features/printed_receipts/data/printer_models.dart';
+import 'package:matka_management/features/printed_receipts/data/printer_store.dart';
+import 'package:matka_management/features/printed_receipts/services/escpos_receipt_builder.dart';
+import 'package:matka_management/features/printed_receipts/services/printer_service.dart';
 
 class CustomerParchiPrintSession {
-  CustomerParchiPrintSession();
+  CustomerParchiPrintSession()
+      : _service = PrinterService(),
+        _builder = EscPosReceiptBuilder();
 
-  final PrinterBluetoothManager _printerManager =
-      PrinterBluetoothManager();
+  final PrinterService _service;
+  final EscPosReceiptBuilder _builder;
+  final PrinterStore _store = PrinterStore();
 
-  Stream<List<PrinterBluetooth>> get scanResults =>
-      _printerManager.scanResults;
+  Future<String?> get activePrinterName async =>
+      (await _store.loadActivePrinter())?.name;
 
-  Stream<bool> get isScanning =>
-      _printerManager.isScanningStream;
+  Stream<List<DiscoveredBluetoothPrinter>> get scanResults =>
+      _service.bluetoothPrinters;
+
+  Stream<bool> get isScanning => _service.isScanning;
 
   void startScan() {
-    _printerManager.startScan(
-      const Duration(seconds: 5),
-    );
+    _service.startBluetoothScan();
   }
 
   void stopScan() {
-    _printerManager.stopScan();
+    _service.stopBluetoothScan();
   }
 
-  Future<void> printTest(PrinterBluetooth printer) async {
-    _printerManager.selectPrinter(printer);
-
-    final profile = await CapabilityProfile.load();
-
-    final generator = Generator(
-      PaperSize.mm80,
-      profile,
+  Future<void> printTest(PrinterConfiguration printer) async {
+    await _service.printBytes(
+      printer,
+      await _builder.buildTestPrint(printer.name),
     );
-
-    final bytes = <int>[];
-
-    bytes.addAll(
-      generator.text(
-        'TEST PRINT',
-        styles: const PosStyles(
-          align: PosAlign.center,
-          bold: true,
-          height: PosTextSize.size2,
-          width: PosTextSize.size2,
-        ),
-      ),
-    );
-
-    bytes.addAll(generator.hr());
-
-    bytes.addAll(
-      generator.text(
-        'KPC307-UEWB-688D',
-        styles: const PosStyles(
-          align: PosAlign.center,
-          bold: true,
-        ),
-      ),
-    );
-
-    bytes.addAll(
-      generator.text(
-        'Bluetooth OK',
-        styles: const PosStyles(
-          align: PosAlign.center,
-        ),
-      ),
-    );
-
-    bytes.addAll(generator.feed(3));
-
-    // Your printer has a cutter.
-    bytes.addAll(generator.cut());
-
-    final result = await _printerManager.printTicket(
-      bytes,
-      queueSleepTimeMs: 100,
-    );
-
-    if (kDebugMode) {
-      debugPrint(
-        'Printer result: ${result.msg}',
-      );
-    }
   }
 
   Future<void> printReceipt(
-    dynamic detail, {
+    ReceiptDetail detail, {
     String? overrideParchiNo,
     String? marketName,
     String? ownerName,
   }) async {
-    throw UnimplementedError(
-      'Actual Bluetooth receipt printing will be added after the printer connection is tested.',
+    final printer = await _store.loadActivePrinter();
+    if (printer == null) {
+      throw StateError('No printer configured. Open Printer Settings first.');
+    }
+    final bytes = await _builder.buildReceipt(
+      detail,
+      overrideParchiNo: overrideParchiNo,
+      marketName: marketName,
+      ownerName: ownerName,
     );
+    await _service.printBytes(printer, bytes);
   }
 
-  void dispose() {
-    stopScan();
-  }
+  Future<void> dispose() => _service.dispose();
 }
 
 CustomerParchiPrintSession prepareCustomerParchiPrint() {

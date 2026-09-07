@@ -22,8 +22,10 @@ dependencies:
   flutter_animate: ^4.5.2
   share_plus: ^10.1.4
   shared_preferences: ^2.5.5
+  permission_handler: ^12.0.1
 
   esc_pos_bluetooth: ^0.4.1
+  flutter_bluetooth_basic: ^0.1.7
   esc_pos_utils: ^1.1.0
 
 dev_dependencies:
