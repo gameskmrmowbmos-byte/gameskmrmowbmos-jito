@@ -87,6 +87,8 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _saveBluetooth(DiscoveredBluetoothPrinter device) async {
+    await _session.stopScan();
+    if (mounted) setState(() => _scanning = false);
     final printer = PrinterConfiguration(
       id: 'bluetooth:${device.address}',
       type: PrinterConnectionType.bluetooth,

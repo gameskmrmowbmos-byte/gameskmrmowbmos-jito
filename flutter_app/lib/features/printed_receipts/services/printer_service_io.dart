@@ -66,6 +66,10 @@ class PrinterService {
     List<int> bytes,
   ) async {
     await _requestBluetoothPermissions();
+    // The discovery screen may still be scanning when the user taps Test Print.
+    // Stop that scan before the print connection starts its own short scan.
+    await _bluetoothManager.stopScan();
+    await Future<void>.delayed(const Duration(milliseconds: 250));
     _manager.startScan(const Duration(seconds: 5));
     final scanned = await _manager.scanResults
         .firstWhere(

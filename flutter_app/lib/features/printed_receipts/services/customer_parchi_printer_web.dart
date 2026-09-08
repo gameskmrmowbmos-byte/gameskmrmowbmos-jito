@@ -23,7 +23,7 @@ class CustomerParchiPrintSession {
 
   void startScan() {}
 
-  void stopScan() {}
+  Future<void> stopScan() async {}
 
   Future<void> dispose() async {}
 

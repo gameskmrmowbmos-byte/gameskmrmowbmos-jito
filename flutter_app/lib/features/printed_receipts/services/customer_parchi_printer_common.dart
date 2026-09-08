@@ -16,7 +16,7 @@ class CustomerParchiPrintSession {
 
   void startScan() {}
 
-  void stopScan() {}
+  Future<void> stopScan() async {}
 
   Future<void> printTest(PrinterConfiguration printer) async {
     throw UnsupportedError('Thermal printing is unavailable on this platform');
