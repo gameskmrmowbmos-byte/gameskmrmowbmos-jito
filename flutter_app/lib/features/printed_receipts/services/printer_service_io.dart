@@ -36,7 +36,9 @@ class PrinterService {
     final statuses = await [
       Permission.bluetoothScan,
       Permission.bluetoothConnect,
+      Permission.locationWhenInUse,
     ].request();
+
     if (statuses.values
         .any((status) => status.isDenied || status.isPermanentlyDenied)) {
       throw StateError('Bluetooth permission denied');

@@ -4,7 +4,6 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import 'package:matka_management/core/language/app_localizations.dart';
 import 'package:matka_management/core/language/language_provider.dart';
@@ -1782,9 +1781,18 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
   Future<void> _save({required bool print}) async {
     final market = _selectedMarket;
     if (market == null || !_canSave) return;
-    if (print && await PrinterStore().loadActivePrinter() == null) {
-      if (mounted) context.push('/settings');
-      return;
+
+    final activePrinter = await PrinterStore().loadActivePrinter();
+    final shouldPrint = print && activePrinter != null;
+
+    if (print && activePrinter == null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'No active printer configured. Entry saved without printing.',
+          ),
+        ),
+      );
     }
 
     bool hasError = false;
@@ -1843,7 +1851,7 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
                     session: _session,
                     items: pageItems,
                     isOtc: activeOtcPages.contains(pageIndex),
-                    shouldPrint: print,
+                    shouldPrint: shouldPrint,
                   );
           if (receipt == null) {
             if (!mounted) return;
@@ -1864,7 +1872,7 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
                   session: _session,
                   items: items,
                   isOtc: activeOtcPages.isNotEmpty,
-                  shouldPrint: print,
+                  shouldPrint: shouldPrint,
                 );
         if (receipt == null) {
           if (!mounted) return;
