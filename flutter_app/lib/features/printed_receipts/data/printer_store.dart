@@ -68,11 +68,13 @@ class PrinterStore {
   Future<void> ensureDefaultPrinterConfiguration() async {
     final printers = await loadPrinters();
     final hasBluetooth = printers.any(
-      (item) => item.type == PrinterConnectionType.bluetooth &&
+      (item) =>
+          item.type == PrinterConnectionType.bluetooth &&
           item.address == defaultBluetoothPrinterAddress,
     );
     final hasWifi = printers.any(
-      (item) => item.type == PrinterConnectionType.wifi &&
+      (item) =>
+          item.type == PrinterConnectionType.wifi &&
           item.host == defaultWifiPrinterHost &&
           item.port == defaultWifiPrinterPort,
     );
