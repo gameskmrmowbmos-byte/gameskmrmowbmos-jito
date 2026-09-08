@@ -274,6 +274,11 @@ List<List<_ReceiptLine>> _receiptLinePages(List<_ReceiptLine> lines) {
 
   for (final line in lines) {
     final jackpotEntries = _visibleJackpotLines(line);
+    final requiredEntryCount = 1 + jackpotEntries.length;
+    if (currentEntryCount > 0 &&
+        currentEntryCount + requiredEntryCount > _parchiEntriesPerPage) {
+      pushCurrentPage();
+    }
     ensurePageSpace();
     final fullJackpotTotal = _jackpotAmountTotal(jackpotEntries);
     var mainAmount = _parseAmount(line.amount) - fullJackpotTotal;
@@ -3711,6 +3716,7 @@ class MatkaNumberKeypadSheet extends StatefulWidget {
 
 class _MatkaNumberKeypadSheetState extends State<MatkaNumberKeypadSheet> {
   late TextEditingController _activeController;
+  bool _valueChangeScheduled = false;
 
   @override
   void initState() {
@@ -3721,6 +3727,20 @@ class _MatkaNumberKeypadSheetState extends State<MatkaNumberKeypadSheet> {
   void _setActiveController(TextEditingController controller) {
     setState(() => _activeController = controller);
     widget.onActiveControllerChanged?.call(controller);
+  }
+
+  void _scheduleValueChanged() {
+    if (_valueChangeScheduled) return;
+    _valueChangeScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _valueChangeScheduled = false;
+      if (!mounted) return;
+      if (widget.onActiveValueChanged != null) {
+        widget.onActiveValueChanged!.call(_activeController);
+      } else {
+        widget.onChanged?.call();
+      }
+    });
   }
 
   void _appendKey(String key) {
@@ -3759,9 +3779,9 @@ class _MatkaNumberKeypadSheetState extends State<MatkaNumberKeypadSheet> {
     final entries = <List<String>>[
       ['SP', 'DP', 'CP', 'CM'],
       ['CT', 'F', 'BZ'],
-      ['7', '8', '9', 'remove'],
+      ['7', '8', '9', widget.onJackpot == null ? 'remove' : 'Jackpot'],
       ['4', '5', '6', 'back'],
-      ['1', '2', '3', widget.onJackpot == null ? 'next' : 'Jackpot'],
+      ['1', '2', '3', widget.onJackpot == null ? 'next' : 'remove'],
       ['0', '*', 'Enter'],
     ];
 
@@ -3802,12 +3822,7 @@ class _MatkaNumberKeypadSheetState extends State<MatkaNumberKeypadSheet> {
                             onTap: () {
                               if (key == 'remove') {
                                 _removeLastKey();
-                                if (widget.onActiveValueChanged != null) {
-                                  widget.onActiveValueChanged!
-                                      .call(_activeController);
-                                } else {
-                                  widget.onChanged?.call();
-                                }
+                                _scheduleValueChanged();
                                 return;
                               }
                               if (key == 'Jackpot') {
@@ -3868,12 +3883,7 @@ class _MatkaNumberKeypadSheetState extends State<MatkaNumberKeypadSheet> {
                                 return;
                               }
                               _appendKey(key);
-                              if (widget.onActiveValueChanged != null) {
-                                widget.onActiveValueChanged!
-                                    .call(_activeController);
-                              } else {
-                                widget.onChanged?.call();
-                              }
+                              _scheduleValueChanged();
                             },
                           ),
                         ),
