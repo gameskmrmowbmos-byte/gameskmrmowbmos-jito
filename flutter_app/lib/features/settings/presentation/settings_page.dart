@@ -34,7 +34,6 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _load() async {
-    await _store.ensureDefaultPrinterConfiguration();
     final printers = await _store.loadPrinters();
     final active = await _store.loadActivePrinter();
     if (!mounted) return;
