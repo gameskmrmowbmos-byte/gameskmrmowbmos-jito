@@ -11,7 +11,7 @@ class EscPosReceiptBuilder {
     String? ownerName,
   }) async {
     final profile = await CapabilityProfile.load();
-    final generator = Generator(PaperSize.mm58, profile);
+    final generator = Generator(PaperSize.mm80, profile);
     final receipt = detail.receipt;
     final bytes = <int>[];
     final centeredBold = const PosStyles(align: PosAlign.center, bold: true);
@@ -107,7 +107,7 @@ class EscPosReceiptBuilder {
 
   Future<List<int>> buildTestPrint(String printerName) async {
     final profile = await CapabilityProfile.load();
-    final generator = Generator(PaperSize.mm58, profile);
+    final generator = Generator(PaperSize.mm80, profile);
     return [
       ...generator.text(
         'TEST PRINT',
