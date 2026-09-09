@@ -2396,7 +2396,7 @@ class _TrialStatusBar extends StatelessWidget {
                   'expiry': expiry,
                 },
               ),
-              style: const TextStyle(
+                  style: const TextStyle(
                 color: _NewEntryPageState._blue,
                 fontWeight: FontWeight.w800,
               ),
