@@ -196,7 +196,9 @@ class EntriesController extends StateNotifier<EntriesState> {
 
   Future<void> reprintSelected(String reason) async {
     final selected = state.selected;
-    if (selected == null || selected.receipt.isCancelled) return;
+    if (state.reprinting || selected == null || selected.receipt.isCancelled) {
+      return;
+    }
     state = state.copyWith(reprinting: true, clearError: true);
     final printSession = prepareCustomerParchiPrint();
     try {
@@ -222,6 +224,12 @@ class EntriesController extends StateNotifier<EntriesState> {
       );
     } on Object catch (error) {
       state = state.copyWith(reprinting: false, error: error.toString());
+    } finally {
+      try {
+        await printSession.dispose();
+      } on Object {
+        // The receipt result has already been handled; cleanup must not mask it.
+      }
     }
   }
 }

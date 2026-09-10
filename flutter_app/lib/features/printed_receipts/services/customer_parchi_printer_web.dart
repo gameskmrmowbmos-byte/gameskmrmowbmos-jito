@@ -115,18 +115,22 @@ String _buildReceiptHtml(
   <meta charset="utf-8">
   <title>Parchi ${canonicalParchiNumber(receipt.receiptNumber)}</title>
   <style>
-    @page { margin: 0; size: 58mm auto; }
+    @page {
+      margin: 0;
+    }
     body {
       width: 58mm;
       margin: 0;
       padding: 0;
       font-family: "Noto Sans Devanagari", Arial, Helvetica, sans-serif;
+      box-sizing: border-box;
     }
 
     .ticket {
       width: 58mm;
       min-height: 100%;
-      padding: 6mm 4mm 5mm;
+      box-sizing: border-box;
+      padding: 12px 12px 14px;
       background: #ffffff;
       break-after: page;
       page-break-after: always;
@@ -339,8 +343,14 @@ String _buildReceiptHtml(
     }
 
     @media print {
-      @page { margin: 0; size: 58mm auto; }
-      html, body { width: 58mm; margin: 0; padding: 0; }
+      @page {
+        margin: 0;
+      }
+      html, body {
+        width: 58mm;
+        margin: 0;
+        padding: 0;
+      }
       .ticket {
         box-shadow: none;
       }
