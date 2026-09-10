@@ -16,15 +16,20 @@ class AppLanguageController extends StateNotifier<AppLanguage> {
     unawaited(_load());
   }
 
+  bool _hasUserSelectedLanguage = false;
+
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
+    if (_hasUserSelectedLanguage) return;
     final language =
         AppLanguage.fromCode(prefs.getString(_languagePreferenceKey));
+    if (_hasUserSelectedLanguage) return;
     AppLanguageStore.current = language;
     state = language;
   }
 
   Future<void> setLanguage(AppLanguage language) async {
+    _hasUserSelectedLanguage = true;
     AppLanguageStore.current = language;
     state = language;
     final prefs = await SharedPreferences.getInstance();

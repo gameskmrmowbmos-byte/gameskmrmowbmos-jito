@@ -40,10 +40,6 @@ class _LocalizedDigitsController extends TextEditingController {
     super.text = AppLocalizations.normalizeDigits(super.text);
   }
 
-  void refreshLocale() {
-    notifyListeners();
-  }
-
   void applyKeypadValue(String value) {
     final normalized = AppLocalizations.normalizeDigits(value);
     if (normalized.isEmpty) {
@@ -736,25 +732,6 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
   String? _autoSearchError;
   int? _amountFillStartIndex;
   int? _amountFillEndIndex;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _refreshLocalizedInputs();
-  }
-
-  void _refreshLocalizedInputs() {
-    for (final entry in _manualEntries) {
-      (entry.number as _LocalizedDigitsController).refreshLocale();
-      (entry.amount as _LocalizedDigitsController).refreshLocale();
-      for (final controller in entry.jackpotNumbers) {
-        (controller as _LocalizedDigitsController).refreshLocale();
-      }
-      for (final controller in entry.jackpotAmounts) {
-        (controller as _LocalizedDigitsController).refreshLocale();
-      }
-    }
-  }
 
   ReceiptMarket? get _selectedMarket {
     if (_markets.isEmpty) return null;
@@ -1977,7 +1954,6 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
   @override
   Widget build(BuildContext context) {
     ref.watch(appLanguageProvider);
-    _refreshLocalizedInputs();
     final auth = ref.watch(authProvider);
     if (auth.accessStatus?.allowed == false) {
       return SubscriptionLockedScreen(status: auth.accessStatus);
