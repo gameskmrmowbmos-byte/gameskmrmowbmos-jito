@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:matka_management/features/entries/data/receipt_models.dart';
 import 'package:matka_management/features/printed_receipts/data/printer_models.dart';
 import 'package:matka_management/features/printed_receipts/data/printer_store.dart';
@@ -58,6 +59,8 @@ class CustomerParchiPrintSession {
         'Please open Settings > Printer Settings and select a printer.',
       );
     }
+    debugPrint(
+        '[PRINT] Active printer: ${printer.name} ${printer.address ?? ''}');
 
     // Build the receipt as ESC/POS bytes.
     final bytes = await _builder.buildReceipt(
@@ -72,6 +75,7 @@ class CustomerParchiPrintSession {
         'Receipt data is empty. Nothing was sent to the printer.',
       );
     }
+    debugPrint('[PRINT] Receipt bytes: ${bytes.length}');
 
     // Send the receipt directly to the configured printer.
     await _service.printBytes(

@@ -1,7 +1,7 @@
-
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bluetooth_basic/flutter_bluetooth_basic.dart';
 import 'package:matka_management/features/printed_receipts/data/printer_models.dart';
 import 'package:matka_management/features/printed_receipts/services/printer_service_common.dart';
@@ -11,6 +11,7 @@ class PrinterService {
   PrinterService() : _bluetoothManager = BluetoothManager.instance;
 
   final BluetoothManager _bluetoothManager;
+  static bool _bluetoothPermissionsReady = false;
 
   /// Printers discovered from the printer settings screen.
   final Map<String, BluetoothDevice> _discoveredPrinters = {};
@@ -52,6 +53,8 @@ class PrinterService {
   Stream<bool> get isScanning => _bluetoothManager.isScanning;
 
   Future<void> _requestBluetoothPermissions() async {
+    if (_bluetoothPermissionsReady) return;
+
     final statuses = await [
       Permission.bluetoothScan,
       Permission.bluetoothConnect,
@@ -69,6 +72,8 @@ class PrinterService {
         'in Android settings.',
       );
     }
+
+    _bluetoothPermissionsReady = true;
   }
 
   Future<void> startBluetoothScan() async {
@@ -150,6 +155,7 @@ class PrinterService {
 
     try {
       // Wait for the previous receipt to completely finish.
+      debugPrint('[PRINT] Waiting for print queue');
       try {
         await previous;
       } catch (_) {
@@ -185,72 +191,18 @@ class PrinterService {
       targetAddress,
     );
 
-    BluetoothDevice? device =
-        _discoveredPrinters[normalizedTarget];
-
-    /*
-     * If this PrinterService was newly created and does not have the
-     * printer cached, perform a short scan.
-     *
-     * This keeps the original working behavior.
-     */
-    if (device == null) {
-      await stopBluetoothScan();
-
-      await _bluetoothManager.startScan();
-
-      try {
-        final scannedDevices = await _bluetoothManager.scanResults
-            .firstWhere(
-              (devices) => devices.any(
-                (item) =>
-                    _normalizeAddress(item.address) ==
-                    normalizedTarget,
-              ),
-            )
-            .timeout(
-              const Duration(seconds: 8),
-            );
-
-        final matching = scannedDevices.where(
-          (item) =>
-              _normalizeAddress(item.address) ==
-              normalizedTarget,
-        );
-
-        if (matching.isEmpty) {
-          throw StateError(
-            'Printer "${printer.name}" was not found.',
-          );
-        }
-
-        device = matching.first;
-
-        _discoveredPrinters[normalizedTarget] = device;
-      } on TimeoutException {
-        throw StateError(
-          'Printer "${printer.name}" was not found.\n\n'
-          'Make sure:\n'
-          '1. The printer is switched ON.\n'
-          '2. Bluetooth is enabled on the phone.\n'
-          '3. The printer is paired with the phone.\n'
-          '4. The saved printer address is $targetAddress.',
-        );
-      } finally {
-        await stopBluetoothScan();
-      }
-    }
+    final device = _discoveredPrinters[normalizedTarget];
 
     await stopBluetoothScan();
 
-    /*
-     * Create a fresh BluetoothDevice.
-     */
+    // Normal printing uses the saved address directly; discovery belongs to
+    // Printer Settings and is only used when its cached device is available.
     final bluetoothDevice = BluetoothDevice()
-      ..name = device.name ?? printer.name
-      ..address = device.address ?? targetAddress
-      ..type = device.type ?? 0
+      ..name = device?.name ?? printer.name
+      ..address = device?.address ?? targetAddress
+      ..type = device?.type ?? 0
       ..connected = false;
+    debugPrint('[PRINT] Starting Bluetooth connection');
 
     /*
      * Close any previous connection before starting a new one.
@@ -264,20 +216,14 @@ class PrinterService {
       // No existing connection.
     }
 
-    await Future<void>.delayed(
-      const Duration(milliseconds: 500),
-    );
-
     /*
      * CONNECT
      */
     dynamic connectResult;
 
     try {
-      connectResult = await _bluetoothManager
-          .connect(bluetoothDevice)
-          .timeout(
-            const Duration(seconds: 12),
+      connectResult = await _bluetoothManager.connect(bluetoothDevice).timeout(
+            const Duration(seconds: 10),
           );
     } on TimeoutException {
       throw StateError(
@@ -300,23 +246,24 @@ class PrinterService {
         'Bluetooth connection was rejected by the printer.',
       );
     }
+    debugPrint('[PRINT] Bluetooth connected');
 
     /*
      * Give the SPP connection a moment to become ready.
      */
     await Future<void>.delayed(
-      const Duration(milliseconds: 800),
+      const Duration(milliseconds: 200),
     );
 
     try {
       /*
        * SEND ESC/POS RECEIPT
        */
-      await _bluetoothManager
-          .writeData(bytes)
-          .timeout(
-            const Duration(seconds: 15),
+      debugPrint('[PRINT] Writing receipt bytes');
+      await _bluetoothManager.writeData(bytes).timeout(
+            const Duration(seconds: 10),
           );
+      debugPrint('[PRINT] Receipt bytes written');
     } on TimeoutException {
       throw StateError(
         'Bluetooth printer accepted the connection '
@@ -331,14 +278,16 @@ class PrinterService {
        * Give the Android Bluetooth layer time to flush the data.
        */
       await Future<void>.delayed(
-        const Duration(milliseconds: 1000),
+        const Duration(milliseconds: 600),
       );
 
       /*
        * Disconnect after the complete ticket has been transmitted.
        */
       try {
+        debugPrint('[PRINT] Disconnecting Bluetooth');
         await _bluetoothManager.disconnect();
+        debugPrint('[PRINT] Bluetooth disconnected');
       } catch (_) {
         // Ignore disconnect errors.
       }
@@ -347,17 +296,11 @@ class PrinterService {
        * Allow the Bluetooth socket to settle before the next queued
        * receipt starts.
        */
-      await Future<void>.delayed(
-        const Duration(milliseconds: 500),
-      );
     }
   }
 
   String _normalizeAddress(String? address) {
-    return (address ?? '')
-        .trim()
-        .toUpperCase()
-        .replaceAll('-', ':');
+    return (address ?? '').trim().toUpperCase().replaceAll('-', ':');
   }
 
   Future<void> _printWifi(
@@ -366,9 +309,7 @@ class PrinterService {
   ) async {
     final host = printer.host?.trim() ?? '';
 
-    if (!_isValidHost(host) ||
-        printer.port < 1 ||
-        printer.port > 65535) {
+    if (!_isValidHost(host) || printer.port < 1 || printer.port > 65535) {
       throw const FormatException(
         'Invalid IP/hostname or TCP port.',
       );
@@ -386,8 +327,8 @@ class PrinterService {
       socket.add(bytes);
 
       await socket.flush().timeout(
-        const Duration(seconds: 8),
-      );
+            const Duration(seconds: 8),
+          );
     } on SocketException catch (error) {
       throw StateError(
         'Wi-Fi connection failed: ${error.message}',
@@ -432,4 +373,3 @@ class PrinterService {
     } catch (_) {}
   }
 }
-

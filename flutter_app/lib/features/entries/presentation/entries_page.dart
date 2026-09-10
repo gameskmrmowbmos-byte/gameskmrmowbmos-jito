@@ -581,42 +581,62 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
   }
 
   Future<void> _reprintDialog() async {
-    final controller = TextEditingController();
     final reason = await showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Reprint this receipt'),
-        content: TextField(
-          controller: controller,
-          minLines: 2,
-          maxLines: 4,
-          decoration: const InputDecoration(
-            labelText: 'Reprint reason',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
-          FilledButton(
-            onPressed: () {
-              final value = controller.text.trim();
-              if (value.isNotEmpty) Navigator.of(context).pop(value);
-            },
-            child: const Text('Reprint'),
-          ),
-        ],
-      ),
+      builder: (_) => const _ReprintReasonDialog(),
     );
-    controller.dispose();
     if (reason == null || reason.isEmpty) return;
     await ref.read(entriesControllerProvider.notifier).reprintSelected(reason);
   }
 
   void _setFilters(ReceiptFilters filters) {
     ref.read(entriesControllerProvider.notifier).updateFilters(filters);
+  }
+}
+
+class _ReprintReasonDialog extends StatefulWidget {
+  const _ReprintReasonDialog();
+
+  @override
+  State<_ReprintReasonDialog> createState() => _ReprintReasonDialogState();
+}
+
+class _ReprintReasonDialogState extends State<_ReprintReasonDialog> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Reprint this receipt'),
+      content: TextField(
+        controller: _controller,
+        minLines: 2,
+        maxLines: 4,
+        decoration: const InputDecoration(
+          labelText: 'Reprint reason',
+          border: OutlineInputBorder(),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Close'),
+        ),
+        FilledButton(
+          onPressed: () {
+            final value = _controller.text.trim();
+            if (value.isNotEmpty) Navigator.of(context).pop(value);
+          },
+          child: const Text('Reprint'),
+        ),
+      ],
+    );
   }
 }
 

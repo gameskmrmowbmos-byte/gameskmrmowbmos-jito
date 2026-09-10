@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:matka_management/features/auth/presentation/providers/auth_provider.dart';
 import 'package:matka_management/features/entries/data/receipt_models.dart';
@@ -200,28 +203,45 @@ class EntriesController extends StateNotifier<EntriesState> {
     state = state.copyWith(reprinting: true, clearError: true);
     final printSession = prepareCustomerParchiPrint();
     try {
-      Object? printError;
-      var printed = false;
       try {
         await printSession.printReceipt(selected, ownerName: _ownerName);
-        printed = true;
       } on Object catch (error) {
-        printError = error;
+        state = state.copyWith(reprinting: false, error: error.toString());
+        return;
       }
-      await _printRepository.createDuplicatePrint(
+
+      // Physical printing is complete; do not keep the button loading while
+      // print-history and detail refresh requests run.
+      state = state.copyWith(reprinting: false, clearError: true);
+      unawaited(_recordReprintAndRefresh(
         receiptId: selected.receipt.id,
         reason: reason,
-        status: printed ? 'Success' : 'Failed',
-        errorMessage: printError?.toString(),
-      );
-      final detail = await _repository.getReceiptById(selected.receipt.id);
-      state = state.copyWith(
-        selected: detail,
-        reprinting: false,
-        clearError: true,
-      );
+      ));
     } on Object catch (error) {
       state = state.copyWith(reprinting: false, error: error.toString());
+    }
+  }
+
+  Future<void> _recordReprintAndRefresh({
+    required String receiptId,
+    required String reason,
+  }) async {
+    try {
+      await _printRepository.createDuplicatePrint(
+        receiptId: receiptId,
+        reason: reason,
+      );
+    } on Object catch (error) {
+      // The physical receipt was already printed; history failure must not
+      // put the reprint button back into a loading state.
+      debugPrint('[PRINT][ERROR] Reprint history failed: $error');
+    }
+
+    try {
+      final detail = await _repository.getReceiptById(receiptId);
+      state = state.copyWith(selected: detail);
+    } on Object catch (error) {
+      debugPrint('[PRINT][ERROR] Reprint detail refresh failed: $error');
     }
   }
 }
