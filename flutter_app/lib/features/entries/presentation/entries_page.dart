@@ -503,41 +503,37 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
       context: context,
       isScrollControlled: true,
       builder: (context) {
-        return Consumer(
-          builder: (context, ref, child) {
-            final state = ref.watch(entriesControllerProvider);
-            final detail = state.selected;
-            return DraggableScrollableSheet(
-              expand: false,
-              initialChildSize: 0.88,
-              maxChildSize: 0.95,
-              minChildSize: 0.45,
-              builder: (context, scrollController) {
-                if (detail == null) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                return ListView(
-                  controller: scrollController,
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    ReceiptDetailsPanel(
-                      detail: detail,
-                      cancelling: state.cancelling,
-                      onCancel: () => _confirmDelete(),
-                    ),
-                    const SizedBox(height: 16),
-                    const NumberedTitle('4', 'Parchi Preview'),
-                    const SizedBox(height: 8),
-                    PrintedReceiptPreview(detail: detail),
-                    const SizedBox(height: 14),
-                    const NumberedTitle('5', 'Print History'),
-                    const SizedBox(height: 8),
-                    PrintHistoryView(logs: detail.printLogs, compact: true),
-                    const SizedBox(height: 10),
-                    _reprintButton(detail, state),
-                  ],
-                );
-              },
+        final state = ref.watch(entriesControllerProvider);
+        final detail = state.selected;
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.88,
+          maxChildSize: 0.95,
+          minChildSize: 0.45,
+          builder: (context, scrollController) {
+            if (detail == null) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            return ListView(
+              controller: scrollController,
+              padding: const EdgeInsets.all(16),
+              children: [
+                ReceiptDetailsPanel(
+                  detail: detail,
+                  cancelling: state.cancelling,
+                  onCancel: () => _confirmDelete(),
+                ),
+                const SizedBox(height: 16),
+                const NumberedTitle('4', 'Parchi Preview'),
+                const SizedBox(height: 8),
+                PrintedReceiptPreview(detail: detail),
+                const SizedBox(height: 14),
+                const NumberedTitle('5', 'Print History'),
+                const SizedBox(height: 8),
+                PrintHistoryView(logs: detail.printLogs, compact: true),
+                const SizedBox(height: 10),
+                _reprintButton(detail, state),
+              ],
             );
           },
         );

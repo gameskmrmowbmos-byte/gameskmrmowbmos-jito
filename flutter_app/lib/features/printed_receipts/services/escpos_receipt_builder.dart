@@ -19,10 +19,7 @@ class EscPosReceiptBuilder {
       overrideParchiNo ?? receipt.receiptNumber,
     );
 
-    bytes.addAll(generator.text(
-      'PARCHI NO. $parchi',
-      styles: const PosStyles(bold: true),
-    ));
+    bytes.addAll(generator.text('PARCHI NO. $parchi', styles: centeredBold));
     final createdAt = receipt.createdAt ?? DateTime.now();
     bytes.addAll(generator.text(
       '${DateFormat('dd/MM/yyyy').format(createdAt)} '
@@ -47,22 +44,18 @@ class EscPosReceiptBuilder {
     ));
     bytes.addAll(generator.hr());
     bytes.addAll(generator.row([
-      PosColumn(
-        text: AppLocalizations.trCurrent('NUMBER'),
-        width: 8,
-        styles: const PosStyles(bold: true),
-      ),
+      PosColumn(text: AppLocalizations.trCurrent('NUMBER'), width: 8),
       PosColumn(
         text: AppLocalizations.trCurrent('AMT'),
         width: 4,
-        styles: const PosStyles(align: PosAlign.right, bold: true),
+        styles: const PosStyles(align: PosAlign.right),
       ),
     ]));
 
     for (final item in detail.consolidatedItems) {
       if (item.isBazarSangam) {
         bytes.addAll(
-          generator.text('BAZAR', styles: const PosStyles(bold: true)));
+            generator.text('BAZAR', styles: const PosStyles(bold: true)));
       } else if (item.isMotorPana) {
         bytes.addAll(generator.text('MP', styles: const PosStyles(bold: true)));
       }
@@ -72,25 +65,20 @@ class EscPosReceiptBuilder {
             formatParchiNumber(item, item.sessionOverride ?? receipt.session),
           ),
           width: 8,
-          styles: const PosStyles(bold: true),
         ),
         PosColumn(
           text: AppLocalizations.localizeDigits(item.effectiveDisplayAmount),
           width: 4,
-          styles: const PosStyles(align: PosAlign.right, bold: true),
+          styles: const PosStyles(align: PosAlign.right),
         ),
       ]));
       for (final jackpot in item.jackpotEntries) {
         bytes.addAll(generator.row([
-          PosColumn(
-            text: '->${jackpot.number} >',
-            width: 8,
-            styles: const PosStyles(bold: true),
-          ),
+          PosColumn(text: '->${jackpot.number} >', width: 8),
           PosColumn(
             text: jackpot.amount,
             width: 4,
-            styles: const PosStyles(align: PosAlign.right, bold: true),
+            styles: const PosStyles(align: PosAlign.right),
           ),
         ]));
       }
