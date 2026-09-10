@@ -21,12 +21,7 @@ class ShareRecordsPage extends ConsumerStatefulWidget {
 
 class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
     with SingleTickerProviderStateMixin {
-  final Map<int, GlobalKey> _desktopAllPageKeys = {};
-  final Map<int, GlobalKey> _mobileAllPageKeys = {};
-  final GlobalKey _desktopSinglePageKey =
-      GlobalKey(debugLabel: 'share-records-desktop-single-page');
-  final GlobalKey _mobileSinglePageKey =
-      GlobalKey(debugLabel: 'share-records-mobile-single-page');
+  final Map<int, GlobalKey> _pageKeys = {};
   late TabController _tabController;
 
   @override
@@ -45,17 +40,9 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
     super.dispose();
   }
 
-  GlobalKey _allPageKeyFor(int pageIndex, {required bool mobile}) {
-    final keys = mobile ? _mobileAllPageKeys : _desktopAllPageKeys;
-    final layout = mobile ? 'mobile' : 'desktop';
-    return keys.putIfAbsent(
-      pageIndex,
-      () => GlobalKey(debugLabel: 'share-records-$layout-all-page-$pageIndex'),
-    );
+  GlobalKey _keyForPage(int pageIndex) {
+    return _pageKeys.putIfAbsent(pageIndex, () => GlobalKey());
   }
-
-  GlobalKey _singlePageKey({required bool mobile}) =>
-      mobile ? _mobileSinglePageKey : _desktopSinglePageKey;
 
   @override
   Widget build(BuildContext context) {
@@ -281,87 +268,87 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
                 ),
               ),
 
-              // Market Filter
-              SizedBox(
-                width: isMobile ? double.infinity : 200,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      context.tr('MARKET'),
-                      style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w900,
-                          color: Color(0xFF475569)),
-                    ),
-                    const SizedBox(height: 6),
-                    DropdownButtonFormField<String>(
-                      initialValue: state.selectedMarketId ?? '',
-                      isExpanded: true,
-                      decoration: const InputDecoration(
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        border: OutlineInputBorder(),
-                      ),
-                      items: [
-                        DropdownMenuItem(
-                          value: '',
-                          child: Text(context.tr('ALL MARKETS')),
-                        ),
-                        for (final market in state.markets)
-                          DropdownMenuItem(
-                            value: market.id,
-                            child: Text(
-                              AppLocalizations.localizeMarketName(market.name),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                      ],
-                      onChanged: (val) => notifier.setMarketId(val),
-                    ),
-                  ],
+          // Market Filter
+          SizedBox(
+            width: isMobile ? double.infinity : 200,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.tr('MARKET'),
+                  style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF475569)),
                 ),
-              ),
+                const SizedBox(height: 6),
+                DropdownButtonFormField<String>(
+                  initialValue: state.selectedMarketId ?? '',
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    border: OutlineInputBorder(),
+                  ),
+                  items: [
+                    DropdownMenuItem(
+                      value: '',
+                      child: Text(context.tr('ALL MARKETS')),
+                    ),
+                    for (final market in state.markets)
+                      DropdownMenuItem(
+                        value: market.id,
+                        child: Text(
+                          AppLocalizations.localizeMarketName(market.name),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                  ],
+                  onChanged: (val) => notifier.setMarketId(val),
+                ),
+              ],
+            ),
+          ),
 
-              // Session Filter
-              SizedBox(
-                width: isMobile ? double.infinity : 170,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      context.tr('SESSION'),
-                      style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w900,
-                          color: Color(0xFF475569)),
-                    ),
-                    const SizedBox(height: 6),
-                    DropdownButtonFormField<String>(
-                      initialValue: state.selectedSession,
-                      isExpanded: true,
-                      decoration: const InputDecoration(
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        border: OutlineInputBorder(),
-                      ),
-                      items: [
-                        DropdownMenuItem(
-                            value: 'Open', child: Text(context.tr('OPEN'))),
-                        DropdownMenuItem(
-                            value: 'Close', child: Text(context.tr('CLOSE'))),
-                        DropdownMenuItem(
-                          value: 'All',
-                          child: Text(context.tr('ALL SESSIONS')),
-                        ),
-                      ],
-                      onChanged: (val) {
-                        if (val != null) notifier.setSession(val);
-                      },
+          // Session Filter
+          SizedBox(
+            width: isMobile ? double.infinity : 170,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.tr('SESSION'),
+                  style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF475569)),
+                ),
+                const SizedBox(height: 6),
+                DropdownButtonFormField<String>(
+                  initialValue: state.selectedSession,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    border: OutlineInputBorder(),
+                  ),
+                  items: [
+                    DropdownMenuItem(
+                        value: 'Open', child: Text(context.tr('OPEN'))),
+                    DropdownMenuItem(
+                        value: 'Close', child: Text(context.tr('CLOSE'))),
+                    DropdownMenuItem(
+                      value: 'All',
+                      child: Text(context.tr('ALL SESSIONS')),
                     ),
                   ],
+                  onChanged: (val) {
+                    if (val != null) notifier.setSession(val);
+                  },
                 ),
-              ),
+              ],
+            ),
+          ),
 
               // Search Button
               SizedBox(
@@ -400,8 +387,6 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
   }
 
   Widget _buildDesktopLayout(ShareRecordsState state) {
-    final isMobile = MediaQuery.sizeOf(context).width < 700;
-
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -494,8 +479,7 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
                                     child: FittedBox(
                                       fit: BoxFit.contain,
                                       child: RepaintBoundary(
-                                        key: _allPageKeyFor(index,
-                                            mobile: isMobile),
+                                        key: _keyForPage(index),
                                         child: A4RecordPageWidget(
                                           pageData: pageData,
                                           width: A4RecordPageWidget.exportWidth,
@@ -602,7 +586,7 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
                           fit: BoxFit.contain,
                           child: state.selectedPage != null
                               ? RepaintBoundary(
-                                  key: _singlePageKey(mobile: isMobile),
+                                  key: _keyForPage(state.selectedPageIndex),
                                   child: A4RecordPageWidget(
                                     pageData: state.selectedPage!,
                                     width: A4RecordPageWidget.exportWidth,
@@ -734,8 +718,6 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
   }
 
   Widget _buildMobileTabsLayout(ShareRecordsState state) {
-    final isMobile = MediaQuery.sizeOf(context).width < 700;
-
     return LayoutBuilder(
       builder: (context, constraints) {
         if (constraints.hasBoundedHeight && constraints.maxHeight < 80) {
@@ -825,12 +807,10 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
                                       child: FittedBox(
                                         fit: BoxFit.contain,
                                         child: RepaintBoundary(
-                                          key: _allPageKeyFor(index,
-                                              mobile: isMobile),
+                                          key: _keyForPage(index),
                                           child: A4RecordPageWidget(
                                             pageData: pageData,
-                                            width:
-                                                A4RecordPageWidget.exportWidth,
+                                            width: A4RecordPageWidget.exportWidth,
                                             ownerName: ref
                                                 .read(authProvider)
                                                 .user
@@ -941,7 +921,7 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
                               fit: BoxFit.contain,
                               child: state.selectedPage != null
                                   ? RepaintBoundary(
-                                      key: _singlePageKey(mobile: isMobile),
+                                      key: _keyForPage(state.selectedPageIndex),
                                       child: A4RecordPageWidget(
                                         pageData: state.selectedPage!,
                                         width: A4RecordPageWidget.exportWidth,
@@ -1104,8 +1084,7 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
       ),
     );
     try {
-      final mobile = MediaQuery.sizeOf(context).width < 700;
-      final key = _singlePageKey(mobile: mobile);
+      final key = _keyForPage(page.pageIndex);
       final pngBytes = await ShareRecordsExportService.capturePngFromKey(key);
       if (pngBytes == null) {
         if (!mounted) return;
@@ -1165,7 +1144,6 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
       final pngPages = <int, Uint8List>{};
       final failedToCaptureAnyPageMessage =
           AppLocalizations.trCurrent('Failed to capture any page images');
-      final mobile = MediaQuery.sizeOf(context).width < 700;
       for (int i = 0; i < state.pages.length; i++) {
         notifier.setExporting(
           true,
@@ -1174,7 +1152,7 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
             params: {'page': i + 1, 'total': state.totalPages},
           ),
         );
-        final key = _allPageKeyFor(i, mobile: mobile);
+        final key = _keyForPage(i);
         final bytes = await ShareRecordsExportService.capturePngFromKey(key);
         if (bytes != null) pngPages[i] = bytes;
       }
@@ -1245,8 +1223,7 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
       ),
     );
     try {
-      final mobile = MediaQuery.sizeOf(context).width < 700;
-      final key = _singlePageKey(mobile: mobile);
+      final key = _keyForPage(page.pageIndex);
       final failedToCaptureMessage =
           AppLocalizations.trCurrent('Failed to capture page image');
       final pngBytes = await ShareRecordsExportService.capturePngFromKey(
@@ -1312,7 +1289,6 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
       final pngPages = <Uint8List>[];
       final failedToCaptureAnyMessage =
           AppLocalizations.trCurrent('Failed to capture any page images');
-      final mobile = MediaQuery.sizeOf(context).width < 700;
       for (int i = 0; i < state.pages.length; i++) {
         notifier.setExporting(
           true,
@@ -1321,7 +1297,7 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
             params: {'page': i + 1, 'total': state.totalPages},
           ),
         );
-        final key = _allPageKeyFor(i, mobile: mobile);
+        final key = _keyForPage(i);
         final bytes = await ShareRecordsExportService.capturePngFromKey(
           key,
           pixelRatio: 2.0,
@@ -1389,8 +1365,7 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
       ),
     );
     try {
-      final mobile = MediaQuery.sizeOf(context).width < 700;
-      final key = _singlePageKey(mobile: mobile);
+      final key = _keyForPage(page.pageIndex);
       final pngBytes = await ShareRecordsExportService.capturePngFromKey(key);
       if (pngBytes == null) {
         if (!mounted) return;
@@ -1445,12 +1420,11 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
       ),
     );
     try {
-      final mobile = MediaQuery.sizeOf(context).width < 700;
       final pngPages = <Uint8List>[];
       final failedToCaptureAnyPageMessage =
           AppLocalizations.trCurrent('Failed to capture page images');
       for (int i = 0; i < state.pages.length; i++) {
-        final key = _allPageKeyFor(i, mobile: mobile);
+        final key = _keyForPage(i);
         final bytes = await ShareRecordsExportService.capturePngFromKey(key);
         if (bytes != null) pngPages.add(bytes);
       }

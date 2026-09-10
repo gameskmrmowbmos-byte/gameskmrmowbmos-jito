@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:matka_management/core/language/app_localizations.dart';
@@ -21,7 +19,6 @@ class LanguageSwitcher extends ConsumerWidget {
       offset: const Offset(0, 6),
       color: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      popUpAnimationStyle: AnimationStyle.noAnimation,
       child: Container(
         width: 34,
         height: 34,
@@ -42,15 +39,8 @@ class LanguageSwitcher extends ConsumerWidget {
           child: Icon(Icons.translate, size: 18, color: Color(0xFF064DB5)),
         ),
       ),
-      onSelected: (language) {
-        final controller = ref.read(appLanguageProvider.notifier);
-        // The menu has no exit animation; scheduling this for the next frame
-        // lets Flutter remove the popup route before its inherited widgets
-        // receive the locale update.
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          unawaited(controller.setLanguage(language));
-        });
-      },
+      onSelected: (language) =>
+          ref.read(appLanguageProvider.notifier).setLanguage(language),
       itemBuilder: (context) => [
         for (final language in AppLanguage.values)
           PopupMenuItem<AppLanguage>(

@@ -17,10 +17,6 @@ class EntriesPage extends ConsumerStatefulWidget {
 class _EntriesPageState extends ConsumerState<EntriesPage> {
   final _receiptController = TextEditingController();
   final _numberController = TextEditingController();
-  bool _showReprintReasonForm = false;
-  bool _reprintReasonInvalid = false;
-  bool _startingReprint = false;
-  String _reprintReason = '';
 
   @override
   void initState() {
@@ -550,123 +546,77 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
   }
 
   Future<void> _confirmDelete() async {
-    final confirmed = await _showEntriesDialog<bool>(
-      (dialogContext) => AlertDialog(
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
         title: const Text('Delete Parchi permanently?'),
         content: const Text(
           'This will delete the parchi, all bet entries, and print history from the database.',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
+            onPressed: () => Navigator.of(context).pop(),
             child: const Text('Close'),
           ),
           FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
+            onPressed: () => Navigator.of(context).pop(true),
             child: const Text('Delete Parchi'),
           ),
         ],
       ),
     );
-    if (!mounted || confirmed != true) return;
+    if (confirmed != true) return;
     await ref.read(entriesControllerProvider.notifier).deleteSelected();
   }
 
   Widget _reprintButton(ReceiptDetail detail, EntriesState state) {
-    final submitting = state.reprinting || _startingReprint;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        OutlinedButton.icon(
-          onPressed: detail.receipt.isCancelled || submitting
-              ? null
-              : _openReprintReasonForm,
-          icon: submitting
-              ? const SizedBox.square(
-                  dimension: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.print_outlined),
-          label: const Text('Reprint this receipt'),
-        ),
-        if (_showReprintReasonForm)
-          InlineReprintReasonForm(
-            label: 'Reprint reason',
-            errorText: _reprintReasonInvalid ? 'Enter a reprint reason' : null,
-            submitting: submitting,
-            onChanged: _onReprintReasonChanged,
-            onCancel: _closeReprintReasonForm,
-            onSubmit: _submitReprint,
-          ),
-      ],
+    return OutlinedButton.icon(
+      onPressed: detail.receipt.isCancelled || state.reprinting
+          ? null
+          : () => _reprintDialog(),
+      icon: state.reprinting
+          ? const SizedBox.square(
+              dimension: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Icon(Icons.print_outlined),
+      label: const Text('Reprint this receipt'),
     );
   }
 
-  void _openReprintReasonForm() {
-    setState(() {
-      _showReprintReasonForm = true;
-      _reprintReasonInvalid = false;
-      _reprintReason = '';
-    });
-  }
-
-  void _closeReprintReasonForm() {
-    setState(() {
-      _showReprintReasonForm = false;
-      _reprintReasonInvalid = false;
-      _reprintReason = '';
-    });
-  }
-
-  void _onReprintReasonChanged(String value) {
-    _reprintReason = value;
-    if (_reprintReasonInvalid && value.trim().isNotEmpty) {
-      setState(() => _reprintReasonInvalid = false);
-    }
-  }
-
-  Future<void> _submitReprint() async {
-    final reason = _reprintReason.trim();
-    if (reason.isEmpty) {
-      setState(() => _reprintReasonInvalid = true);
-      return;
-    }
-    if (_startingReprint) return;
-
-    setState(() {
-      _showReprintReasonForm = false;
-      _reprintReasonInvalid = false;
-      _startingReprint = true;
-    });
-
-    // Allow the focused TextField to leave the element tree before the
-    // provider rebuilds the receipt view for the print operation.
-    await WidgetsBinding.instance.endOfFrame;
-    if (!mounted) return;
-
-    try {
-      await ref
-          .read(entriesControllerProvider.notifier)
-          .reprintSelected(reason);
-    } finally {
-      if (mounted) setState(() => _startingReprint = false);
-    }
-  }
-
-  /// Waits for the route to be removed before updating the page below it.
-  Future<T?> _showEntriesDialog<T>(WidgetBuilder builder) async {
-    final navigator = Navigator.of(context, rootNavigator: true);
-    final route = DialogRoute<T>(
+  Future<void> _reprintDialog() async {
+    final controller = TextEditingController();
+    final reason = await showDialog<String>(
       context: context,
-      builder: builder,
-      themes: InheritedTheme.capture(
-        from: context,
-        to: navigator.context,
+      builder: (context) => AlertDialog(
+        title: const Text('Reprint this receipt'),
+        content: TextField(
+          controller: controller,
+          minLines: 2,
+          maxLines: 4,
+          decoration: const InputDecoration(
+            labelText: 'Reprint reason',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final value = controller.text.trim();
+              if (value.isNotEmpty) Navigator.of(context).pop(value);
+            },
+            child: const Text('Reprint'),
+          ),
+        ],
       ),
     );
-    final result = await navigator.push(route);
-    await route.completed;
-    return result;
+    controller.dispose();
+    if (reason == null || reason.isEmpty) return;
+    await ref.read(entriesControllerProvider.notifier).reprintSelected(reason);
   }
 
   void _setFilters(ReceiptFilters filters) {

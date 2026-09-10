@@ -13,10 +13,6 @@ class SearchReceiptPage extends ConsumerStatefulWidget {
 
 class _SearchReceiptPageState extends ConsumerState<SearchReceiptPage> {
   final _queryController = TextEditingController();
-  bool _showReprintReasonForm = false;
-  bool _reprintReasonInvalid = false;
-  bool _startingReprint = false;
-  String _reprintReason = '';
 
   @override
   void dispose() {
@@ -143,7 +139,8 @@ class _SearchReceiptPageState extends ConsumerState<SearchReceiptPage> {
           const SizedBox(height: 8),
           _actions(detail, compact: true),
         ],
-        if (!state.loading && detail == null) _emptyState(state),
+        if (!state.loading && detail == null)
+          _emptyState(state),
       ],
     );
   }
@@ -216,7 +213,7 @@ class _SearchReceiptPageState extends ConsumerState<SearchReceiptPage> {
           ),
         const SizedBox(height: 8),
         Text(
-          'Example: RC-030826-0012',
+            'Example: RC-030826-0012',
           style: const TextStyle(color: Color(0xFF64748B), fontSize: 12),
         ),
       ],
@@ -237,7 +234,7 @@ class _SearchReceiptPageState extends ConsumerState<SearchReceiptPage> {
             : state.method.label,
         hintText: state.method.hint,
         prefixIcon: Icon(
-          state.method == SearchMethod.printId
+            state.method == SearchMethod.printId
               ? Icons.print_outlined
               : Icons.receipt_long_outlined,
         ),
@@ -367,14 +364,13 @@ class _SearchReceiptPageState extends ConsumerState<SearchReceiptPage> {
 
   Widget _actions(ReceiptDetail detail, {bool compact = false}) {
     final state = ref.watch(searchReceiptControllerProvider);
-    final submitting = state.reprinting || _startingReprint;
     final buttons = [
       Expanded(
         child: OutlinedButton.icon(
-          onPressed: detail.receipt.isCancelled || submitting
+          onPressed: detail.receipt.isCancelled || state.reprinting
               ? null
-              : _openReprintReasonForm,
-          icon: submitting
+              : () => _reprintDialog(),
+          icon: state.reprinting
               ? const SizedBox.square(
                   dimension: 16,
                   child: CircularProgressIndicator(strokeWidth: 2),
@@ -394,76 +390,45 @@ class _SearchReceiptPageState extends ConsumerState<SearchReceiptPage> {
         ),
       ),
     ];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Row(
-          children: [
-            buttons[0],
-            SizedBox(width: compact ? 10 : 28),
-            buttons[1],
-          ],
-        ),
-        if (_showReprintReasonForm)
-          InlineReprintReasonForm(
-            label: 'Duplicate print reason',
-            errorText:
-                _reprintReasonInvalid ? 'Enter a duplicate print reason' : null,
-            submitting: submitting,
-            onChanged: _onReprintReasonChanged,
-            onCancel: _closeReprintReasonForm,
-            onSubmit: _submitReprint,
+    if (compact) {
+      return Row(children: [buttons[0], const SizedBox(width: 10), buttons[1]]);
+    }
+    return Row(children: [buttons[0], const SizedBox(width: 28), buttons[1]]);
+  }
+
+  Future<void> _reprintDialog() async {
+    final controller = TextEditingController();
+    final reason = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Reprint Receipt'),
+        content: TextField(
+          controller: controller,
+          minLines: 2,
+          maxLines: 4,
+          decoration: const InputDecoration(
+            labelText: 'Duplicate print reason',
+            border: OutlineInputBorder(),
           ),
-      ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final value = controller.text.trim();
+              if (value.isNotEmpty) Navigator.of(context).pop(value);
+            },
+            child: const Text('Reprint'),
+          ),
+        ],
+      ),
     );
-  }
-
-  void _openReprintReasonForm() {
-    setState(() {
-      _showReprintReasonForm = true;
-      _reprintReasonInvalid = false;
-      _reprintReason = '';
-    });
-  }
-
-  void _closeReprintReasonForm() {
-    setState(() {
-      _showReprintReasonForm = false;
-      _reprintReasonInvalid = false;
-      _reprintReason = '';
-    });
-  }
-
-  void _onReprintReasonChanged(String value) {
-    _reprintReason = value;
-    if (_reprintReasonInvalid && value.trim().isNotEmpty) {
-      setState(() => _reprintReasonInvalid = false);
-    }
-  }
-
-  Future<void> _submitReprint() async {
-    final reason = _reprintReason.trim();
-    if (reason.isEmpty) {
-      setState(() => _reprintReasonInvalid = true);
-      return;
-    }
-    if (_startingReprint) return;
-
-    setState(() {
-      _showReprintReasonForm = false;
-      _reprintReasonInvalid = false;
-      _startingReprint = true;
-    });
-
-    await WidgetsBinding.instance.endOfFrame;
-    if (!mounted) return;
-
-    try {
-      await ref.read(searchReceiptControllerProvider.notifier).reprint(reason);
-    } finally {
-      if (mounted) setState(() => _startingReprint = false);
-    }
+    controller.dispose();
+    if (reason == null || reason.isEmpty) return;
+    await ref.read(searchReceiptControllerProvider.notifier).reprint(reason);
   }
 
   Widget _mobileSection({required String title, required Widget child}) {
