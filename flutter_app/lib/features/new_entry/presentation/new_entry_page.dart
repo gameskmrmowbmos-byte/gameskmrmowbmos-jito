@@ -15,7 +15,6 @@ import 'package:matka_management/features/new_entry/data/entry_type_config.dart'
 import 'package:matka_management/features/new_entry/data/game_config_models.dart';
 import 'package:matka_management/features/new_entry/presentation/new_entry_controller.dart';
 import 'package:matka_management/features/new_entry/presentation/new_entry_draft_provider.dart';
-import 'package:matka_management/features/printed_receipts/data/printer_store.dart';
 import 'package:matka_management/features/share_records/presentation/providers/share_records_provider.dart';
 import 'package:matka_management/shared/widgets/aligned_jackpot_marker.dart';
 import 'package:matka_management/shared/widgets/status_screens.dart';
@@ -1782,18 +1781,7 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
     final market = _selectedMarket;
     if (market == null || !_canSave) return;
 
-    final activePrinter = await PrinterStore().loadActivePrinter();
-    final shouldPrint = print && activePrinter != null;
-
-    if (print && activePrinter == null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'No active printer configured. Entry saved without printing.',
-          ),
-        ),
-      );
-    }
+    final shouldPrint = print;
 
     bool hasError = false;
     setState(() {
@@ -1936,7 +1924,9 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
         SnackBar(
           content: Text(
             context.tr(
-              'Failed to save receipt: {error}',
+              print
+                  ? 'Receipt saved, but printing failed: {error}'
+                  : 'Failed to save receipt: {error}',
               params: {'error': e},
             ),
           ),
@@ -2396,7 +2386,7 @@ class _TrialStatusBar extends StatelessWidget {
                   'expiry': expiry,
                 },
               ),
-                  style: const TextStyle(
+              style: const TextStyle(
                 color: _NewEntryPageState._blue,
                 fontWeight: FontWeight.w800,
               ),

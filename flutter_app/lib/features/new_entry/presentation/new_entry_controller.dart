@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:matka_management/features/auth/presentation/providers/auth_provider.dart';
 import 'package:matka_management/features/entries/data/receipt_models.dart';
@@ -81,8 +84,12 @@ class NewEntryController extends AutoDisposeAsyncNotifier<NewEntryData> {
   }) async {
     final printSession = shouldPrint ? prepareCustomerParchiPrint() : null;
     final previousData = state.valueOrNull;
+    var receiptSaved = false;
+    Object? printError;
+    StackTrace? printStackTrace;
 
     try {
+      debugPrint('[PRINT] Save & Print started');
       state = const AsyncLoading();
 
       final repo = ref.read(receiptRepositoryProvider);
@@ -95,11 +102,13 @@ class NewEntryController extends AutoDisposeAsyncNotifier<NewEntryData> {
         notes: notes,
         isOtc: isOtc,
       );
+      receiptSaved = true;
+      debugPrint('[PRINT] Receipt saved: ${receipt.receipt.id}');
 
       if (shouldPrint) {
-        Object? printError;
         var printed = false;
         try {
+          debugPrint('[PRINT] Building and sending receipt');
           await printSession?.printReceipt(
             receipt,
             overrideParchiNo: overrideParchiNo,
@@ -107,38 +116,60 @@ class NewEntryController extends AutoDisposeAsyncNotifier<NewEntryData> {
             ownerName: ref.read(authProvider).user?.ownerName,
           );
           printed = true;
-        } on Object catch (error) {
+          debugPrint('[PRINT] Physical print operation completed');
+        } on Object catch (error, stackTrace) {
           printError = error;
+          printStackTrace = stackTrace;
+          debugPrint('[PRINT][ERROR] $error');
         }
 
-        try {
-          final printRepo = ref.read(printRepositoryProvider);
-          await printRepo.createOriginalPrint(
-            receiptId: receipt.receipt.id,
-            printerName: printerName ??
-                await printSession?.activePrinterName ??
-                'Unknown printer',
-            status: printed ? 'Success' : 'Failed',
-            errorMessage: printError?.toString(),
-          );
-        } catch (e) {
-          // Print errors shouldn't fail the save, but could be logged or returned in a result wrapper
-        }
+        final historyPrinterName = printerName ??
+            await printSession?.activePrinterName ??
+            'Unknown printer';
+        unawaited(_savePrintHistory(
+          receiptId: receipt.receipt.id,
+          printerName: historyPrinterName,
+          printed: printed,
+          error: printError,
+        ));
       }
 
-      try {
+      if (previousData != null) {
+        state = AsyncData(previousData);
+      } else {
         state = AsyncData(await _fetchData(marketId: market));
-      } catch (refreshError, refreshStack) {
-        if (previousData != null) {
-          state = AsyncData(previousData);
-        } else {
-          state = AsyncError(refreshError, refreshStack);
-        }
+      }
+
+      if (printError != null) {
+        Error.throwWithStackTrace(printError, printStackTrace!);
       }
       return receipt;
     } catch (e, st) {
-      state = AsyncError(e, st);
+      if (receiptSaved && previousData != null) {
+        state = AsyncData(previousData);
+      } else {
+        state = AsyncError(e, st);
+      }
       rethrow;
+    }
+  }
+
+  Future<void> _savePrintHistory({
+    required String receiptId,
+    required String printerName,
+    required bool printed,
+    Object? error,
+  }) async {
+    try {
+      debugPrint('[PRINT] Saving print history');
+      await ref.read(printRepositoryProvider).createOriginalPrint(
+            receiptId: receiptId,
+            printerName: printerName,
+            status: printed ? 'Success' : 'Failed',
+            errorMessage: error?.toString(),
+          );
+    } on Object catch (historyError) {
+      debugPrint('[PRINT][ERROR] Print history failed: $historyError');
     }
   }
 }
