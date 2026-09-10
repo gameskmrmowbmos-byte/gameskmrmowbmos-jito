@@ -47,7 +47,6 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(shareRecordsControllerProvider);
-    final ownerName = ref.watch(authProvider).user?.ownerName;
     final isMobile = MediaQuery.sizeOf(context).width < 700;
 
     return ColoredBox(
@@ -85,29 +84,6 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
               ],
             ),
           ),
-
-          // Hidden rendering tree for exports. It is painted outside the viewport
-          // so RepaintBoundary can capture real pixels without affecting layout.
-          if (state.pages.isNotEmpty)
-            Positioned(
-              left: -20000,
-              top: 0,
-              child: SingleChildScrollView(
-                child: Column(
-                  children: [
-                    for (int i = 0; i < state.pages.length; i++)
-                      RepaintBoundary(
-                        key: _keyForPage(i),
-                        child: A4RecordPageWidget(
-                          pageData: state.pages[i],
-                          width: A4RecordPageWidget.exportWidth,
-                          ownerName: ownerName,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
         ],
       ),
     );
@@ -502,13 +478,16 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
                                     ),
                                     child: FittedBox(
                                       fit: BoxFit.contain,
-                                      child: A4RecordPageWidget(
-                                        pageData: pageData,
-                                        width: A4RecordPageWidget.exportWidth,
-                                        ownerName: ref
-                                            .read(authProvider)
-                                            .user
-                                            ?.ownerName,
+                                      child: RepaintBoundary(
+                                        key: _keyForPage(index),
+                                        child: A4RecordPageWidget(
+                                          pageData: pageData,
+                                          width: A4RecordPageWidget.exportWidth,
+                                          ownerName: ref
+                                              .read(authProvider)
+                                              .user
+                                              ?.ownerName,
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -606,11 +585,14 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
                         child: FittedBox(
                           fit: BoxFit.contain,
                           child: state.selectedPage != null
-                              ? A4RecordPageWidget(
-                                  pageData: state.selectedPage!,
-                                  width: A4RecordPageWidget.exportWidth,
-                                  ownerName:
-                                      ref.read(authProvider).user?.ownerName,
+                              ? RepaintBoundary(
+                                  key: _keyForPage(state.selectedPageIndex),
+                                  child: A4RecordPageWidget(
+                                    pageData: state.selectedPage!,
+                                    width: A4RecordPageWidget.exportWidth,
+                                    ownerName:
+                                        ref.read(authProvider).user?.ownerName,
+                                  ),
                                 )
                               : const SizedBox.shrink(),
                         ),
@@ -824,13 +806,16 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
                                       ),
                                       child: FittedBox(
                                         fit: BoxFit.contain,
-                                        child: A4RecordPageWidget(
-                                          pageData: pageData,
-                                          width: A4RecordPageWidget.exportWidth,
-                                          ownerName: ref
-                                              .read(authProvider)
-                                              .user
-                                              ?.ownerName,
+                                        child: RepaintBoundary(
+                                          key: _keyForPage(index),
+                                          child: A4RecordPageWidget(
+                                            pageData: pageData,
+                                            width: A4RecordPageWidget.exportWidth,
+                                            ownerName: ref
+                                                .read(authProvider)
+                                                .user
+                                                ?.ownerName,
+                                          ),
                                         ),
                                       ),
                                     ),
@@ -935,13 +920,16 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
                             child: FittedBox(
                               fit: BoxFit.contain,
                               child: state.selectedPage != null
-                                  ? A4RecordPageWidget(
-                                      pageData: state.selectedPage!,
-                                      width: A4RecordPageWidget.exportWidth,
-                                      ownerName: ref
-                                          .read(authProvider)
-                                          .user
-                                          ?.ownerName,
+                                  ? RepaintBoundary(
+                                      key: _keyForPage(state.selectedPageIndex),
+                                      child: A4RecordPageWidget(
+                                        pageData: state.selectedPage!,
+                                        width: A4RecordPageWidget.exportWidth,
+                                        ownerName: ref
+                                            .read(authProvider)
+                                            .user
+                                            ?.ownerName,
+                                      ),
                                     )
                                   : const SizedBox.shrink(),
                             ),
