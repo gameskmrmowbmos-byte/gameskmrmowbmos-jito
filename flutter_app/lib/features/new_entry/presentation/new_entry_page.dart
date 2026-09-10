@@ -1759,7 +1759,14 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
     final market = _selectedMarket;
     if (market == null || !_canSave) return;
 
-    final activePrinter = await PrinterStore().loadActivePrinter();
+    final printerStore = PrinterStore();
+    var activePrinter = await printerStore.loadActivePrinter();
+
+    if (activePrinter == null) {
+      await printerStore.ensureDefaultPrinterConfiguration();
+      activePrinter = await printerStore.loadActivePrinter();
+    }
+
     final shouldPrint = print && activePrinter != null;
 
     if (print && activePrinter == null && mounted) {
@@ -2372,7 +2379,7 @@ class _TrialStatusBar extends StatelessWidget {
                   'expiry': expiry,
                 },
               ),
-                  style: const TextStyle(
+              style: const TextStyle(
                 color: _NewEntryPageState._blue,
                 fontWeight: FontWeight.w800,
               ),
