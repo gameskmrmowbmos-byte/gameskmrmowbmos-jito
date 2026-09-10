@@ -40,6 +40,10 @@ class _LocalizedDigitsController extends TextEditingController {
     super.text = AppLocalizations.normalizeDigits(super.text);
   }
 
+  void refreshLocale() {
+    notifyListeners();
+  }
+
   void applyKeypadValue(String value) {
     final normalized = AppLocalizations.normalizeDigits(value);
     if (normalized.isEmpty) {
@@ -732,6 +736,25 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
   String? _autoSearchError;
   int? _amountFillStartIndex;
   int? _amountFillEndIndex;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _refreshLocalizedInputs();
+  }
+
+  void _refreshLocalizedInputs() {
+    for (final entry in _manualEntries) {
+      (entry.number as _LocalizedDigitsController).refreshLocale();
+      (entry.amount as _LocalizedDigitsController).refreshLocale();
+      for (final controller in entry.jackpotNumbers) {
+        (controller as _LocalizedDigitsController).refreshLocale();
+      }
+      for (final controller in entry.jackpotAmounts) {
+        (controller as _LocalizedDigitsController).refreshLocale();
+      }
+    }
+  }
 
   ReceiptMarket? get _selectedMarket {
     if (_markets.isEmpty) return null;
@@ -1759,14 +1782,7 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
     final market = _selectedMarket;
     if (market == null || !_canSave) return;
 
-    final printerStore = PrinterStore();
-    var activePrinter = await printerStore.loadActivePrinter();
-
-    if (activePrinter == null) {
-      await printerStore.ensureDefaultPrinterConfiguration();
-      activePrinter = await printerStore.loadActivePrinter();
-    }
-
+    final activePrinter = await PrinterStore().loadActivePrinter();
     final shouldPrint = print && activePrinter != null;
 
     if (print && activePrinter == null && mounted) {
@@ -1961,6 +1977,7 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
   @override
   Widget build(BuildContext context) {
     ref.watch(appLanguageProvider);
+    _refreshLocalizedInputs();
     final auth = ref.watch(authProvider);
     if (auth.accessStatus?.allowed == false) {
       return SubscriptionLockedScreen(status: auth.accessStatus);
@@ -2379,7 +2396,7 @@ class _TrialStatusBar extends StatelessWidget {
                   'expiry': expiry,
                 },
               ),
-              style: const TextStyle(
+                  style: const TextStyle(
                 color: _NewEntryPageState._blue,
                 fontWeight: FontWeight.w800,
               ),

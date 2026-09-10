@@ -162,7 +162,7 @@ class SearchReceiptController extends StateNotifier<SearchReceiptState> {
 
   Future<void> reprint(String reason) async {
     final detail = state.detail;
-    if (state.reprinting || detail == null) return;
+    if (detail == null) return;
     if (detail.receipt.isCancelled) {
       state = state.copyWith(error: 'Cancelled receipts cannot be reprinted');
       return;

@@ -1,3 +1,4 @@
+
 import 'dart:async';
 import 'dart:io';
 
@@ -11,16 +12,14 @@ class PrinterService {
 
   final BluetoothManager _bluetoothManager;
 
-  /// Printers discovered from Settings > Printer Settings.
+  /// Printers discovered from the printer settings screen.
   final Map<String, BluetoothDevice> _discoveredPrinters = {};
 
-  /// All Bluetooth print jobs use the same queue because
-  /// BluetoothManager.instance is shared by the whole application.
+  /// Ensures that only one Bluetooth print operation runs at a time.
+  ///
+  /// This is static because BluetoothManager.instance is shared by all
+  /// PrinterService instances.
   static Future<void> _printQueue = Future<void>.value();
-
-  /// Bluetooth permissions only need to be requested once after
-  /// they have already been granted.
-  static bool _permissionsGranted = false;
 
   Stream<List<DiscoveredBluetoothPrinter>> get bluetoothPrinters =>
       _bluetoothManager.scanResults.map((devices) {
@@ -53,10 +52,6 @@ class PrinterService {
   Stream<bool> get isScanning => _bluetoothManager.isScanning;
 
   Future<void> _requestBluetoothPermissions() async {
-    if (_permissionsGranted) {
-      return;
-    }
-
     final statuses = await [
       Permission.bluetoothScan,
       Permission.bluetoothConnect,
@@ -74,8 +69,6 @@ class PrinterService {
         'in Android settings.',
       );
     }
-
-    _permissionsGranted = true;
   }
 
   Future<void> startBluetoothScan() async {
@@ -88,7 +81,7 @@ class PrinterService {
     }
 
     await Future<void>.delayed(
-      const Duration(milliseconds: 300),
+      const Duration(milliseconds: 500),
     );
 
     await _bluetoothManager.startScan();
@@ -100,6 +93,10 @@ class PrinterService {
     } catch (_) {
       // Ignore scan-stop errors.
     }
+
+    await Future<void>.delayed(
+      const Duration(milliseconds: 300),
+    );
   }
 
   Future<void> printBytes(
@@ -126,28 +123,37 @@ class PrinterService {
     );
   }
 
-  /// Keeps Bluetooth receipts strictly FIFO.
+  /// Adds Bluetooth printing to a FIFO queue.
   ///
-  /// Receipt 1 -> prints
-  /// Receipt 2 -> waits
-  /// Receipt 3 -> waits
+  /// This is important because every PrinterService uses the same
+  /// BluetoothManager.instance.
   ///
-  /// This prevents the shared BluetoothManager from receiving
-  /// multiple connect/write/disconnect operations simultaneously.
+  /// Example:
+  ///
+  /// Receipt 1 starts
+  /// Receipt 2 waits
+  /// Receipt 3 waits
+  ///
+  /// Receipt 1 finishes
+  /// Receipt 2 starts
+  /// Receipt 2 finishes
+  /// Receipt 3 starts
   Future<void> _queueBluetoothPrint(
     PrinterConfiguration printer,
     List<int> bytes,
   ) async {
     final previous = _printQueue;
+
     final current = Completer<void>();
 
     _printQueue = current.future;
 
     try {
+      // Wait for the previous receipt to completely finish.
       try {
         await previous;
       } catch (_) {
-        // Do not block the next receipt if the previous one failed.
+        // A failed previous print must not block future prints.
       }
 
       await _printBluetooth(
@@ -179,42 +185,78 @@ class PrinterService {
       targetAddress,
     );
 
-    /*
-     * IMPORTANT:
-     *
-     * We do NOT scan for every receipt.
-     *
-     * The printer MAC address is already saved in PrinterConfiguration.
-     *
-     * If Settings previously discovered the printer, use that device
-     * information. Otherwise create a BluetoothDevice directly from
-     * the saved MAC address.
-     */
-    final discoveredDevice =
+    BluetoothDevice? device =
         _discoveredPrinters[normalizedTarget];
 
+    /*
+     * If this PrinterService was newly created and does not have the
+     * printer cached, perform a short scan.
+     *
+     * This keeps the original working behavior.
+     */
+    if (device == null) {
+      await stopBluetoothScan();
+
+      await _bluetoothManager.startScan();
+
+      try {
+        final scannedDevices = await _bluetoothManager.scanResults
+            .firstWhere(
+              (devices) => devices.any(
+                (item) =>
+                    _normalizeAddress(item.address) ==
+                    normalizedTarget,
+              ),
+            )
+            .timeout(
+              const Duration(seconds: 8),
+            );
+
+        final matching = scannedDevices.where(
+          (item) =>
+              _normalizeAddress(item.address) ==
+              normalizedTarget,
+        );
+
+        if (matching.isEmpty) {
+          throw StateError(
+            'Printer "${printer.name}" was not found.',
+          );
+        }
+
+        device = matching.first;
+
+        _discoveredPrinters[normalizedTarget] = device;
+      } on TimeoutException {
+        throw StateError(
+          'Printer "${printer.name}" was not found.\n\n'
+          'Make sure:\n'
+          '1. The printer is switched ON.\n'
+          '2. Bluetooth is enabled on the phone.\n'
+          '3. The printer is paired with the phone.\n'
+          '4. The saved printer address is $targetAddress.',
+        );
+      } finally {
+        await stopBluetoothScan();
+      }
+    }
+
+    await stopBluetoothScan();
+
+    /*
+     * Create a fresh BluetoothDevice.
+     */
     final bluetoothDevice = BluetoothDevice()
-      ..name = discoveredDevice?.name ?? printer.name
-      ..address = discoveredDevice?.address ?? targetAddress
-      ..type = discoveredDevice?.type ?? 0
+      ..name = device.name ?? printer.name
+      ..address = device.address ?? targetAddress
+      ..type = device.type ?? 0
       ..connected = false;
 
     /*
-     * Stop an active Settings scan before printing.
+     * Close any previous connection before starting a new one.
      *
-     * We do not start a new scan here.
-     */
-    try {
-      await _bluetoothManager.stopScan();
-    } catch (_) {
-      // Ignore if no scan is running.
-    }
-
-    /*
-     * Close any old connection.
-     *
-     * The global print queue guarantees that another print operation
-     * is not currently using the BluetoothManager.
+     * Because _queueBluetoothPrint() serializes all print operations,
+     * this should not interrupt another receipt.
      */
     try {
       await _bluetoothManager.disconnect();
@@ -222,10 +264,12 @@ class PrinterService {
       // No existing connection.
     }
 
+    await Future<void>.delayed(
+      const Duration(milliseconds: 500),
+    );
+
     /*
      * CONNECT
-     *
-     * No artificial 500 ms delay here.
      */
     dynamic connectResult;
 
@@ -233,7 +277,7 @@ class PrinterService {
       connectResult = await _bluetoothManager
           .connect(bluetoothDevice)
           .timeout(
-            const Duration(seconds: 10),
+            const Duration(seconds: 12),
           );
     } on TimeoutException {
       throw StateError(
@@ -247,6 +291,10 @@ class PrinterService {
       );
     }
 
+    /*
+     * Some versions return a boolean.
+     * Treat only an explicit false as failure.
+     */
     if (connectResult is bool && connectResult == false) {
       throw StateError(
         'Bluetooth connection was rejected by the printer.',
@@ -254,23 +302,20 @@ class PrinterService {
     }
 
     /*
-     * The connection is now ready.
-     *
-     * Only a very short delay is kept because your printer already
-     * works reliably with the direct Bluetooth method.
+     * Give the SPP connection a moment to become ready.
      */
     await Future<void>.delayed(
-      const Duration(milliseconds: 200),
+      const Duration(milliseconds: 800),
     );
 
     try {
       /*
-       * SEND ESC/POS DATA DIRECTLY TO THE PRINTER.
+       * SEND ESC/POS RECEIPT
        */
       await _bluetoothManager
           .writeData(bytes)
           .timeout(
-            const Duration(seconds: 10),
+            const Duration(seconds: 15),
           );
     } on TimeoutException {
       throw StateError(
@@ -283,18 +328,28 @@ class PrinterService {
       );
     } finally {
       /*
-       * Keep this short delay so the complete ESC/POS ticket has
-       * time to leave the Bluetooth socket before disconnecting.
+       * Give the Android Bluetooth layer time to flush the data.
        */
       await Future<void>.delayed(
-        const Duration(milliseconds: 600),
+        const Duration(milliseconds: 1000),
       );
 
+      /*
+       * Disconnect after the complete ticket has been transmitted.
+       */
       try {
         await _bluetoothManager.disconnect();
       } catch (_) {
         // Ignore disconnect errors.
       }
+
+      /*
+       * Allow the Bluetooth socket to settle before the next queued
+       * receipt starts.
+       */
+      await Future<void>.delayed(
+        const Duration(milliseconds: 500),
+      );
     }
   }
 
@@ -365,13 +420,16 @@ class PrinterService {
 
   Future<void> dispose() async {
     /*
-     * Do not disconnect the shared BluetoothManager here.
+     * Do NOT disconnect the shared BluetoothManager here.
      *
-     * The active print operation owns its connection and disconnects
-     * after the ticket is sent.
+     * A CustomerParchiPrintSession can be disposed while another
+     * queued print operation is running.
+     *
+     * The active print operation itself handles disconnecting.
      */
     try {
       await stopBluetoothScan();
     } catch (_) {}
   }
 }
+
