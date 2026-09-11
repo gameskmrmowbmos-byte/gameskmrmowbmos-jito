@@ -40,7 +40,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   @override
   Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
-    final loading = auth.status == AuthStatus.initializing;
+    final loading = auth.busy;
     final viewInsets = MediaQuery.viewInsetsOf(context);
     final compact = MediaQuery.sizeOf(context).width < 500;
 
