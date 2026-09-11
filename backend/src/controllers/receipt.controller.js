@@ -45,6 +45,35 @@ function receiptItemHasBazar(item) {
   );
 }
 
+function successfulReprintCount(printLogs) {
+  return printLogs.filter(
+    (log) => log.printType === 'Duplicate' && log.status === 'Success',
+  ).length;
+}
+
+async function reprintCountMap(receiptIds) {
+  if (receiptIds.length === 0) return new Map();
+  const counts = await PrintLog.aggregate([
+    {
+      $match: {
+        receipt: { $in: receiptIds },
+        printType: 'Duplicate',
+        status: 'Success',
+      },
+    },
+    { $group: { _id: '$receipt', count: { $sum: 1 } } },
+  ]);
+  return new Map(counts.map((item) => [item._id.toString(), item.count]));
+}
+
+function receiptWithReprintCount(receipt, count) {
+  const data = typeof receipt.toObject === 'function' ? receipt.toObject() : receipt;
+  return {
+    ...data,
+    reprintCount: count,
+  };
+}
+
 const listReceipts = asyncHandler(async (req, res) => {
   const { page, limit, skip } = getPagination(req.query, 50);
   const filter = receiptScope(req);
@@ -94,9 +123,16 @@ const listReceipts = asyncHandler(async (req, res) => {
       .limit(limit),
     Receipt.countDocuments(filter),
   ]);
+  const counts = await reprintCountMap(receipts.map((receipt) => receipt._id));
+  const receiptsWithReprints = receipts.map((receipt) =>
+    receiptWithReprintCount(
+      receipt,
+      counts.get(receipt._id.toString()) || 0,
+    ),
+  );
 
   return success(res, {
-    data: { receipts },
+    data: { receipts: receiptsWithReprints },
     pagination: paginationMeta(page, limit, total),
   });
 });
@@ -115,10 +151,14 @@ const getReceipt = asyncHandler(async (req, res) => {
     ReceiptItem.find({ receipt: receipt._id }),
     PrintLog.find({ receipt: receipt._id }).sort({ createdAt: -1 }),
   ]);
+  const receiptData = receiptWithReprintCount(
+    receipt,
+    successfulReprintCount(printLogs),
+  );
 
   return success(res, {
     data: {
-      receipt,
+      receipt: receiptData,
       items,
       printLogs,
     },
@@ -146,10 +186,14 @@ const searchReceipt = asyncHandler(async (req, res) => {
     ReceiptItem.find({ receipt: receipt._id }),
     PrintLog.find({ receipt: receipt._id }).sort({ createdAt: -1 }),
   ]);
+  const receiptData = receiptWithReprintCount(
+    receipt,
+    successfulReprintCount(printLogs),
+  );
 
   return success(res, {
     data: {
-      receipt,
+      receipt: receiptData,
       items,
       printLogs,
     },

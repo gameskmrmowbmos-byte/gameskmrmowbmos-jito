@@ -41,9 +41,16 @@ async function hydratePrintDetail(printLog) {
       .populate('operator', 'fullName username')
       .sort({ createdAt: -1 }),
   ]);
+  const reprintCount = printLogs.filter(
+    (log) => log.printType === 'Duplicate' && log.status === 'Success',
+  ).length;
+  const receipt =
+    typeof printLog.receipt?.toObject === 'function'
+      ? printLog.receipt.toObject()
+      : printLog.receipt;
   return {
     printLog,
-    receipt: printLog.receipt,
+    receipt: { ...receipt, reprintCount },
     items,
     printLogs,
     matchedPrintLog: printLog,
@@ -165,8 +172,8 @@ const createPrintLog = asyncHandler(async (req, res) => {
     printedAt: new Date(),
   });
 
-  // Update receipt print status if original print
-  if (printLog.status === 'Success') {
+  // Reprints are stored as print logs only; they must not touch receipt dates.
+  if (printLog.status === 'Success' && printType === 'Original') {
     receipt.printStatus = 'Printed';
     await receipt.save();
   }

@@ -247,6 +247,7 @@ class ReceiptDetailsPanel extends StatelessWidget {
   const ReceiptDetailsPanel({
     required this.detail,
     this.onCancel,
+    this.onViewReprints,
     this.cancelling = false,
     this.showActions = true,
     super.key,
@@ -254,6 +255,7 @@ class ReceiptDetailsPanel extends StatelessWidget {
 
   final ReceiptDetail detail;
   final VoidCallback? onCancel;
+  final VoidCallback? onViewReprints;
   final bool cancelling;
   final bool showActions;
 
@@ -323,7 +325,36 @@ class ReceiptDetailsPanel extends StatelessWidget {
           DetailRow('Print Status', '',
               valueWidget: StatusBadge(receipt.printStatus)),
           DetailRow('Print Count', '${detail.printCount}'),
-          DetailRow('Created At', formatDateTime(receipt.createdAt)),
+          DetailRow(
+            'Reprints',
+            '',
+            valueWidget: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '${detail.reprintCount}',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                if (detail.reprintCount > 0 && onViewReprints != null) ...[
+                  const SizedBox(width: 8),
+                  SizedBox.square(
+                    dimension: 28,
+                    child: IconButton(
+                      tooltip: 'View reprint reasons',
+                      padding: EdgeInsets.zero,
+                      visualDensity: VisualDensity.compact,
+                      onPressed: onViewReprints,
+                      icon: const Icon(Icons.info_outline, size: 18),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          DetailRow(
+            'Created At',
+            formatDateTime(receipt.createdAt ?? receipt.date),
+          ),
           if (receipt.notes != null) DetailRow('Note', receipt.notes!),
           if (receipt.cancelledAt != null)
             DetailRow('Cancelled At', formatDateTime(receipt.cancelledAt)),
@@ -495,8 +526,8 @@ class PrintHistoryView extends StatelessWidget {
                   ),
                   Text('Printer: ${log.printerName}'),
                   Text('Created At: ${formatDateTime(log.createdAt)}'),
-                  if (log.reprintReason != null)
-                    Text('Reason: ${log.reprintReason}'),
+                  if (log.reprintReason != null || log.retryReason != null)
+                    Text('Reason: ${log.reprintReason ?? log.retryReason}'),
                 ],
               ),
             ),
@@ -516,6 +547,7 @@ class PrintHistoryView extends StatelessWidget {
               'PRINT TIME',
               'PRINTER',
               'CREATED AT',
+              'REASON',
               'STATUS'
             ],
             header: true,
@@ -529,6 +561,7 @@ class PrintHistoryView extends StatelessWidget {
               formatDateTime(logs[index].printedAt),
               logs[index].printerName,
               formatDateTime(logs[index].createdAt),
+              logs[index].reprintReason ?? logs[index].retryReason ?? '-',
               logs[index].status,
             ]),
         ],
@@ -551,9 +584,12 @@ class PrintHistoryView extends StatelessWidget {
           _printCell(values[2], 2, header),
           _printCell(values[3], 3, header),
           _printCell(values[4], 2, header),
+          _printCell(values[5], 2, header),
+          _printCell(values[6], 2, header),
+          _printCell(values[7], 2, header),
           Expanded(
               flex: 2,
-              child: header ? _header(values[5]) : StatusBadge(values[5])),
+              child: header ? _header(values[8]) : StatusBadge(values[8])),
         ],
       ),
     );

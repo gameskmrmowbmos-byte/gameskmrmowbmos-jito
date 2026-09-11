@@ -2200,7 +2200,8 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
                       onAmountFillHover: _hoverAmountFill,
                       onAmountFillEnd: _endAmountFill,
                       onMobileAmountFill: _fillAmountBelow,
-                      keypadActiveControllerNotifier: _activeKeypadControllerNotifier,
+                      keypadActiveControllerNotifier:
+                          _activeKeypadControllerNotifier,
                     ),
                 ],
               ),
@@ -3533,7 +3534,7 @@ class _JackpotEntryRows extends StatelessWidget {
                   enterTargetFor: keypadEnterTargetFor,
                   onActiveControllerChanged: keypadOnActiveControllerChanged,
                   onActiveValueChanged: keypadOnActiveValueChanged,
-                    keypadActiveControllerNotifier:
+                  keypadActiveControllerNotifier:
                       keypadActiveControllerNotifier,
                   onSubmitted: () => onNumberSubmitted(index),
                   onChanged: onChanged,
@@ -3571,7 +3572,7 @@ class _JackpotEntryRows extends StatelessWidget {
                   enterTargetFor: keypadEnterTargetFor,
                   onActiveControllerChanged: keypadOnActiveControllerChanged,
                   onActiveValueChanged: keypadOnActiveValueChanged,
-                    keypadActiveControllerNotifier:
+                  keypadActiveControllerNotifier:
                       keypadActiveControllerNotifier,
                   onSubmitted: () => onAmountSubmitted(index),
                   onMobileFill: () => onMobileAmountFill(index),

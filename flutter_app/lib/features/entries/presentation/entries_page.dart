@@ -162,6 +162,7 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
             for (final receipt in state.receipts)
               _ReceiptCard(
                 receipt: receipt,
+                onViewReprints: () => _showReprintDetailsFor(receipt),
                 onView: () async {
                   await ref
                       .read(entriesControllerProvider.notifier)
@@ -337,6 +338,7 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
               'AMOUNT ($rupee)',
               'PRINT STATUS',
               'STATUS',
+              'REPRINTS',
               'ACTION',
             ],
             header: true,
@@ -354,13 +356,14 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
                     [
                       '${(state.page - 1) * state.limit + index + 1}',
                       receipt.receiptNumber,
-                      formatDateTime(receipt.date),
+                      formatDateTime(_receiptCreatedAt(receipt)),
                       receipt.market?.name ?? '-',
                       receipt.session.toUpperCase(),
                       '${receipt.totalItems}',
                       '${receipt.totalAmountText}${receipt.isOtc ? ' OTC' : ''}',
                       receipt.printStatus,
                       receipt.status,
+                      '${receipt.reprintCount}',
                       '',
                     ],
                     receipt: receipt,
@@ -379,7 +382,7 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
     bool header = false,
     ReceiptSummary? receipt,
   }) {
-    final flexes = [1, 2, 2, 2, 1, 1, 1, 2, 2, 1];
+    final flexes = [1, 2, 2, 2, 1, 1, 1, 2, 2, 2, 1];
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 11),
       decoration: BoxDecoration(
@@ -392,42 +395,53 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
           for (var i = 0; i < values.length; i++)
             Expanded(
               flex: flexes[i],
-              child: Center(
-                child: i == 7 && !header
-                    ? StatusBadge(values[i])
-                    : i == 8 && !header
-                        ? StatusBadge(values[i])
-                        : i == 1 && !header
-                            ? _CopyableParchiNumber(values[i])
-                            : i == 9 && !header && receipt != null
-                                ? IconButton(
-                                    tooltip: 'View receipt',
-                                    visualDensity: VisualDensity.compact,
-                                    onPressed: () => ref
-                                        .read(
-                                            entriesControllerProvider.notifier)
-                                        .selectReceipt(receipt.id),
-                                    icon: const Icon(
-                                      Icons.remove_red_eye_outlined,
-                                      color: entryBlue,
-                                      size: 19,
-                                    ),
-                                  )
-                                : Text(
-                                    values[i],
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontSize: header ? 11 : 12,
-                                      fontWeight: header
-                                          ? FontWeight.w900
-                                          : FontWeight.w700,
-                                    ),
-                                  ),
-              ),
+              child: Center(child: _tableCell(values, i, header, receipt)),
             ),
         ],
+      ),
+    );
+  }
+
+  Widget _tableCell(
+    List<String> values,
+    int index,
+    bool header,
+    ReceiptSummary? receipt,
+  ) {
+    if (!header && (index == 7 || index == 8)) {
+      return StatusBadge(values[index]);
+    }
+    if (!header && index == 1) {
+      return _CopyableParchiNumber(values[index]);
+    }
+    if (!header && index == 9 && receipt != null) {
+      return _ReprintSummaryButton(
+        count: receipt.reprintCount,
+        onPressed: () => _showReprintDetailsFor(receipt),
+      );
+    }
+    if (!header && index == 10 && receipt != null) {
+      return IconButton(
+        tooltip: 'View receipt',
+        visualDensity: VisualDensity.compact,
+        onPressed: () => ref
+            .read(entriesControllerProvider.notifier)
+            .selectReceipt(receipt.id),
+        icon: const Icon(
+          Icons.remove_red_eye_outlined,
+          color: entryBlue,
+          size: 19,
+        ),
+      );
+    }
+    return Text(
+      values[index],
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+      textAlign: TextAlign.center,
+      style: TextStyle(
+        fontSize: header ? 11 : 12,
+        fontWeight: header ? FontWeight.w900 : FontWeight.w700,
       ),
     );
   }
@@ -446,6 +460,7 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
           detail: detail,
           cancelling: state.cancelling,
           onCancel: () => _confirmDelete(),
+          onViewReprints: () => _showReprintDetails(detail),
         ),
         const SizedBox(height: 14),
         const NumberedTitle('4', 'Parchi Preview'),
@@ -522,6 +537,7 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
                   detail: detail,
                   cancelling: state.cancelling,
                   onCancel: () => _confirmDelete(),
+                  onViewReprints: () => _showReprintDetails(detail),
                 ),
                 const SizedBox(height: 16),
                 const NumberedTitle('4', 'Parchi Preview'),
@@ -563,6 +579,32 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
     );
     if (confirmed != true) return;
     await ref.read(entriesControllerProvider.notifier).deleteSelected();
+  }
+
+  Future<ReceiptDetail> _detailForReprintPopup(ReceiptSummary receipt) async {
+    return ref.read(receiptRepositoryProvider).getReceiptById(receipt.id);
+  }
+
+  Future<void> _showReprintDetailsFor(ReceiptSummary receipt) async {
+    await showDialog<void>(
+      context: context,
+      builder: (context) => _ReprintDetailsDialog(
+        receiptNumber: receipt.receiptNumber,
+        detailFuture: _detailForReprintPopup(receipt),
+      ),
+    );
+  }
+
+  Future<void> _showReprintDetails(ReceiptDetail detail) async {
+    await showDialog<void>(
+      context: context,
+      builder: (context) => _ReprintDetailsDialog(
+        receiptNumber: detail.receipt.receiptNumber,
+        detailFuture: ref
+            .read(receiptRepositoryProvider)
+            .getReceiptById(detail.receipt.id),
+      ),
+    );
   }
 
   Widget _reprintButton(ReceiptDetail detail, EntriesState state) {
@@ -636,6 +678,138 @@ class _ReprintReasonDialogState extends State<_ReprintReasonDialog> {
           child: const Text('Reprint'),
         ),
       ],
+    );
+  }
+}
+
+class _ReprintDetailsDialog extends StatelessWidget {
+  const _ReprintDetailsDialog({
+    required this.receiptNumber,
+    required this.detailFuture,
+  });
+
+  final String receiptNumber;
+  final Future<ReceiptDetail> detailFuture;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text('Reprint details - $receiptNumber'),
+      content: SizedBox(
+        width: 420,
+        child: FutureBuilder<ReceiptDetail>(
+          future: detailFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) {
+              return const SizedBox(
+                height: 90,
+                child: Center(child: CircularProgressIndicator()),
+              );
+            }
+            if (snapshot.hasError) {
+              return Text(snapshot.error.toString());
+            }
+
+            final logs =
+                snapshot.data?.successfulReprintLogs ?? const <PrintLogModel>[];
+            if (logs.isEmpty) {
+              return const Text('No reprint records found.');
+            }
+
+            return ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 360),
+              child: ListView.separated(
+                shrinkWrap: true,
+                itemCount: logs.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 10),
+                itemBuilder: (context, index) {
+                  final log = logs[index];
+                  final printedAt = log.printedAt ?? log.createdAt;
+                  return Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFD),
+                      border: Border.all(color: entryLine),
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Reprint #${log.printNumber ?? index + 1}',
+                                style: const TextStyle(
+                                  color: entryBlue,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                            Text(
+                              log.printId.isEmpty ? '-' : log.printId,
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w800),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        _ReprintDetailLine(
+                          icon: Icons.calendar_month_outlined,
+                          text: formatDate(printedAt),
+                        ),
+                        _ReprintDetailLine(
+                          icon: Icons.schedule,
+                          text: formatTime(printedAt),
+                        ),
+                        _ReprintDetailLine(
+                          icon: Icons.notes_outlined,
+                          text: log.reprintReason ??
+                              log.retryReason ??
+                              'No reason recorded',
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            );
+          },
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Close'),
+        ),
+      ],
+    );
+  }
+}
+
+class _ReprintDetailLine extends StatelessWidget {
+  const _ReprintDetailLine({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 16, color: entryBlue),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -792,9 +966,14 @@ class _CopyableParchiNumber extends StatelessWidget {
 }
 
 class _ReceiptCard extends StatelessWidget {
-  const _ReceiptCard({required this.receipt, required this.onView});
+  const _ReceiptCard({
+    required this.receipt,
+    required this.onViewReprints,
+    required this.onView,
+  });
 
   final ReceiptSummary receipt;
+  final VoidCallback onViewReprints;
   final VoidCallback onView;
 
   @override
@@ -819,7 +998,7 @@ class _ReceiptCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          Text(formatDateTime(receipt.date)),
+          Text(formatDateTime(_receiptCreatedAt(receipt))),
           const SizedBox(height: 5),
           Text(
               '${receipt.market?.name ?? '-'} - ${receipt.session.toUpperCase()}'),
@@ -844,7 +1023,61 @@ class _ReceiptCard extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: StatusBadge(receipt.printStatus),
           ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Reprints: ${receipt.reprintCount}',
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+              ),
+              _ReprintSummaryButton(
+                count: receipt.reprintCount,
+                compact: true,
+                onPressed: onViewReprints,
+              ),
+            ],
+          ),
         ],
+      ),
+    );
+  }
+}
+
+class _ReprintSummaryButton extends StatelessWidget {
+  const _ReprintSummaryButton({
+    required this.count,
+    required this.onPressed,
+    this.compact = false,
+  });
+
+  final int count;
+  final VoidCallback onPressed;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    if (count <= 0) {
+      return const Text(
+        '0',
+        textAlign: TextAlign.center,
+        style: TextStyle(fontWeight: FontWeight.w800),
+      );
+    }
+
+    return SizedBox(
+      height: compact ? 30 : 28,
+      child: TextButton.icon(
+        onPressed: onPressed,
+        icon: const Icon(Icons.info_outline, size: 16),
+        label: Text('$count'),
+        style: TextButton.styleFrom(
+          foregroundColor: entryBlue,
+          padding: EdgeInsets.symmetric(horizontal: compact ? 8 : 6),
+          visualDensity: VisualDensity.compact,
+          textStyle: const TextStyle(fontWeight: FontWeight.w900),
+        ),
       ),
     );
   }
@@ -905,3 +1138,6 @@ InputDecoration _inputDecoration() {
     border: OutlineInputBorder(borderRadius: BorderRadius.circular(5)),
   );
 }
+
+DateTime? _receiptCreatedAt(ReceiptSummary receipt) =>
+    receipt.createdAt ?? receipt.date;
