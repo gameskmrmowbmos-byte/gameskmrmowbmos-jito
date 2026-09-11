@@ -38,6 +38,7 @@ class ApiException implements Exception {
           ? 'Cannot connect to the API. Check the backend URL and network.'
           : error.message ?? 'Request failed',
       statusCode: error.response?.statusCode,
+      code: error.type.name,
     );
   }
 

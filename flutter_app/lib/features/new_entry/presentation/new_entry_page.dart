@@ -1432,6 +1432,12 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
       _clearDisallowedJackpots();
       _syncOtcAvailability();
     });
+    _persistCurrentDraft();
+  }
+
+  void _handleAutoEntriesChanged() {
+    setState(() {});
+    _persistCurrentDraft();
   }
 
   void _toggleOtc() {
@@ -1495,6 +1501,7 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
       _manualEntries.removeAt(index).dispose();
       _syncOtcAvailability();
     });
+    _persistCurrentDraft();
   }
 
   void _selectMarket(ReceiptMarket market) {
@@ -2140,7 +2147,7 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
                       onNumberSelected: _selectAutoNumber,
                       numberError: _autoNumberError,
                       amountError: _autoAmountError,
-                      onChanged: () => setState(() {}),
+                      onChanged: _handleAutoEntriesChanged,
                       onAddRow: () => _addAutoEntries(),
                       onAddTenRows: () => _ensureAutoEntryCount(10),
                       onDelete: _removeAutoEntry,
@@ -2281,7 +2288,7 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
             onNumberSelected: _selectAutoNumber,
             numberError: _autoNumberError,
             amountError: _autoAmountError,
-            onChanged: () => setState(() {}),
+            onChanged: _handleAutoEntriesChanged,
             onAddRow: () => _addAutoEntries(),
             onAddTenRows: () => _ensureAutoEntryCount(10),
             onDelete: _removeAutoEntry,
