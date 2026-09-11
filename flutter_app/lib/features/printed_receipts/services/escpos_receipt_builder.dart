@@ -9,13 +9,13 @@ import 'package:matka_management/core/language/app_localizations.dart';
 import 'package:matka_management/features/entries/data/receipt_models.dart';
 
 const _parchiEntriesPerPage = 10;
-const _receiptFeedBeforeCut = 6;
+const _receiptFeedBeforeCut = 2;
 const _receiptImageWidth = 372.0;
 const _receiptTicketWidth = 368.0;
 const _receiptTicketX = (_receiptImageWidth - _receiptTicketWidth) / 2;
 const _receiptPaddingX = _receiptTicketX + 3.0;
 const _receiptPaddingTop = 18.0;
-const _receiptPaddingBottom = 22.0;
+const _receiptPaddingBottom = 8.0;
 const _receiptContentWidth = _receiptTicketWidth - 6.0;
 const _receiptTableMaxWidth = 320.0;
 const _receiptTableGap = 36.0;
@@ -47,8 +47,8 @@ const _sessionStyle = TextStyle(
 );
 const _dateStyle = TextStyle(
   color: _receiptInk,
-  fontSize: 20,
-  fontWeight: FontWeight.w800,
+  fontSize: 22,
+  fontWeight: FontWeight.w900,
   height: 1.15,
 );
 const _marketStyle = TextStyle(
@@ -65,10 +65,9 @@ const _ownerStyle = TextStyle(
 );
 const _headerStyle = TextStyle(
   color: _receiptInk,
-  fontSize: 20,
+  fontSize: 22,
   fontWeight: FontWeight.w900,
   height: 1.1,
-  shadows: _receiptStrongTextShadow,
 );
 const _entryStyle = TextStyle(
   color: _receiptInk,
@@ -93,7 +92,7 @@ const _entryMarkerStyle = TextStyle(
 const _entryAmountStyle = TextStyle(
   color: _receiptInk,
   fontSize: 27,
-  fontWeight: FontWeight.w500,
+  fontWeight: FontWeight.w600,
   height: 1,
 );
 const _jackpotNumberStyle = TextStyle(
@@ -112,7 +111,7 @@ const _jackpotMarkerStyle = TextStyle(
 const _jackpotAmountStyle = TextStyle(
   color: _receiptInk,
   fontSize: 25,
-  fontWeight: FontWeight.w500,
+  fontWeight: FontWeight.w600,
   height: 1,
 );
 const _totalStyle = TextStyle(
@@ -122,11 +121,17 @@ const _totalStyle = TextStyle(
   height: 1.1,
   shadows: _receiptStrongTextShadow,
 );
+const _totalAmountStyle = TextStyle(
+  color: _receiptInk,
+  fontSize: 27,
+  fontWeight: FontWeight.w600,
+  height: 1.1,
+);
 const _instructionStyle = TextStyle(
   color: _receiptInk,
-  fontSize: 20,
-  fontWeight: FontWeight.w800,
-  height: 1.15,
+  fontSize: 21,
+  fontWeight: FontWeight.w900,
+  height: 1.2,
 );
 
 class EscPosReceiptBuilder {
@@ -502,7 +507,7 @@ double _layoutReceiptImage({
     y += _paintTableText(
       canvas,
       totalText,
-      _totalStyle,
+      _totalAmountStyle,
       tableX + metrics.numberWidth + _receiptTableGap,
       y,
       metrics.amountWidth,
@@ -511,7 +516,7 @@ double _layoutReceiptImage({
     y += 18;
     _paintRule(canvas, y);
   }
-  y += _receiptRuleHeight + 12;
+  y += _receiptRuleHeight + 16;
   y += _paintText(
     canvas,
     AppLocalizations.trCurrent(
@@ -522,7 +527,7 @@ double _layoutReceiptImage({
     y,
     width: _receiptContentWidth,
     textAlign: TextAlign.center,
-    maxLines: 3,
+    maxLines: 4,
   );
   y += _receiptPaddingBottom;
 
@@ -541,7 +546,8 @@ _ReceiptImageMetrics _imageTableMetrics(
     numberWidth,
     _measureText(AppLocalizations.trCurrent('TOTAL'), _totalStyle),
   );
-  amountWidth = _maxDouble(amountWidth, _measureText(totalText, _totalStyle));
+  amountWidth =
+      _maxDouble(amountWidth, _measureText(totalText, _totalAmountStyle));
 
   for (final row in rows) {
     if (row.topLabel != null) {
@@ -809,12 +815,14 @@ List<List<_EscPosReceiptRow>> _buildRowPages(
   final pages = <List<_EscPosReceiptRow>>[];
   var currentPage = <_EscPosReceiptRow>[];
   var currentEntryCount = 0;
+  String? currentPageGroupLabel;
 
   void pushCurrentPage() {
     if (currentPage.isEmpty) return;
     pages.add(currentPage);
     currentPage = <_EscPosReceiptRow>[];
     currentEntryCount = 0;
+    currentPageGroupLabel = null;
   }
 
   void ensurePageSpace() {
@@ -837,46 +845,53 @@ List<List<_EscPosReceiptRow>> _buildRowPages(
             amount: AppLocalizations.localizeDigits(jackpot.amount),
           ),
     ];
+    final amount = AppLocalizations.localizeDigits(item.effectiveDisplayAmount);
+    final groupLabel = _itemGroupLabel(item);
 
     ensurePageSpace();
-    final jackpotSpaceOnMainPage =
-        _parchiEntriesPerPage - currentEntryCount - 1;
-    final mainJackpotCount = jackpotEntries.length < jackpotSpaceOnMainPage
-        ? jackpotEntries.length
-        : jackpotSpaceOnMainPage;
 
-    currentPage.add(_EscPosReceiptRow(
-      number: number,
-      amount: AppLocalizations.localizeDigits(item.effectiveDisplayAmount),
-      showMainEntry: true,
-      topLabel: item.isBazarSangam
-          ? 'BAZAR'
-          : item.isMotorPana
-              ? 'MP'
-              : null,
-      jackpotEntries: jackpotEntries.sublist(0, mainJackpotCount),
-    ));
-    currentEntryCount += 1 + mainJackpotCount;
+    final itemEntryCount = 1 + jackpotEntries.length;
+    final itemDoesNotFitCurrentPage = currentEntryCount > 0 &&
+        currentEntryCount + itemEntryCount > _parchiEntriesPerPage;
+    if (itemDoesNotFitCurrentPage) {
+      pushCurrentPage();
+    }
 
-    var jackpotIndex = mainJackpotCount;
-    while (jackpotIndex < jackpotEntries.length) {
+    var jackpotIndex = 0;
+    do {
       ensurePageSpace();
-      final available = _parchiEntriesPerPage - currentEntryCount;
+      final available = _parchiEntriesPerPage - currentEntryCount - 1;
       final nextIndex = jackpotIndex + available > jackpotEntries.length
           ? jackpotEntries.length
           : jackpotIndex + available;
+
+      final topLabel = groupLabel != null && groupLabel != currentPageGroupLabel
+          ? groupLabel
+          : null;
       currentPage.add(_EscPosReceiptRow(
         number: number,
-        amount: AppLocalizations.localizeDigits(item.effectiveDisplayAmount),
-        showMainEntry: false,
+        amount: amount,
+        showMainEntry: true,
+        topLabel: topLabel,
         jackpotEntries: jackpotEntries.sublist(jackpotIndex, nextIndex),
       ));
-      currentEntryCount += nextIndex - jackpotIndex;
+      currentPageGroupLabel = groupLabel;
+      currentEntryCount += 1 + nextIndex - jackpotIndex;
       jackpotIndex = nextIndex;
-    }
+
+      if (jackpotIndex < jackpotEntries.length) {
+        pushCurrentPage();
+      }
+    } while (jackpotIndex < jackpotEntries.length);
   }
   pushCurrentPage();
   return pages;
+}
+
+String? _itemGroupLabel(ReceiptItemModel item) {
+  if (item.isBazarSangam) return 'BAZAR';
+  if (item.isMotorPana) return 'MP';
+  return null;
 }
 
 String _parchiNoForPage(String parchiNo, int pageIndex) {
