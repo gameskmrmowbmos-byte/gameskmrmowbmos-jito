@@ -161,7 +161,7 @@ class PrintRepository {
     required String receiptId,
     required String reason,
     String status = 'Success',
-    String printerName = '',
+    String printerName = 'Unknown printer',
     String? errorMessage,
   }) async {
     final response = await _api.sendJson(
@@ -188,7 +188,7 @@ class PrintRepository {
   Future<PrintLogModel> createOriginalPrint({
     required String receiptId,
     String status = 'Success',
-    String printerName = '',
+    String printerName = 'Unknown printer',
     String? errorMessage,
   }) async {
     final response = await _api.sendJson(
@@ -214,7 +214,7 @@ class PrintRepository {
   Future<PrintLogModel> retryPrint({
     required String receiptId,
     required String reason,
-    String printerName = '',
+    String printerName = 'Unknown printer',
     String status = 'Success',
     String? errorMessage,
   }) async {

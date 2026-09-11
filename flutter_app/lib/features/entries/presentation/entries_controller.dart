@@ -212,10 +212,13 @@ class EntriesController extends StateNotifier<EntriesState> {
 
       // Physical printing is complete; do not keep the button loading while
       // print-history and detail refresh requests run.
+      final printerName =
+          await printSession.activePrinterName ?? 'Unknown printer';
       state = state.copyWith(reprinting: false, clearError: true);
       unawaited(_recordReprintAndRefresh(
         receiptId: selected.receipt.id,
         reason: reason,
+        printerName: printerName,
       ));
     } on Object catch (error) {
       state = state.copyWith(reprinting: false, error: error.toString());
@@ -225,11 +228,13 @@ class EntriesController extends StateNotifier<EntriesState> {
   Future<void> _recordReprintAndRefresh({
     required String receiptId,
     required String reason,
+    required String printerName,
   }) async {
     try {
       await _printRepository.createDuplicatePrint(
         receiptId: receiptId,
         reason: reason,
+        printerName: printerName,
       );
     } on Object catch (error) {
       // The physical receipt was already printed; history failure must not
@@ -239,7 +244,13 @@ class EntriesController extends StateNotifier<EntriesState> {
 
     try {
       final detail = await _repository.getReceiptById(receiptId);
-      state = state.copyWith(selected: detail);
+      state = state.copyWith(
+        selected: detail,
+        receipts: [
+          for (final receipt in state.receipts)
+            receipt.id == receiptId ? detail.receipt : receipt,
+        ],
+      );
     } on Object catch (error) {
       debugPrint('[PRINT][ERROR] Reprint detail refresh failed: $error');
     }

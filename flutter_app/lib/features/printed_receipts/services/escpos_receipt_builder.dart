@@ -20,7 +20,7 @@ class EscPosReceiptBuilder {
     );
 
     bytes.addAll(generator.text('PARCHI NO. $parchi', styles: centeredBold));
-    final createdAt = receipt.createdAt ?? DateTime.now();
+    final createdAt = receipt.createdAt ?? receipt.date ?? DateTime.now();
     bytes.addAll(generator.text(
       '${DateFormat('dd/MM/yyyy').format(createdAt)} '
       '${DateFormat('hh:mm a').format(createdAt)}',

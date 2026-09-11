@@ -205,7 +205,7 @@ class ReceiptRepository {
   Future<PrintLogModel> reprintReceipt({
     required String receiptId,
     required String reason,
-    String printerName = '',
+    String printerName = 'Unknown printer',
   }) async {
     final response = await _api.sendJson(
       'POST',

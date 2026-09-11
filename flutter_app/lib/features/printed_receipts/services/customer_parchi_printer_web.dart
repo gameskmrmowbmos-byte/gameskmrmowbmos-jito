@@ -562,12 +562,12 @@ String _localizeDigits(String value) {
 }
 
 String _formattedDate(ReceiptSummary receipt) {
-  final date = receipt.createdAt ?? DateTime.now();
+  final date = receipt.createdAt ?? receipt.date ?? DateTime.now();
   return DateFormat('dd/MM/yyyy').format(date);
 }
 
 String _formattedTime(ReceiptSummary receipt) {
-  final date = receipt.createdAt ?? DateTime.now();
+  final date = receipt.createdAt ?? receipt.date ?? DateTime.now();
   return DateFormat('hh:mm a').format(date);
 }
 

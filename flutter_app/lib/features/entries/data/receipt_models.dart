@@ -92,6 +92,7 @@ class ReceiptSummary {
     this.createdAt,
     this.cancelledAt,
     this.cancellationReason,
+    this.reprintCount = 0,
   });
 
   final String id;
@@ -111,6 +112,7 @@ class ReceiptSummary {
   final DateTime? createdAt;
   final DateTime? cancelledAt;
   final String? cancellationReason;
+  final int reprintCount;
 
   bool get isCancelled => status.toLowerCase() == 'cancelled';
 
@@ -137,6 +139,9 @@ class ReceiptSummary {
       createdAt: _dateValue(json['createdAt']),
       cancelledAt: _dateValue(json['cancelledAt']),
       cancellationReason: _nullableString(json['cancellationReason']),
+      reprintCount: _intValue(
+        json['reprintCount'] ?? json['duplicatePrintCount'],
+      ),
     );
   }
 
@@ -463,6 +468,17 @@ class ReceiptDetail {
       printLogs.where((log) => log.status.toLowerCase() == 'success').length;
 
   bool get isDuplicateLookup => matchedPrintLog?.isDuplicate == true;
+
+  List<PrintLogModel> get successfulReprintLogs => printLogs
+      .where(
+        (log) => log.isDuplicate && log.status.toLowerCase() == 'success',
+      )
+      .toList(growable: false);
+
+  int get reprintCount {
+    final count = successfulReprintLogs.length;
+    return count == 0 ? receipt.reprintCount : count;
+  }
 
   factory ReceiptDetail.fromJson(Map<String, dynamic> json) {
     final data = json['data'] as Map<String, dynamic>? ?? json;
