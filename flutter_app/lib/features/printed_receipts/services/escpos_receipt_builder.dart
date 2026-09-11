@@ -161,8 +161,9 @@ class EscPosReceiptBuilder {
     final totalText = AppLocalizations.localizeDigits(_formatAmount(total));
 
     for (var pageIndex = 0; pageIndex < rowPages.length; pageIndex++) {
+      final pageParchiNo = _parchiNoForPage(parchi, pageIndex);
       final receiptImage = await _buildReceiptImage(
-        parchi: parchi,
+        parchi: pageParchiNo,
         createdAt: createdAt,
         session: session,
         market: AppLocalizations.localizeMarketName(market.toUpperCase()),
@@ -876,6 +877,20 @@ List<List<_EscPosReceiptRow>> _buildRowPages(
   }
   pushCurrentPage();
   return pages;
+}
+
+String _parchiNoForPage(String parchiNo, int pageIndex) {
+  if (pageIndex <= 0) return parchiNo;
+  final match = RegExp(r'^(.*?)(\d+)$').firstMatch(parchiNo.trim());
+  if (match == null) return '$parchiNo-${pageIndex + 1}';
+  final prefix = match.group(1) ?? '';
+  final numberText = match.group(2) ?? '';
+  final number = int.tryParse(numberText);
+  if (number == null) return '$parchiNo-${pageIndex + 1}';
+  return '$prefix${(number + pageIndex).toString().padLeft(
+        numberText.length,
+        '0',
+      )}';
 }
 
 String _sessionLabel(String session) {
