@@ -44,10 +44,9 @@ android {
 
     buildTypes {
         release {
-            if (!hasReleaseSigning) {
-                throw new RuntimeException('Release signing is not configured. Create android/key.properties with a release keystore.')
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.release
             }
-            signingConfig = signingConfigs.release
         }
     }
 }
