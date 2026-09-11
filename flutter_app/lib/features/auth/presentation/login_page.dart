@@ -157,27 +157,59 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                 : null,
                           ),
                           const SizedBox(height: 24),
-                          Row(
-                            children: [
-                              Checkbox(
-                                value: _rememberSession,
-                                onChanged: loading
-                                    ? null
-                                    : (value) => setState(
-                                          () =>
-                                              _rememberSession = value ?? true,
-                                        ),
-                              ),
-                              Text(context.tr('Remember Me')),
-                              const Spacer(),
-                              TextButton(
-                                onPressed: loading
-                                    ? null
-                                    : () => context.go('/forgot-password'),
-                                child: Text(context.tr('Forgot Password?')),
-                              ),
-                            ],
-                          ),
+                          if (compact)
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Row(
+                                  children: [
+                                    Checkbox(
+                                      value: _rememberSession,
+                                      onChanged: loading
+                                          ? null
+                                          : (value) => setState(
+                                                () => _rememberSession =
+                                                    value ?? true,
+                                              ),
+                                    ),
+                                    Expanded(
+                                      child: Text(context.tr('Remember Me')),
+                                    ),
+                                  ],
+                                ),
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: TextButton(
+                                    onPressed: loading
+                                        ? null
+                                        : () => context.go('/forgot-password'),
+                                    child: Text(context.tr('Forgot Password?')),
+                                  ),
+                                ),
+                              ],
+                            )
+                          else
+                            Row(
+                              children: [
+                                Checkbox(
+                                  value: _rememberSession,
+                                  onChanged: loading
+                                      ? null
+                                      : (value) => setState(
+                                            () => _rememberSession =
+                                                value ?? true,
+                                          ),
+                                ),
+                                Expanded(
+                                    child: Text(context.tr('Remember Me'))),
+                                TextButton(
+                                  onPressed: loading
+                                      ? null
+                                      : () => context.go('/forgot-password'),
+                                  child: Text(context.tr('Forgot Password?')),
+                                ),
+                              ],
+                            ),
                           if (auth.error != null) ...[
                             const SizedBox(height: 8),
                             Text(
