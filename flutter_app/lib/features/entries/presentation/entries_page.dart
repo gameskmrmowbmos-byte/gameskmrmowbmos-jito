@@ -459,7 +459,7 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
         ReceiptDetailsPanel(
           detail: detail,
           cancelling: state.cancelling,
-          onCancel: () => _confirmDelete(),
+          onCancel: () => _confirmDelete(detail),
           onViewReprints: () => _showReprintDetails(detail),
         ),
         const SizedBox(height: 14),
@@ -536,7 +536,7 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
                 ReceiptDetailsPanel(
                   detail: detail,
                   cancelling: state.cancelling,
-                  onCancel: () => _confirmDelete(),
+                  onCancel: () => _confirmDelete(detail, closeContext: context),
                   onViewReprints: () => _showReprintDetails(detail),
                 ),
                 const SizedBox(height: 16),
@@ -557,13 +557,17 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
     );
   }
 
-  Future<void> _confirmDelete() async {
+  Future<void> _confirmDelete(
+    ReceiptDetail detail, {
+    BuildContext? closeContext,
+  }) async {
+    final receipt = detail.receipt;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Parchi permanently?'),
-        content: const Text(
-          'This will delete the parchi, all bet entries, and print history from the database.',
+        content: Text(
+          'This will delete ${receipt.receiptNumber}, all bet entries, and print history from the database.',
         ),
         actions: [
           TextButton(
@@ -578,7 +582,16 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
       ),
     );
     if (confirmed != true) return;
-    await ref.read(entriesControllerProvider.notifier).deleteSelected();
+    final deleted = await ref
+        .read(entriesControllerProvider.notifier)
+        .deleteReceipt(receipt.id);
+    if (!mounted || !deleted) return;
+    if (closeContext != null && closeContext.mounted) {
+      Navigator.of(closeContext).pop();
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Parchi ${receipt.receiptNumber} deleted')),
+    );
   }
 
   Future<ReceiptDetail> _detailForReprintPopup(ReceiptSummary receipt) async {
