@@ -50,7 +50,7 @@ async function hydratePrintDetail(printLog) {
       : printLog.receipt;
   return {
     printLog,
-    receipt: printLog.receipt,
+    receipt: { ...receipt, reprintCount },
     items,
     printLogs,
     matchedPrintLog: printLog,
