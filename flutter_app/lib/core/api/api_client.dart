@@ -70,6 +70,7 @@ class ApiClient {
         onError: (error, handler) async {
           final request = error.requestOptions;
           if (_isTransportError(error) &&
+              request.path != ApiEndpoints.login &&
               request.extra['apiFailoverAttempted'] != true) {
             final fallbackBaseUrl = ApiConfig.fallbackBaseUrl(request.baseUrl);
             if (fallbackBaseUrl != null) {
@@ -221,10 +222,16 @@ class ApiClient {
     Object? data,
   }) async {
     try {
+      final isLoginRequest = path == ApiEndpoints.login;
       final response = await _dio.request<Map<String, dynamic>>(
         path,
         data: data,
-        options: Options(method: method),
+        options: Options(
+          method: method,
+          // Render may need extra time to wake its backend on the first login.
+          connectTimeout: isLoginRequest ? const Duration(seconds: 30) : null,
+          receiveTimeout: isLoginRequest ? const Duration(seconds: 60) : null,
+        ),
       );
       return response.data ?? <String, dynamic>{};
     } on DioException catch (error) {

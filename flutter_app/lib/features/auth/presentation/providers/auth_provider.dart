@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:matka_management/core/api/api_client.dart';
+import 'package:matka_management/core/api/api_exception.dart';
 import 'package:matka_management/features/auth/data/models/access_status.dart';
 import 'package:matka_management/features/auth/data/models/auth_user.dart';
 import 'package:matka_management/features/auth/data/repositories/auth_repository.dart';
@@ -77,10 +78,20 @@ class AuthController extends StateNotifier<AuthState> {
     } on Object catch (error) {
       state = AuthState(
         status: AuthStatus.unauthenticated,
-        error: error.toString(),
+        error: _loginErrorMessage(error),
       );
       rethrow;
     }
+  }
+
+  String _loginErrorMessage(Object error) {
+    if (error is ApiException &&
+        (error.code == 'connectionTimeout' ||
+            error.code == 'receiveTimeout' ||
+            error.code == 'sendTimeout')) {
+      return 'The server is taking longer to start. Please try signing in again shortly.';
+    }
+    return error.toString();
   }
 
   Future<void> logout() async {

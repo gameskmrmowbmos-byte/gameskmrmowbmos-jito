@@ -41,157 +41,195 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
     final loading = auth.status == AuthStatus.initializing;
+    final viewInsets = MediaQuery.viewInsetsOf(context);
+    final compact = MediaQuery.sizeOf(context).width < 500;
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
-      body: Center(
-        child: Container(
-          width: 400,
-          padding: const EdgeInsets.all(48),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              )
-            ],
-          ),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  context.tr('MATKA ENTRY'),
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.bold,
-                      ),
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              padding: EdgeInsets.fromLTRB(
+                compact ? 16 : 24,
+                compact ? 16 : 24,
+                compact ? 16 : 24,
+                24 + viewInsets.bottom,
+              ),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: constraints.maxHeight -
+                      (compact ? 32 : 48) -
+                      viewInsets.bottom,
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  context.tr('Please login to continue'),
-                  style: const TextStyle(color: Colors.grey),
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _identifier,
-                  enabled: !loading,
-                  autofillHints: const [
-                    AutofillHints.username,
-                    AutofillHints.email,
-                  ],
-                  textInputAction: TextInputAction.next,
-                  decoration: InputDecoration(
-                    labelText: context.tr('Email or username'),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
+                child: Center(
+                  child: Container(
+                    width: double.infinity,
+                    constraints: const BoxConstraints(maxWidth: 400),
+                    padding: EdgeInsets.all(compact ? 24 : 48),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        )
+                      ],
                     ),
-                    prefixIcon: const Icon(Icons.person_outline),
-                  ),
-                  validator: (value) => value == null || value.trim().isEmpty
-                      ? context.tr('Required')
-                      : null,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _password,
-                  enabled: !loading,
-                  obscureText: _obscurePassword,
-                  autofillHints: const [AutofillHints.password],
-                  onFieldSubmitted: (_) => _submit(),
-                  decoration: InputDecoration(
-                    labelText: context.tr('Password'),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    prefixIcon: const Icon(Icons.lock_outline),
-                    suffixIcon: IconButton(
-                      tooltip: context.tr(
-                        _obscurePassword ? 'Show password' : 'Hide password',
-                      ),
-                      onPressed: loading
-                          ? null
-                          : () => setState(
-                                () => _obscurePassword = !_obscurePassword,
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            context.tr('MATKA ENTRY'),
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineMedium
+                                ?.copyWith(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            context.tr('Please login to continue'),
+                            style: const TextStyle(color: Colors.grey),
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _identifier,
+                            enabled: !loading,
+                            autofillHints: const [
+                              AutofillHints.username,
+                              AutofillHints.email,
+                            ],
+                            textInputAction: TextInputAction.next,
+                            decoration: InputDecoration(
+                              labelText: context.tr('Email or username'),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
                               ),
-                      icon: Icon(
-                        _obscurePassword
-                            ? Icons.visibility_outlined
-                            : Icons.visibility_off_outlined,
-                      ),
-                    ),
-                  ),
-                  validator: (value) => value == null || value.isEmpty
-                      ? context.tr('Required')
-                      : null,
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  children: [
-                    Checkbox(
-                      value: _rememberSession,
-                      onChanged: loading
-                          ? null
-                          : (value) => setState(
-                                () => _rememberSession = value ?? true,
+                              prefixIcon: const Icon(Icons.person_outline),
+                            ),
+                            validator: (value) =>
+                                value == null || value.trim().isEmpty
+                                    ? context.tr('Required')
+                                    : null,
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _password,
+                            enabled: !loading,
+                            obscureText: _obscurePassword,
+                            autofillHints: const [AutofillHints.password],
+                            onFieldSubmitted: (_) => _submit(),
+                            decoration: InputDecoration(
+                              labelText: context.tr('Password'),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
                               ),
-                    ),
-                    Text(context.tr('Remember Me')),
-                    const Spacer(),
-                    TextButton(
-                      onPressed:
-                          loading ? null : () => context.go('/forgot-password'),
-                      child: Text(context.tr('Forgot Password?')),
-                    ),
-                  ],
-                ),
-                if (auth.error != null) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    context.trMaybe(auth.error!),
-                    style:
-                        TextStyle(color: Theme.of(context).colorScheme.error),
-                  ),
-                ],
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: loading ? null : _submit,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).colorScheme.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: loading
-                        ? const SizedBox.square(
-                            dimension: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : Text(
-                            context.tr('LOGIN'),
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                              prefixIcon: const Icon(Icons.lock_outline),
+                              suffixIcon: IconButton(
+                                tooltip: context.tr(
+                                  _obscurePassword
+                                      ? 'Show password'
+                                      : 'Hide password',
+                                ),
+                                onPressed: loading
+                                    ? null
+                                    : () => setState(
+                                          () => _obscurePassword =
+                                              !_obscurePassword,
+                                        ),
+                                icon: Icon(
+                                  _obscurePassword
+                                      ? Icons.visibility_outlined
+                                      : Icons.visibility_off_outlined,
+                                ),
+                              ),
+                            ),
+                            validator: (value) => value == null || value.isEmpty
+                                ? context.tr('Required')
+                                : null,
+                          ),
+                          const SizedBox(height: 24),
+                          Row(
+                            children: [
+                              Checkbox(
+                                value: _rememberSession,
+                                onChanged: loading
+                                    ? null
+                                    : (value) => setState(
+                                          () =>
+                                              _rememberSession = value ?? true,
+                                        ),
+                              ),
+                              Text(context.tr('Remember Me')),
+                              const Spacer(),
+                              TextButton(
+                                onPressed: loading
+                                    ? null
+                                    : () => context.go('/forgot-password'),
+                                child: Text(context.tr('Forgot Password?')),
+                              ),
+                            ],
+                          ),
+                          if (auth.error != null) ...[
+                            const SizedBox(height: 8),
+                            Text(
+                              context.trMaybe(auth.error!),
+                              style: TextStyle(
+                                  color: Theme.of(context).colorScheme.error),
+                            ),
+                          ],
+                          const SizedBox(height: 24),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: loading ? null : _submit,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor:
+                                    Theme.of(context).colorScheme.primary,
+                                foregroundColor: Colors.white,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              child: loading
+                                  ? const SizedBox.square(
+                                      dimension: 20,
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2),
+                                    )
+                                  : Text(
+                                      context.tr('LOGIN'),
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                             ),
                           ),
+                          const SizedBox(height: 12),
+                          TextButton(
+                            onPressed:
+                                loading ? null : () => context.go('/register'),
+                            child: Text(context.tr('Create Account')),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
-                const SizedBox(height: 12),
-                TextButton(
-                  onPressed: loading ? null : () => context.go('/register'),
-                  child: Text(context.tr('Create Account')),
-                ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         ),
       ),
     );
