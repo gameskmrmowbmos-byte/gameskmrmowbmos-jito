@@ -87,7 +87,8 @@ String _buildReceiptHtml(
   <div class="ticket">
       <div class="top-row">
         <div class="top-left">
-          <div class="top-label">${_escapeHtml(AppLocalizations.trCurrent('PARCHI NO. '))}${_escapeHtml(_localizeDigits(pageParchiNo))}</div>
+          <div class="top-label"><span class="parchi-label">${_escapeHtml(AppLocalizations.trCurrent('PARCHI NO. '))}</span><span class="parchi-number">${_escapeHtml(_localizeDigits(pageParchiNo))}</span></div>
+          <div class="session-label">${_escapeHtml(_translatedSession(receipt.session).toUpperCase())}</div>
         </div>
         <div class="datetime">
           <div>${_escapeHtml(_localizeDigits(_formattedDate(receipt)))}</div>
@@ -126,7 +127,8 @@ String _buildReceiptHtml(
     .ticket {
       width: 58mm;
       min-height: 100%;
-      padding: 6mm 4mm 5mm;
+      box-sizing: border-box;
+      padding: 12px 10px;
       background: #ffffff;
       break-after: page;
       page-break-after: always;
@@ -144,70 +146,85 @@ String _buildReceiptHtml(
     }
 
     .top-label {
-      font-size: 9px;
-      font-weight: 900;
-      line-height: 1.05;
+      color: #111820;
+      line-height: 1.2;
       letter-spacing: 0;
     }
 
-    .session-label {
-      margin-top: 1mm;
+    .parchi-label {
       font-size: 10px;
+      font-weight: 800;
+    }
+
+    .parchi-number {
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .session-label {
+      margin-top: 2px;
+      color: #111820;
+      font-size: 9px;
       font-weight: 900;
       line-height: 1;
       letter-spacing: 0;
     }
 
     .market {
-      margin: 0 0 1mm;
+      margin: 12px 0 8px;
       text-align: center;
-      font-size: 15px;
+      font-size: 16px;
       font-weight: 900;
-      line-height: 1.05;
+      line-height: 1.1;
       letter-spacing: 0;
     }
 
     .owner-name {
-      margin-top: 0;
+      margin-top: 12px;
       text-align: center;
-      font-size: 13px;
+      font-size: 11px;
       font-weight: 900;
-      line-height: 1.05;
+      line-height: 1;
       letter-spacing: 0;
     }
 
     .datetime {
+      color: #111820;
       text-align: right;
-      font-size: 9px;
-      font-weight: 600;
-      line-height: 1.05;
+      font-size: 10px;
+      font-weight: 800;
+      line-height: 1.2;
       letter-spacing: 0;
     }
 
+    .datetime > div + div {
+      margin-top: 4px;
+    }
+
     .rule {
-      border-top: 1.2px solid #111820;
+      border-top: 2px solid #111820;
       height: 0;
     }
 
     .entries-grid {
       display: grid;
       grid-template-columns: max-content max-content;
-      column-gap: 3mm;
-      row-gap: 0.8mm;
+      column-gap: 12px;
+      row-gap: 6px;
       align-items: baseline;
       width: max-content;
       max-width: 100%;
-      margin-top: 2.5mm;
+      margin-top: 8px;
       margin-left: auto;
       margin-right: auto;
     }
 
     .header-cell {
-      font-size: 8px;
+      font-size: 10px;
       font-weight: 900;
       letter-spacing: 0;
       line-height: 1.1;
-      margin-bottom: 1.2mm;
+      margin-bottom: 0;
     }
 
     .amount-cell {
@@ -215,7 +232,7 @@ String _buildReceiptHtml(
     }
 
     .num {
-      font-size: 15px;
+      font-size: 11px;
       font-weight: 900;
       letter-spacing: 0;
       color: #111820;
@@ -223,7 +240,7 @@ String _buildReceiptHtml(
       min-width: 0;
       width: max-content;
       max-width: none;
-      line-height: 1.2;
+      line-height: 1;
       white-space: nowrap;
       overflow: visible;
     }
@@ -234,29 +251,29 @@ String _buildReceiptHtml(
     }
 
     .num-suffix {
-      font-size: 14px;
+      font-size: 11px;
       font-weight: 900;
       color: #000000;
       text-shadow: 0.18px 0 #000000;
     }
 
     .amt {
-      font-size: 15px;
+      font-size: 11px;
       font-weight: 900;
       letter-spacing: 0;
       min-width: max-content;
       text-align: right;
-      line-height: 1.2;
+      line-height: 1;
     }
 
     .jackpot-num {
-      font-size: 12px;
+      font-size: 10px;
       font-weight: 900;
       letter-spacing: 0;
       min-width: 0;
       max-width: 25mm;
       text-align: left;
-      line-height: 1.2;
+      line-height: 1;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -265,14 +282,14 @@ String _buildReceiptHtml(
     .jackpot-amt {
       min-width: max-content;
       text-align: right;
-      line-height: 1.2;
-      font-size: 12px;
+      line-height: 1;
+      font-size: 10px;
       font-weight: 900;
     }
 
     .jackpot-arrow {
       display: inline-block;
-      font-size: 16px;
+      font-size: 13px;
       line-height: 1;
       font-weight: 900;
       letter-spacing: 0;
@@ -280,8 +297,8 @@ String _buildReceiptHtml(
 
     .item-label {
       grid-column: 1 / -1;
-      margin: 0.2mm 0 0.2mm;
-      font-size: 14px;
+      margin: 2px 0 -1px;
+      font-size: 11px;
       font-weight: 900;
       line-height: 1;
       letter-spacing: 0;
@@ -292,18 +309,18 @@ String _buildReceiptHtml(
 
     .grid-rule {
       grid-column: 1 / -1;
-      border-top: 1.2px solid #111820;
+      border-top: 2px solid #111820;
       height: 0;
-      margin-top: 3mm;
+      margin-top: 12px;
     }
 
     .total-label,
     .total-value {
-      margin: 1.7mm 0 0.8mm;
-      font-size: 12px;
+      margin: 4px 0;
+      font-size: 14px;
       font-weight: 900;
       letter-spacing: 0;
-      text-shadow: 0.18px 0 #108438;
+      color: #111820;
     }
 
     .total-value {
@@ -330,7 +347,7 @@ String _buildReceiptHtml(
 
     .otc-marker {
       grid-column: 1 / -1;
-      margin: 1.5mm 0 0.8mm;
+      margin: 12px 0 0;
       text-align: center;
       color: #108438;
       font-size: 12px;
@@ -458,9 +475,7 @@ num _pageTotalAmount(List<_ParchiPrintItem> items, bool isOtc) {
 }
 
 String _receiptRows(List<_ParchiPrintItem> items, String session) {
-  return items.asMap().entries.map((indexedItem) {
-    final index = indexedItem.key;
-    final pageItem = indexedItem.value;
+  return items.map((pageItem) {
     final item = pageItem.item;
     final formattedNumber = _localizeDigits(
       _normalizePrintedFamilyNumber(
@@ -478,8 +493,7 @@ String _receiptRows(List<_ParchiPrintItem> items, String session) {
         ? ''
         : item.isBazarSangam
             ? '<div class="item-label">BAZAR</div>'
-            : item.isMotorPana &&
-                    (index == 0 || !items[index - 1].item.isMotorPana)
+            : item.isMotorPana
                 ? '<div class="item-label">MP</div>'
                 : '';
     final mainRow = pageItem.showMainEntry
