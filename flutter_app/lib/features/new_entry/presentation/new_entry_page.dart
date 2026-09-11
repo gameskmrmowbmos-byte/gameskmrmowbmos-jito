@@ -2827,6 +2827,18 @@ class _BetTable extends StatelessWidget {
       onChanged();
     }
 
+    bool amountKeypadController(TextEditingController controller) {
+      for (final entry in entries) {
+        if (identical(controller, entry.amount)) return true;
+        if (entry.jackpotAmounts.any(
+          (amountController) => identical(amountController, controller),
+        )) {
+          return true;
+        }
+      }
+      return false;
+    }
+
     TextEditingController? toggleActiveJackpot() {
       final activeController = keypadActiveControllerNotifier?.value;
       if (activeController == null) return null;
@@ -2918,6 +2930,7 @@ class _BetTable extends StatelessWidget {
                 keypadOnActiveControllerChanged: focusManualController,
                 keypadOnActiveValueChanged: validateManualKeypadValue,
                 keypadOnJackpot: toggleActiveJackpot,
+                keypadNumbersOnlyFor: amountKeypadController,
                 keypadActiveControllerNotifier: keypadActiveControllerNotifier,
                 onDelete: () => onDelete(index),
               ),
@@ -2975,6 +2988,7 @@ class _BetRow extends StatefulWidget {
     required this.keypadOnActiveControllerChanged,
     required this.keypadOnActiveValueChanged,
     required this.keypadOnJackpot,
+    required this.keypadNumbersOnlyFor,
     required this.onDelete,
     this.keypadActiveControllerNotifier,
   });
@@ -3003,6 +3017,7 @@ class _BetRow extends StatefulWidget {
   final ValueChanged<TextEditingController> keypadOnActiveControllerChanged;
   final ValueChanged<TextEditingController> keypadOnActiveValueChanged;
   final TextEditingController? Function() keypadOnJackpot;
+  final bool Function(TextEditingController controller) keypadNumbersOnlyFor;
   final VoidCallback onDelete;
   final ValueNotifier<TextEditingController?>? keypadActiveControllerNotifier;
 
@@ -3304,6 +3319,7 @@ class _BetRowState extends State<_BetRow> {
                   keypadEnterTargetFor: _keypadEnterTargetFor,
                   keypadOnActiveControllerChanged: _focusKeypadController,
                   keypadOnActiveValueChanged: _handleKeypadValueChanged,
+                  keypadNumbersOnlyFor: widget.keypadNumbersOnlyFor,
                   keypadActiveControllerNotifier:
                       widget.keypadActiveControllerNotifier,
                   onSubmitted: () {
@@ -3344,6 +3360,7 @@ class _BetRowState extends State<_BetRow> {
                   keypadEnterTargetFor: _keypadEnterTargetFor,
                   keypadOnActiveControllerChanged: _focusKeypadController,
                   keypadOnActiveValueChanged: _handleKeypadValueChanged,
+                  keypadNumbersOnlyFor: widget.keypadNumbersOnlyFor,
                   keypadActiveControllerNotifier:
                       widget.keypadActiveControllerNotifier,
                   onSubmitted: _submitMainAmount,
@@ -3437,6 +3454,7 @@ class _BetRowState extends State<_BetRow> {
                 keypadEnterTargetFor: _keypadEnterTargetFor,
                 keypadOnActiveControllerChanged: _focusKeypadController,
                 keypadOnActiveValueChanged: _handleKeypadValueChanged,
+                keypadNumbersOnlyFor: widget.keypadNumbersOnlyFor,
                 keypadActiveControllerNotifier:
                     widget.keypadActiveControllerNotifier,
                 onChanged: onChanged,
@@ -3468,6 +3486,7 @@ class _JackpotEntryRows extends StatelessWidget {
     required this.keypadEnterTargetFor,
     required this.keypadOnActiveControllerChanged,
     required this.keypadOnActiveValueChanged,
+    required this.keypadNumbersOnlyFor,
     required this.keypadActiveControllerNotifier,
     required this.onChanged,
   });
@@ -3493,6 +3512,7 @@ class _JackpotEntryRows extends StatelessWidget {
       keypadEnterTargetFor;
   final ValueChanged<TextEditingController> keypadOnActiveControllerChanged;
   final ValueChanged<TextEditingController> keypadOnActiveValueChanged;
+  final bool Function(TextEditingController controller) keypadNumbersOnlyFor;
   final ValueNotifier<TextEditingController?>? keypadActiveControllerNotifier;
   final VoidCallback onChanged;
 
@@ -3534,6 +3554,7 @@ class _JackpotEntryRows extends StatelessWidget {
                   enterTargetFor: keypadEnterTargetFor,
                   onActiveControllerChanged: keypadOnActiveControllerChanged,
                   onActiveValueChanged: keypadOnActiveValueChanged,
+                  keypadNumbersOnlyFor: keypadNumbersOnlyFor,
                   keypadActiveControllerNotifier:
                       keypadActiveControllerNotifier,
                   onSubmitted: () => onNumberSubmitted(index),
@@ -3572,6 +3593,7 @@ class _JackpotEntryRows extends StatelessWidget {
                   enterTargetFor: keypadEnterTargetFor,
                   onActiveControllerChanged: keypadOnActiveControllerChanged,
                   onActiveValueChanged: keypadOnActiveValueChanged,
+                  keypadNumbersOnlyFor: keypadNumbersOnlyFor,
                   keypadActiveControllerNotifier:
                       keypadActiveControllerNotifier,
                   onSubmitted: () => onAmountSubmitted(index),
@@ -3627,6 +3649,7 @@ class _JackpotSmallField extends StatelessWidget {
     this.enterTargetFor,
     this.onActiveControllerChanged,
     this.onActiveValueChanged,
+    this.keypadNumbersOnlyFor,
     this.keypadActiveControllerNotifier,
   });
 
@@ -3657,6 +3680,7 @@ class _JackpotSmallField extends StatelessWidget {
       enterTargetFor;
   final ValueChanged<TextEditingController>? onActiveControllerChanged;
   final ValueChanged<TextEditingController>? onActiveValueChanged;
+  final bool Function(TextEditingController controller)? keypadNumbersOnlyFor;
   final ValueNotifier<TextEditingController?>? keypadActiveControllerNotifier;
 
   @override
@@ -3708,6 +3732,7 @@ class _JackpotSmallField extends StatelessWidget {
                   enterTargetFor: enterTargetFor,
                   onActiveControllerChanged: onActiveControllerChanged,
                   onActiveValueChanged: onActiveValueChanged,
+                  numbersOnlyForController: keypadNumbersOnlyFor,
                 ),
                 backgroundColor: Colors.transparent,
               );
@@ -3771,6 +3796,20 @@ class _JackpotSmallField extends StatelessWidget {
   }
 }
 
+const _nonNumericKeypadInputKeys = {
+  'SP',
+  'DP',
+  'CP',
+  'CM',
+  'CT',
+  'F',
+  'BZ',
+  '*'
+};
+
+bool _isNonNumericInputKey(String key) =>
+    _nonNumericKeypadInputKeys.contains(key);
+
 class MatkaNumberKeypadSheet extends StatefulWidget {
   const MatkaNumberKeypadSheet({
     required this.controller,
@@ -3789,6 +3828,7 @@ class MatkaNumberKeypadSheet extends StatefulWidget {
     this.enterTargetFor,
     this.onActiveControllerChanged,
     this.onActiveValueChanged,
+    this.numbersOnlyForController,
     this.activeControllerNotifier,
     super.key,
   });
@@ -3812,6 +3852,8 @@ class MatkaNumberKeypadSheet extends StatefulWidget {
       enterTargetFor;
   final ValueChanged<TextEditingController>? onActiveControllerChanged;
   final ValueChanged<TextEditingController>? onActiveValueChanged;
+  final bool Function(TextEditingController controller)?
+      numbersOnlyForController;
   final ValueNotifier<TextEditingController?>? activeControllerNotifier;
 
   @override
@@ -3883,7 +3925,11 @@ class _MatkaNumberKeypadSheetState extends State<MatkaNumberKeypadSheet> {
     });
   }
 
+  bool get _numbersOnlyActive =>
+      widget.numbersOnlyForController?.call(_activeController) ?? false;
+
   void _appendKey(String key) {
+    if (_numbersOnlyActive && _isNonNumericInputKey(key)) return;
     final controller = _activeController;
     if (controller is _LocalizedDigitsController) {
       controller.applyKeypadValue(key);
@@ -3924,6 +3970,7 @@ class _MatkaNumberKeypadSheetState extends State<MatkaNumberKeypadSheet> {
       ['1', '2', '3', widget.onJackpot == null ? 'next' : 'remove'],
       ['0', '*', 'Enter'],
     ];
+    final numbersOnly = _numbersOnlyActive;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(6, 6, 6, 7),
@@ -3959,6 +4006,8 @@ class _MatkaNumberKeypadSheetState extends State<MatkaNumberKeypadSheet> {
                           padding: const EdgeInsets.symmetric(horizontal: 1.5),
                           child: _MatkaKey(
                             label: key,
+                            enabled:
+                                !numbersOnly || !_isNonNumericInputKey(key),
                             onTap: () {
                               if (key == 'remove') {
                                 _removeLastKey();
@@ -4042,10 +4091,12 @@ class _MatkaKey extends StatelessWidget {
   const _MatkaKey({
     required this.label,
     required this.onTap,
+    this.enabled = true,
   });
 
   final String label;
   final VoidCallback onTap;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
@@ -4065,36 +4116,44 @@ class _MatkaKey extends StatelessWidget {
         label == 'F' ||
         label == 'BZ';
 
-    final backgroundColor = isAction
-        ? const Color(0xFFE7F0FF)
-        : isSpecial
-            ? const Color(0xFFE8F7EE)
-            : const Color(0xFFFFFFFF);
+    final backgroundColor = !enabled
+        ? const Color(0xFFE5E7EB)
+        : isAction
+            ? const Color(0xFFE7F0FF)
+            : isSpecial
+                ? const Color(0xFFE8F7EE)
+                : const Color(0xFFFFFFFF);
 
-    final foregroundColor = isAction
-        ? label == 'Enter'
-            ? Colors.white
-            : isJackpot
+    final foregroundColor = !enabled
+        ? const Color(0xFF9CA3AF)
+        : isAction
+            ? label == 'Enter'
+                ? Colors.white
+                : isJackpot
+                    ? const Color(0xFF108438)
+                    : const Color(0xFF064DB5)
+            : isSpecial
                 ? const Color(0xFF108438)
-                : const Color(0xFF064DB5)
-        : isSpecial
-            ? const Color(0xFF108438)
-            : const Color(0xFF111820);
+                : const Color(0xFF111820);
 
-    final borderColor = isAction
-        ? label == 'Enter'
-            ? const Color(0xFF064DB5)
-            : isJackpot
+    final borderColor = !enabled
+        ? const Color(0xFFD1D5DB)
+        : isAction
+            ? label == 'Enter'
+                ? const Color(0xFF064DB5)
+                : isJackpot
+                    ? const Color(0xFFBFE8CA)
+                    : const Color(0xFFBFD5FF)
+            : isSpecial
                 ? const Color(0xFFBFE8CA)
-                : const Color(0xFFBFD5FF)
-        : isSpecial
-            ? const Color(0xFFBFE8CA)
-            : const Color(0xFFD8E0EA);
+                : const Color(0xFFD8E0EA);
 
     return SizedBox(
       height: 38,
       child: Material(
-        color: label == 'Enter' ? const Color(0xFF064DB5) : backgroundColor,
+        color: enabled && label == 'Enter'
+            ? const Color(0xFF064DB5)
+            : backgroundColor,
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
@@ -4102,7 +4161,7 @@ class _MatkaKey extends StatelessWidget {
         ),
         child: InkWell(
           borderRadius: BorderRadius.circular(10),
-          onTap: onTap,
+          onTap: enabled ? onTap : null,
           child: Center(
             child: isNavigation || isJackpot || isRemove
                 ? Icon(
@@ -4159,6 +4218,7 @@ class MatkaEntryTextField extends StatelessWidget {
     this.keypadEnterTargetFor,
     this.keypadOnActiveControllerChanged,
     this.keypadOnActiveValueChanged,
+    this.keypadNumbersOnlyFor,
     this.onSubmitted,
     super.key,
   });
@@ -4192,6 +4252,7 @@ class MatkaEntryTextField extends StatelessWidget {
       keypadEnterTargetFor;
   final ValueChanged<TextEditingController>? keypadOnActiveControllerChanged;
   final ValueChanged<TextEditingController>? keypadOnActiveValueChanged;
+  final bool Function(TextEditingController controller)? keypadNumbersOnlyFor;
   final VoidCallback? onSubmitted;
 
   @override
@@ -4224,6 +4285,7 @@ class MatkaEntryTextField extends StatelessWidget {
       keypadEnterTargetFor: keypadEnterTargetFor,
       keypadOnActiveControllerChanged: keypadOnActiveControllerChanged,
       keypadOnActiveValueChanged: keypadOnActiveValueChanged,
+      keypadNumbersOnlyFor: keypadNumbersOnlyFor,
       onSubmitted: onSubmitted,
     );
   }
@@ -4258,6 +4320,7 @@ class _EntryTextField extends StatelessWidget {
     this.keypadEnterTargetFor,
     this.keypadOnActiveControllerChanged,
     this.keypadOnActiveValueChanged,
+    this.keypadNumbersOnlyFor,
     this.onSubmitted,
     this.keypadActiveControllerNotifier,
   });
@@ -4292,6 +4355,7 @@ class _EntryTextField extends StatelessWidget {
       keypadEnterTargetFor;
   final ValueChanged<TextEditingController>? keypadOnActiveControllerChanged;
   final ValueChanged<TextEditingController>? keypadOnActiveValueChanged;
+  final bool Function(TextEditingController controller)? keypadNumbersOnlyFor;
   final VoidCallback? onSubmitted;
   final ValueNotifier<TextEditingController?>? keypadActiveControllerNotifier;
 
@@ -4331,6 +4395,7 @@ class _EntryTextField extends StatelessWidget {
             enterTargetFor: keypadEnterTargetFor,
             onActiveControllerChanged: keypadOnActiveControllerChanged,
             onActiveValueChanged: keypadOnActiveValueChanged,
+            numbersOnlyForController: keypadNumbersOnlyFor,
           ),
           backgroundColor: Colors.transparent,
         );
@@ -4475,6 +4540,7 @@ class _AmountFillField extends StatelessWidget {
     this.keypadEnterTargetFor,
     this.keypadOnActiveControllerChanged,
     this.keypadOnActiveValueChanged,
+    this.keypadNumbersOnlyFor,
     this.keypadActiveControllerNotifier,
   });
 
@@ -4506,6 +4572,7 @@ class _AmountFillField extends StatelessWidget {
       keypadEnterTargetFor;
   final ValueChanged<TextEditingController>? keypadOnActiveControllerChanged;
   final ValueChanged<TextEditingController>? keypadOnActiveValueChanged;
+  final bool Function(TextEditingController controller)? keypadNumbersOnlyFor;
   final ValueNotifier<TextEditingController?>? keypadActiveControllerNotifier;
 
   @override
@@ -4543,6 +4610,7 @@ class _AmountFillField extends StatelessWidget {
               keypadEnterTargetFor: keypadEnterTargetFor,
               keypadOnActiveControllerChanged: keypadOnActiveControllerChanged,
               keypadOnActiveValueChanged: keypadOnActiveValueChanged,
+              keypadNumbersOnlyFor: keypadNumbersOnlyFor,
               keypadActiveControllerNotifier: keypadActiveControllerNotifier,
               onSubmitted: onSubmitted,
               onChanged: onChanged,
