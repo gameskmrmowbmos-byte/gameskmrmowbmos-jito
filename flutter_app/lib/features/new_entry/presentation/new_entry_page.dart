@@ -720,6 +720,8 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
   ];
   final _autoEntries = <_AutoBetEntry>[];
   final _autoSearch = TextEditingController();
+  final ValueNotifier<TextEditingController?> _activeKeypadControllerNotifier =
+      ValueNotifier<TextEditingController?>(null);
 
   ReceiptMarket? _market;
   List<ReceiptMarket> _markets = const [];
@@ -735,6 +737,10 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
   String? _autoSearchError;
   int? _amountFillStartIndex;
   int? _amountFillEndIndex;
+
+  void _setActiveKeypadController(TextEditingController controller) {
+    _activeKeypadControllerNotifier.value = controller;
+  }
 
   @override
   void didChangeDependencies() {
@@ -1304,6 +1310,7 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
       entry.dispose();
     }
     _autoSearch.dispose();
+    _activeKeypadControllerNotifier.dispose();
     super.dispose();
   }
 
@@ -1459,7 +1466,9 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
   void _focusManualNumber(int index) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || index < 0 || index >= _manualEntries.length) return;
-      _manualEntries[index].numberFocus.requestFocus();
+      final target = _manualEntries[index];
+      target.numberFocus.requestFocus();
+      _setActiveKeypadController(target.number);
     });
   }
 
@@ -1474,7 +1483,9 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
 
   void _addEntry() {
     final newIndex = _manualEntries.length;
-    setState(() => _manualEntries.add(_BetEntry(number: '', amount: '')));
+    final newEntry = _BetEntry(number: '', amount: '');
+    setState(() => _manualEntries.add(newEntry));
+    _setActiveKeypadController(newEntry.number);
     _focusManualNumber(newIndex);
     _persistCurrentDraft();
   }
@@ -1785,6 +1796,22 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
   }
 
   Future<void> _save({required bool print}) async {
+    if (!_isAutoMode) {
+      for (final entry in _manualEntries) {
+        final hasNumber = entry.number.text.trim().isNotEmpty;
+        final hasAmount = entry.amount.text.trim().isNotEmpty;
+        if (hasNumber == hasAmount) continue;
+
+        final missingValue = hasNumber ? 'amount' : 'number';
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Please enter the $missingValue.')),
+          );
+        }
+        return;
+      }
+    }
+
     final market = _selectedMarket;
     if (market == null || !_canSave) return;
 
@@ -2173,6 +2200,7 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
                       onAmountFillHover: _hoverAmountFill,
                       onAmountFillEnd: _endAmountFill,
                       onMobileAmountFill: _fillAmountBelow,
+                      keypadActiveControllerNotifier: _activeKeypadControllerNotifier,
                     ),
                 ],
               ),
@@ -2311,6 +2339,7 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
             onAmountFillHover: _hoverAmountFill,
             onAmountFillEnd: _endAmountFill,
             onMobileAmountFill: _fillAmountBelow,
+            keypadActiveControllerNotifier: _activeKeypadControllerNotifier,
           ),
         const SizedBox(height: 16),
         const _SectionTitle(number: '5.', label: 'PREVIEW (RECEIPT)'),
@@ -2689,6 +2718,7 @@ class _BetTable extends StatelessWidget {
     required this.onAmountFillHover,
     required this.onAmountFillEnd,
     required this.onMobileAmountFill,
+    this.keypadActiveControllerNotifier,
   });
 
   final List<_BetEntry> entries;
@@ -2707,6 +2737,7 @@ class _BetTable extends StatelessWidget {
   final ValueChanged<int> onAmountFillHover;
   final VoidCallback onAmountFillEnd;
   final ValueChanged<int> onMobileAmountFill;
+  final ValueNotifier<TextEditingController?>? keypadActiveControllerNotifier;
 
   @override
   Widget build(BuildContext context) {
@@ -2795,6 +2826,40 @@ class _BetTable extends StatelessWidget {
       onChanged();
     }
 
+    TextEditingController? toggleActiveJackpot() {
+      final activeController = keypadActiveControllerNotifier?.value;
+      if (activeController == null) return null;
+
+      for (final entry in entries) {
+        final ownsController = identical(activeController, entry.number) ||
+            identical(activeController, entry.amount) ||
+            entry.jackpotNumbers.any(
+              (controller) => identical(controller, activeController),
+            ) ||
+            entry.jackpotAmounts.any(
+              (controller) => identical(controller, activeController),
+            );
+        if (!ownsController) continue;
+
+        final raw = entry.number.text;
+        final canUseJackpot = session == 'Open' &&
+            _cpJodiNumber(raw) == null &&
+            _familyNumber(raw) == null &&
+            !_isManualSangamNumber(raw);
+        if (!canUseJackpot) return null;
+
+        entry.isJackpot = !entry.isJackpot;
+        onChanged();
+        if (!entry.isJackpot) return null;
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          entry.jackpotNumberFocus.first.requestFocus();
+        });
+        return entry.jackpotNumbers.first;
+      }
+      return null;
+    }
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(5),
       child: DecoratedBox(
@@ -2851,6 +2916,8 @@ class _BetTable extends StatelessWidget {
                 keypadEnterTargetFor: enterManualController,
                 keypadOnActiveControllerChanged: focusManualController,
                 keypadOnActiveValueChanged: validateManualKeypadValue,
+                keypadOnJackpot: toggleActiveJackpot,
+                keypadActiveControllerNotifier: keypadActiveControllerNotifier,
                 onDelete: () => onDelete(index),
               ),
             Container(
@@ -2906,7 +2973,9 @@ class _BetRow extends StatefulWidget {
     required this.keypadEnterTargetFor,
     required this.keypadOnActiveControllerChanged,
     required this.keypadOnActiveValueChanged,
+    required this.keypadOnJackpot,
     required this.onDelete,
+    this.keypadActiveControllerNotifier,
   });
 
   final int index;
@@ -2932,7 +3001,9 @@ class _BetRow extends StatefulWidget {
       keypadEnterTargetFor;
   final ValueChanged<TextEditingController> keypadOnActiveControllerChanged;
   final ValueChanged<TextEditingController> keypadOnActiveValueChanged;
+  final TextEditingController? Function() keypadOnJackpot;
   final VoidCallback onDelete;
+  final ValueNotifier<TextEditingController?>? keypadActiveControllerNotifier;
 
   @override
   State<_BetRow> createState() => _BetRowState();
@@ -3138,9 +3209,10 @@ class _BetRowState extends State<_BetRow> {
         session == 'Open' && !isCpJodi && !isFamily && !isSangam;
     if (!canUseJackpot) return null;
     setState(() {
-      entry.isJackpot = true;
+      entry.isJackpot = !entry.isJackpot;
     });
     onChanged();
+    if (!entry.isJackpot) return null;
     _focusJackpotNumber(0);
     return entry.jackpotNumbers.first;
   }
@@ -3224,13 +3296,15 @@ class _BetRowState extends State<_BetRow> {
                       : widget.previousEntryAmountFocus!.requestFocus(),
                   keypadOnNext: () => entry.amountFocus.requestFocus(),
                   keypadOnEnter: () => entry.amountFocus.requestFocus(),
-                  keypadOnJackpot: _openJackpot,
+                  keypadOnJackpot: widget.keypadOnJackpot,
                   nextEntryNumberController: () => entry.amount,
                   keypadBackTargetFor: _keypadBackTargetFor,
                   keypadNextTargetFor: _keypadNextTargetFor,
                   keypadEnterTargetFor: _keypadEnterTargetFor,
                   keypadOnActiveControllerChanged: _focusKeypadController,
                   keypadOnActiveValueChanged: _handleKeypadValueChanged,
+                  keypadActiveControllerNotifier:
+                      widget.keypadActiveControllerNotifier,
                   onSubmitted: () {
                     if (entry.amount.text.trim().isEmpty) {
                       entry.amountFocus.requestFocus();
@@ -3263,12 +3337,14 @@ class _BetRowState extends State<_BetRow> {
                   keypadOnBack: () => entry.numberFocus.requestFocus(),
                   keypadOnNext: _submitMainAmount,
                   keypadOnEnter: _submitMainAmount,
-                  keypadOnJackpot: _openJackpot,
+                  keypadOnJackpot: widget.keypadOnJackpot,
                   keypadBackTargetFor: _keypadBackTargetFor,
                   keypadNextTargetFor: _keypadNextTargetFor,
                   keypadEnterTargetFor: _keypadEnterTargetFor,
                   keypadOnActiveControllerChanged: _focusKeypadController,
                   keypadOnActiveValueChanged: _handleKeypadValueChanged,
+                  keypadActiveControllerNotifier:
+                      widget.keypadActiveControllerNotifier,
                   onSubmitted: _submitMainAmount,
                   onChanged: onChanged,
                 ),
@@ -3354,11 +3430,14 @@ class _BetRowState extends State<_BetRow> {
                 onNumberSubmitted: _submitJackpotNumber,
                 onAmountSubmitted: _submitJackpotAmount,
                 onMobileAmountFill: _fillJackpotAmountBelow,
+                keypadOnJackpot: widget.keypadOnJackpot,
                 keypadBackTargetFor: _keypadBackTargetFor,
                 keypadNextTargetFor: _keypadNextTargetFor,
                 keypadEnterTargetFor: _keypadEnterTargetFor,
                 keypadOnActiveControllerChanged: _focusKeypadController,
                 keypadOnActiveValueChanged: _handleKeypadValueChanged,
+                keypadActiveControllerNotifier:
+                    widget.keypadActiveControllerNotifier,
                 onChanged: onChanged,
               ),
             ),
@@ -3382,11 +3461,13 @@ class _JackpotEntryRows extends StatelessWidget {
     required this.onNumberSubmitted,
     required this.onAmountSubmitted,
     required this.onMobileAmountFill,
+    required this.keypadOnJackpot,
     required this.keypadBackTargetFor,
     required this.keypadNextTargetFor,
     required this.keypadEnterTargetFor,
     required this.keypadOnActiveControllerChanged,
     required this.keypadOnActiveValueChanged,
+    required this.keypadActiveControllerNotifier,
     required this.onChanged,
   });
 
@@ -3402,6 +3483,7 @@ class _JackpotEntryRows extends StatelessWidget {
   final ValueChanged<int> onNumberSubmitted;
   final ValueChanged<int> onAmountSubmitted;
   final ValueChanged<int> onMobileAmountFill;
+  final TextEditingController? Function() keypadOnJackpot;
   final TextEditingController? Function(TextEditingController controller)
       keypadBackTargetFor;
   final TextEditingController? Function(TextEditingController controller)
@@ -3410,6 +3492,7 @@ class _JackpotEntryRows extends StatelessWidget {
       keypadEnterTargetFor;
   final ValueChanged<TextEditingController> keypadOnActiveControllerChanged;
   final ValueChanged<TextEditingController> keypadOnActiveValueChanged;
+  final ValueNotifier<TextEditingController?>? keypadActiveControllerNotifier;
   final VoidCallback onChanged;
 
   @override
@@ -3444,11 +3527,14 @@ class _JackpotEntryRows extends StatelessWidget {
                       : amountFocusNodes[index - 1].requestFocus(),
                   onNext: () => amountFocusNodes[index].requestFocus(),
                   enterController: () => amountControllers[index],
+                  onJackpot: keypadOnJackpot,
                   backTargetFor: keypadBackTargetFor,
                   nextTargetFor: keypadNextTargetFor,
                   enterTargetFor: keypadEnterTargetFor,
                   onActiveControllerChanged: keypadOnActiveControllerChanged,
                   onActiveValueChanged: keypadOnActiveValueChanged,
+                    keypadActiveControllerNotifier:
+                      keypadActiveControllerNotifier,
                   onSubmitted: () => onNumberSubmitted(index),
                   onChanged: onChanged,
                 ),
@@ -3479,11 +3565,14 @@ class _JackpotEntryRows extends StatelessWidget {
                         ? numberControllers[index + 1]
                         : null;
                   },
+                  onJackpot: keypadOnJackpot,
                   backTargetFor: keypadBackTargetFor,
                   nextTargetFor: keypadNextTargetFor,
                   enterTargetFor: keypadEnterTargetFor,
                   onActiveControllerChanged: keypadOnActiveControllerChanged,
                   onActiveValueChanged: keypadOnActiveValueChanged,
+                    keypadActiveControllerNotifier:
+                      keypadActiveControllerNotifier,
                   onSubmitted: () => onAmountSubmitted(index),
                   onMobileFill: () => onMobileAmountFill(index),
                   onChanged: onChanged,
@@ -3531,11 +3620,13 @@ class _JackpotSmallField extends StatelessWidget {
     this.onNext,
     this.onEnter,
     this.enterController,
+    this.onJackpot,
     this.backTargetFor,
     this.nextTargetFor,
     this.enterTargetFor,
     this.onActiveControllerChanged,
     this.onActiveValueChanged,
+    this.keypadActiveControllerNotifier,
   });
 
   final TextEditingController controller;
@@ -3556,6 +3647,7 @@ class _JackpotSmallField extends StatelessWidget {
   final VoidCallback? onNext;
   final VoidCallback? onEnter;
   final TextEditingController? Function()? enterController;
+  final TextEditingController? Function()? onJackpot;
   final TextEditingController? Function(TextEditingController controller)?
       backTargetFor;
   final TextEditingController? Function(TextEditingController controller)?
@@ -3564,6 +3656,7 @@ class _JackpotSmallField extends StatelessWidget {
       enterTargetFor;
   final ValueChanged<TextEditingController>? onActiveControllerChanged;
   final ValueChanged<TextEditingController>? onActiveValueChanged;
+  final ValueNotifier<TextEditingController?>? keypadActiveControllerNotifier;
 
   @override
   Widget build(BuildContext context) {
@@ -3589,6 +3682,7 @@ class _JackpotSmallField extends StatelessWidget {
             ],
             readOnly: true,
             onTap: () async {
+              keypadActiveControllerNotifier?.value = controller;
               await Scrollable.ensureVisible(
                 context,
                 alignment: 0.2,
@@ -3599,11 +3693,13 @@ class _JackpotSmallField extends StatelessWidget {
               Scaffold.of(context).showBottomSheet(
                 (_) => MatkaNumberKeypadSheet(
                   controller: controller,
+                  activeControllerNotifier: keypadActiveControllerNotifier,
                   backController: backController,
                   nextController: nextController,
                   onChanged: onChanged,
                   onBack: onBack,
                   onNext: onNext,
+                  onJackpot: onJackpot,
                   onEnter: onEnter ?? onSubmitted,
                   enterController: enterController,
                   backTargetFor: backTargetFor,
@@ -3692,6 +3788,7 @@ class MatkaNumberKeypadSheet extends StatefulWidget {
     this.enterTargetFor,
     this.onActiveControllerChanged,
     this.onActiveValueChanged,
+    this.activeControllerNotifier,
     super.key,
   });
 
@@ -3714,6 +3811,7 @@ class MatkaNumberKeypadSheet extends StatefulWidget {
       enterTargetFor;
   final ValueChanged<TextEditingController>? onActiveControllerChanged;
   final ValueChanged<TextEditingController>? onActiveValueChanged;
+  final ValueNotifier<TextEditingController?>? activeControllerNotifier;
 
   @override
   State<MatkaNumberKeypadSheet> createState() => _MatkaNumberKeypadSheetState();
@@ -3727,11 +3825,47 @@ class _MatkaNumberKeypadSheetState extends State<MatkaNumberKeypadSheet> {
   void initState() {
     super.initState();
     _activeController = widget.controller;
+    widget.activeControllerNotifier
+        ?.addListener(_handleExternalActiveControllerChange);
+    if (widget.activeControllerNotifier != null &&
+        widget.activeControllerNotifier!.value == null) {
+      widget.activeControllerNotifier!.value = widget.controller;
+    }
   }
 
   void _setActiveController(TextEditingController controller) {
     setState(() => _activeController = controller);
+    if (widget.activeControllerNotifier != null) {
+      widget.activeControllerNotifier!.value = controller;
+    }
     widget.onActiveControllerChanged?.call(controller);
+  }
+
+  @override
+  void didUpdateWidget(covariant MatkaNumberKeypadSheet oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.activeControllerNotifier != widget.activeControllerNotifier) {
+      oldWidget.activeControllerNotifier
+          ?.removeListener(_handleExternalActiveControllerChange);
+      widget.activeControllerNotifier
+          ?.addListener(_handleExternalActiveControllerChange);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.activeControllerNotifier
+        ?.removeListener(_handleExternalActiveControllerChange);
+    super.dispose();
+  }
+
+  void _handleExternalActiveControllerChange() {
+    final nextController = widget.activeControllerNotifier?.value;
+    if (nextController != null && nextController != _activeController) {
+      setState(() {
+        _activeController = nextController;
+      });
+    }
   }
 
   void _scheduleValueChanged() {
@@ -4124,6 +4258,7 @@ class _EntryTextField extends StatelessWidget {
     this.keypadOnActiveControllerChanged,
     this.keypadOnActiveValueChanged,
     this.onSubmitted,
+    this.keypadActiveControllerNotifier,
   });
 
   final TextEditingController controller;
@@ -4157,6 +4292,7 @@ class _EntryTextField extends StatelessWidget {
   final ValueChanged<TextEditingController>? keypadOnActiveControllerChanged;
   final ValueChanged<TextEditingController>? keypadOnActiveValueChanged;
   final VoidCallback? onSubmitted;
+  final ValueNotifier<TextEditingController?>? keypadActiveControllerNotifier;
 
   @override
   Widget build(BuildContext context) {
@@ -4167,6 +4303,7 @@ class _EntryTextField extends StatelessWidget {
       focusNode: focusNode,
       readOnly: true,
       onTap: () async {
+        keypadActiveControllerNotifier?.value = controller;
         await Scrollable.ensureVisible(
           context,
           alignment: 0.2,
@@ -4177,6 +4314,7 @@ class _EntryTextField extends StatelessWidget {
         Scaffold.of(context).showBottomSheet(
           (_) => MatkaNumberKeypadSheet(
             controller: controller,
+            activeControllerNotifier: keypadActiveControllerNotifier,
             backController: keypadBackController,
             nextController: keypadNextController,
             onChanged: keypadOnChanged,
@@ -4336,6 +4474,7 @@ class _AmountFillField extends StatelessWidget {
     this.keypadEnterTargetFor,
     this.keypadOnActiveControllerChanged,
     this.keypadOnActiveValueChanged,
+    this.keypadActiveControllerNotifier,
   });
 
   final TextEditingController controller;
@@ -4366,6 +4505,7 @@ class _AmountFillField extends StatelessWidget {
       keypadEnterTargetFor;
   final ValueChanged<TextEditingController>? keypadOnActiveControllerChanged;
   final ValueChanged<TextEditingController>? keypadOnActiveValueChanged;
+  final ValueNotifier<TextEditingController?>? keypadActiveControllerNotifier;
 
   @override
   Widget build(BuildContext context) {
@@ -4402,6 +4542,7 @@ class _AmountFillField extends StatelessWidget {
               keypadEnterTargetFor: keypadEnterTargetFor,
               keypadOnActiveControllerChanged: keypadOnActiveControllerChanged,
               keypadOnActiveValueChanged: keypadOnActiveValueChanged,
+              keypadActiveControllerNotifier: keypadActiveControllerNotifier,
               onSubmitted: onSubmitted,
               onChanged: onChanged,
             ),
