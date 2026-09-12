@@ -71,7 +71,7 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
               OutlinedButton.icon(
                 onPressed: null,
                 icon: const Icon(Icons.ios_share),
-                label: const Text('Export'),
+                label: Text(context.tr('Export')),
               ),
               const SizedBox(width: 8),
               OutlinedButton.icon(
@@ -80,7 +80,7 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
                     : () =>
                         ref.read(entriesControllerProvider.notifier).refresh(),
                 icon: const Icon(Icons.refresh),
-                label: const Text('Refresh'),
+                label: Text(context.tr('Refresh')),
               ),
             ],
           ),
@@ -140,7 +140,7 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
                   : () =>
                       ref.read(entriesControllerProvider.notifier).refresh(),
               icon: const Icon(Icons.refresh),
-              label: const Text('Refresh'),
+              label: Text(context.tr('Refresh')),
             ),
           ),
           const SizedBox(height: 12),
@@ -158,7 +158,7 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
               child: Center(child: CircularProgressIndicator()),
             )
           else if (state.receipts.isEmpty && state.error == null)
-            const _EmptyPanel('No entries found for these filters.')
+            _EmptyPanel(context.tr('No entries found for these filters.'))
           else
             for (final receipt in state.receipts)
               _ReceiptCard(
@@ -184,7 +184,39 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        NumberedTitle('1', context.tr('Filters')),
+        const NumberedTitle('1', 'Filters'),
+<<<<<<< HEAD
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 14,
+          runSpacing: 12,
+          crossAxisAlignment: WrapCrossAlignment.end,
+          children: [
+            _DateField(
+              label: 'From Date',
+              value: filters.fromDate,
+              width: compact ? double.infinity : 150,
+              onPick: (date) => _setFilters(filters.copyWith(fromDate: date)),
+            ),
+            _DateField(
+              label: 'To Date',
+              value: filters.toDate,
+              width: compact ? double.infinity : 150,
+              onPick: (date) => _setFilters(filters.copyWith(toDate: date)),
+            ),
+            _SelectField(
+              label: 'Market',
+              width: compact ? double.infinity : 160,
+              value: filters.marketId ?? '',
+              items: {
+                '': 'All Markets',
+                for (final market in state.markets) market.id: market.name,
+              },
+              onChanged: (value) => _setFilters(
+                filters.copyWith(
+                  marketId: value,
+                  clearMarket: value == null || value.isEmpty,
+=======
         const SizedBox(height: 10),
         LayoutBuilder(
           builder: (context, constraints) {
@@ -337,22 +369,113 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
                       ),
                     ),
                   ],
+>>>>>>> parent of 052c76b (Merge branch 'main' of https://github.com/gameskmrmowbmos-byte/gameskmrmowbmos-jito)
                 ),
               ),
-            );
-          },
+            ),
+            _SelectField(
+              label: 'Session',
+              width: compact ? double.infinity : 140,
+              value: filters.session ?? '',
+              items: const {
+                '': 'All Sessions',
+                'Open': 'Open',
+                'Close': 'Close'
+              },
+              onChanged: (value) => _setFilters(
+                filters.copyWith(
+                  session: value,
+                  clearSession: value == null || value.isEmpty,
+                ),
+              ),
+            ),
+            _SelectField(
+              label: 'Status',
+              width: compact ? double.infinity : 140,
+              value: filters.receiptStatus ?? '',
+              items: const {
+                '': 'All Status',
+                'Active': 'Active',
+                'Cancelled': 'Cancelled',
+              },
+              onChanged: (value) => _setFilters(
+                filters.copyWith(
+                  receiptStatus: value,
+                  clearReceiptStatus: value == null || value.isEmpty,
+                ),
+              ),
+            ),
+            _FilterTextField(
+              label: 'Parchi No.',
+              controller: _receiptController,
+              width: compact ? double.infinity : 160,
+              onChanged: (value) => _setFilters(
+                filters.copyWith(receiptNumber: value),
+              ),
+            ),
+            _FilterTextField(
+              label: 'Number',
+              controller: _numberController,
+              width: compact ? double.infinity : 150,
+              onChanged: (value) =>
+                  _setFilters(filters.copyWith(number: value)),
+            ),
+            _SelectField(
+              label: 'Print Status',
+              width: compact ? double.infinity : 190,
+              value: filters.printStatus ?? '',
+              items: const {
+                '': 'All',
+                'Printed': 'Printed',
+                'Not Printed': 'Not Printed',
+              },
+              onChanged: (value) => _setFilters(
+                filters.copyWith(
+                  printStatus: value,
+                  clearPrintStatus: value == null || value.isEmpty,
+                ),
+              ),
+            ),
+            SizedBox(
+              width: compact ? double.infinity : 130,
+              height: 42,
+              child: FilledButton.icon(
+                onPressed: state.loading
+                    ? null
+                    : () =>
+                        ref.read(entriesControllerProvider.notifier).search(),
+                icon: const Icon(Icons.search),
+                label: const Text('Search'),
+              ),
+            ),
+            SizedBox(
+              width: compact ? double.infinity : 130,
+              height: 42,
+              child: OutlinedButton.icon(
+                onPressed: state.loading
+                    ? null
+                    : () => ref
+                        .read(entriesControllerProvider.notifier)
+                        .clearFilters(),
+                icon: const Icon(Icons.refresh),
+                label: const Text('Clear'),
+              ),
+            ),
+          ],
         ),
       ],
     );
   }
 
   Widget _entriesTable(EntriesState state) {
-    if (state.loading) return const LoadingView(label: 'Loading entries...');
+    if (state.loading) {
+      return LoadingView(label: context.tr('Loading entries...'));
+    }
     if (state.error != null && state.receipts.isEmpty) {
       return _EmptyPanel(state.error!);
     }
     if (state.receipts.isEmpty) {
-      return const _EmptyPanel('No entries found for these filters.');
+      return _EmptyPanel(context.tr('No entries found for these filters.'));
     }
     return Container(
       decoration: BoxDecoration(
@@ -363,18 +486,18 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
       child: Column(
         children: [
           _tableRow(
-            const [
-              'SR.',
-              'PARCHI NO.',
-              'DATE & TIME',
-              'MARKET',
-              'SESSION',
-              'ITEMS',
-              'AMOUNT ($rupee)',
-              'PRINT STATUS',
-              'STATUS',
-              'REPRINTS',
-              'ACTION',
+            [
+              context.tr('SR.'),
+              context.tr('PARCHI NO.'),
+              context.tr('DATE & TIME'),
+              context.tr('MARKET'),
+              context.tr('SESSION'),
+              context.tr('ITEMS'),
+              context.tr('AMOUNT ($rupee)'),
+              context.tr('PRINT STATUS'),
+              context.tr('STATUS'),
+              context.tr('REPRINTS'),
+              context.tr('ACTION'),
             ],
             header: true,
           ),
@@ -389,19 +512,27 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
                       .selectReceipt(receipt.id),
                   child: _tableRow(
                     [
-                      AppLocalizations.localizeDigits(
-                        '${(state.page - 1) * state.limit + index + 1}',
-                      ),
+                      '${(state.page - 1) * state.limit + index + 1}',
                       receipt.receiptNumber,
+<<<<<<< HEAD
                       formatDateTime(_receiptCreatedAt(receipt)),
+                      receipt.market?.name ?? '-',
+                      receipt.session.toUpperCase(),
+                      '${receipt.totalItems}',
+                      '${receipt.totalAmountText}${receipt.isOtc ? ' OTC' : ''}',
+=======
+                      AppLocalizations.localizeDigits(
+                        formatDateTime(_receiptCreatedAt(receipt)),
+                      ),
                       AppLocalizations.localizeMarketName(
                           receipt.market?.name ?? '-'),
                       context.tr(receipt.session.toUpperCase()),
                       AppLocalizations.localizeDigits('${receipt.totalItems}'),
                       '${AppLocalizations.localizeDigits(receipt.totalAmountText)}${receipt.isOtc ? ' ${context.tr('OTC')}' : ''}',
+>>>>>>> parent of 052c76b (Merge branch 'main' of https://github.com/gameskmrmowbmos-byte/gameskmrmowbmos-jito)
                       receipt.printStatus,
                       receipt.status,
-                      '${receipt.reprintCount}',
+                      AppLocalizations.localizeDigits('${receipt.reprintCount}'),
                       '',
                     ],
                     receipt: receipt,
@@ -460,7 +591,7 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
     }
     if (!header && index == 10 && receipt != null) {
       return IconButton(
-        tooltip: 'View receipt',
+        tooltip: context.tr('View receipt'),
         visualDensity: VisualDensity.compact,
         onPressed: () => ref
             .read(entriesControllerProvider.notifier)
@@ -490,14 +621,14 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
     }
     final detail = state.selected;
     if (detail == null) {
-      return const _EmptyPanel('Select a receipt to inspect.');
+      return _EmptyPanel(context.tr('Select a receipt to inspect.'));
     }
     return ListView(
       children: [
         ReceiptDetailsPanel(
           detail: detail,
           cancelling: state.cancelling,
-          onCancel: () => _confirmDelete(detail),
+          onCancel: () => _confirmDelete(),
           onViewReprints: () => _showReprintDetails(detail),
         ),
         const SizedBox(height: 14),
@@ -521,12 +652,18 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
       children: [
         Expanded(
           child: Text(
-            'Showing ${state.receipts.length} of ${state.total} entries',
+            context.tr(
+              'Showing {shown} of {total} entries',
+              params: {
+                'shown': state.receipts.length,
+                'total': state.total,
+              },
+            ),
             style: const TextStyle(fontWeight: FontWeight.w700),
           ),
         ),
         IconButton(
-          tooltip: 'Previous page',
+          tooltip: context.tr('Previous page'),
           onPressed: page <= 1 || state.loading
               ? null
               : () => ref
@@ -535,11 +672,11 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
           icon: const Icon(Icons.chevron_left),
         ),
         Text(
-          '$page / $totalPages',
+          AppLocalizations.localizeDigits('$page / $totalPages'),
           style: const TextStyle(fontWeight: FontWeight.w900),
         ),
         IconButton(
-          tooltip: 'Next page',
+          tooltip: context.tr('Next page'),
           onPressed: page >= totalPages || state.loading
               ? null
               : () => ref
@@ -574,7 +711,7 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
                 ReceiptDetailsPanel(
                   detail: detail,
                   cancelling: state.cancelling,
-                  onCancel: () => _confirmDelete(detail, closeContext: context),
+                  onCancel: () => _confirmDelete(),
                   onViewReprints: () => _showReprintDetails(detail),
                 ),
                 const SizedBox(height: 16),
@@ -595,41 +732,36 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
     );
   }
 
-  Future<void> _confirmDelete(
-    ReceiptDetail detail, {
-    BuildContext? closeContext,
-  }) async {
-    final receipt = detail.receipt;
+  Future<void> _confirmDelete() async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
+<<<<<<< HEAD
         title: const Text('Delete Parchi permanently?'),
+        content: const Text(
+          'This will delete the parchi, all bet entries, and print history from the database.',
+=======
+        title: Text(context.tr('Delete Parchi permanently?')),
         content: Text(
-          'This will delete ${receipt.receiptNumber}, all bet entries, and print history from the database.',
+          context.tr(
+            'This will delete the parchi, all bet entries, and print history from the database.',
+          ),
+>>>>>>> parent of 052c76b (Merge branch 'main' of https://github.com/gameskmrmowbmos-byte/gameskmrmowbmos-jito)
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
+            child: Text(context.tr('Close')),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Delete Parchi'),
+            child: Text(context.tr('Delete Parchi')),
           ),
         ],
       ),
     );
     if (confirmed != true) return;
-    final deleted = await ref
-        .read(entriesControllerProvider.notifier)
-        .deleteReceipt(receipt.id);
-    if (!mounted || !deleted) return;
-    if (closeContext != null && closeContext.mounted) {
-      Navigator.of(closeContext).pop();
-    }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Parchi ${receipt.receiptNumber} deleted')),
-    );
+    await ref.read(entriesControllerProvider.notifier).deleteSelected();
   }
 
   Future<ReceiptDetail> _detailForReprintPopup(ReceiptSummary receipt) async {
@@ -669,7 +801,7 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
               child: CircularProgressIndicator(strokeWidth: 2),
             )
           : const Icon(Icons.print_outlined),
-      label: const Text('Reprint this receipt'),
+      label: Text(context.tr('Reprint this receipt')),
     );
   }
 
@@ -706,27 +838,27 @@ class _ReprintReasonDialogState extends State<_ReprintReasonDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Reprint this receipt'),
+      title: Text(context.tr('Reprint this receipt')),
       content: TextField(
         controller: _controller,
         minLines: 2,
         maxLines: 4,
-        decoration: const InputDecoration(
-          labelText: 'Reprint reason',
-          border: OutlineInputBorder(),
+        decoration: InputDecoration(
+          labelText: context.tr('Reprint reason'),
+          border: const OutlineInputBorder(),
         ),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Close'),
+          child: Text(context.tr('Close')),
         ),
         FilledButton(
           onPressed: () {
             final value = _controller.text.trim();
             if (value.isNotEmpty) Navigator.of(context).pop(value);
           },
-          child: const Text('Reprint'),
+          child: Text(context.tr('Reprint')),
         ),
       ],
     );
@@ -745,7 +877,12 @@ class _ReprintDetailsDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text('Reprint details - $receiptNumber'),
+      title: Text(
+        context.tr(
+          'Reprint details - {receipt}',
+          params: {'receipt': receiptNumber},
+        ),
+      ),
       content: SizedBox(
         width: 420,
         child: FutureBuilder<ReceiptDetail>(
@@ -764,7 +901,7 @@ class _ReprintDetailsDialog extends StatelessWidget {
             final logs =
                 snapshot.data?.successfulReprintLogs ?? const <PrintLogModel>[];
             if (logs.isEmpty) {
-              return const Text('No reprint records found.');
+              return Text(context.tr('No reprint records found.'));
             }
 
             return ConstrainedBox(
@@ -790,7 +927,12 @@ class _ReprintDetailsDialog extends StatelessWidget {
                           children: [
                             Expanded(
                               child: Text(
-                                'Reprint #${log.printNumber ?? index + 1}',
+                                context.tr(
+                                  'Reprint #{number}',
+                                  params: {
+                                    'number': log.printNumber ?? index + 1,
+                                  },
+                                ),
                                 style: const TextStyle(
                                   color: entryBlue,
                                   fontWeight: FontWeight.w900,
@@ -807,21 +949,17 @@ class _ReprintDetailsDialog extends StatelessWidget {
                         const SizedBox(height: 8),
                         _ReprintDetailLine(
                           icon: Icons.calendar_month_outlined,
-                          text: AppLocalizations.localizeDigits(
-                            formatDate(printedAt),
-                          ),
+                          text: formatDate(printedAt),
                         ),
                         _ReprintDetailLine(
                           icon: Icons.schedule,
-                          text: AppLocalizations.localizeDigits(
-                            formatTime(printedAt),
-                          ),
+                          text: formatTime(printedAt),
                         ),
                         _ReprintDetailLine(
                           icon: Icons.notes_outlined,
                           text: log.reprintReason ??
                               log.retryReason ??
-                              'No reason recorded',
+                              context.tr('No reason recorded'),
                         ),
                       ],
                     ),
@@ -835,7 +973,7 @@ class _ReprintDetailsDialog extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Close'),
+          child: Text(context.tr('Close')),
         ),
       ],
     );
@@ -890,10 +1028,13 @@ class _DateField extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _label(label),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           SizedBox(
-            height: 42,
+            height: 38,
             child: OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 9),
+              ),
               onPressed: () async {
                 final picked = await showDatePicker(
                   context: context,
@@ -905,8 +1046,15 @@ class _DateField extends StatelessWidget {
               },
               child: Row(
                 children: [
-                  Expanded(child: Text(formatDate(value))),
-                  const Icon(Icons.calendar_month_outlined, size: 18),
+                  Expanded(
+                    child: Text(
+                      formatDate(value),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 13),
+                    ),
+                  ),
+                  const Icon(Icons.calendar_month_outlined, size: 16),
                 ],
               ),
             ),
@@ -940,16 +1088,28 @@ class _SelectField extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _label(label),
-          const SizedBox(height: 6),
-          DropdownButtonFormField<String>(
-            initialValue: items.containsKey(value) ? value : '',
-            isExpanded: true,
-            decoration: _inputDecoration(),
-            items: [
-              for (final entry in items.entries)
-                DropdownMenuItem(value: entry.key, child: Text(entry.value)),
-            ],
-            onChanged: onChanged,
+          const SizedBox(height: 4),
+          SizedBox(
+            height: 38,
+            child: DropdownButtonFormField<String>(
+              initialValue: items.containsKey(value) ? value : '',
+              isExpanded: true,
+              isDense: true,
+              style: const TextStyle(fontSize: 13, color: Colors.black87),
+              decoration: _inputDecoration(),
+              items: [
+                for (final entry in items.entries)
+                  DropdownMenuItem(
+                    value: entry.key,
+                    child: Text(
+                      entry.value,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+              ],
+              onChanged: onChanged,
+            ),
           ),
         ],
       ),
@@ -978,11 +1138,16 @@ class _FilterTextField extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _label(label),
-          const SizedBox(height: 6),
-          TextField(
-            controller: controller,
-            onChanged: onChanged,
-            decoration: _inputDecoration(),
+          const SizedBox(height: 4),
+          SizedBox(
+            height: 38,
+            child: TextField(
+              controller: controller,
+              onChanged: onChanged,
+              maxLines: 1,
+              style: const TextStyle(fontSize: 13),
+              decoration: _inputDecoration(),
+            ),
           ),
         ],
       ),
@@ -1002,7 +1167,7 @@ class _CopyableParchiNumber extends StatelessWidget {
         await Clipboard.setData(ClipboardData(text: value));
         if (!context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Parchi number copied')),
+          SnackBar(content: Text(context.tr('Parchi number copied'))),
         );
       },
       child: Text(
@@ -1053,25 +1218,29 @@ class _ReceiptCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          Text(
-            AppLocalizations.localizeDigits(
-              formatDateTime(_receiptCreatedAt(receipt)),
-            ),
-          ),
+          Text(formatDateTime(_receiptCreatedAt(receipt))),
           const SizedBox(height: 5),
           Text(
-              '${receipt.market?.name ?? '-'} - ${receipt.session.toUpperCase()}'),
+            '${AppLocalizations.localizeMarketName(receipt.market?.name ?? '-')} - ${context.tr(receipt.session.toUpperCase())}',
+          ),
           const SizedBox(height: 10),
           Row(
             children: [
-              Expanded(child: Text('Items: ${receipt.totalItems}')),
+              Expanded(
+                child: Text(
+                  context.tr(
+                    'Items: {count}',
+                    params: {'count': receipt.totalItems},
+                  ),
+                ),
+              ),
               Text(
-                '$rupee ${receipt.totalAmountText}${receipt.isOtc ? ' OTC' : ''}',
+                '$rupee ${AppLocalizations.localizeDigits(receipt.totalAmountText)}${receipt.isOtc ? ' ${context.tr('OTC')}' : ''}',
                 style: const TextStyle(fontWeight: FontWeight.w900),
               ),
               const SizedBox(width: 10),
               IconButton(
-                tooltip: 'View',
+                tooltip: context.tr('View'),
                 onPressed: onView,
                 icon:
                     const Icon(Icons.remove_red_eye_outlined, color: entryBlue),
@@ -1087,7 +1256,10 @@ class _ReceiptCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  'Reprints: ${receipt.reprintCount}',
+                  context.tr(
+                    'Reprints: {count}',
+                    params: {'count': receipt.reprintCount},
+                  ),
                   style: const TextStyle(fontWeight: FontWeight.w800),
                 ),
               ),
@@ -1184,7 +1356,9 @@ class _EmptyPanel extends StatelessWidget {
 Widget _label(String text) {
   return Text(
     text,
-    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
+    maxLines: 1,
+    overflow: TextOverflow.ellipsis,
+    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900),
   );
 }
 
@@ -1193,7 +1367,7 @@ InputDecoration _inputDecoration() {
     isDense: true,
     filled: true,
     fillColor: Colors.white,
-    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
     border: OutlineInputBorder(borderRadius: BorderRadius.circular(5)),
   );
 }
