@@ -27,6 +27,24 @@ const _receiptAlphabetShadow = <Shadow>[
 const _receiptGreenAlphabetShadow = <Shadow>[
   Shadow(color: Color(0xFF108438), offset: Offset(0.18, 0), blurRadius: 0),
 ];
+const _previewIndicFontFallback = <String>[
+  'Noto Sans Devanagari',
+  'Nirmala UI',
+  'Mangal',
+];
+
+String _removeLastKeypadToken(String value) {
+  if (value.isEmpty) return value;
+  final normalized = AppLocalizations.normalizeDigits(value);
+  final tokenMatch = RegExp(
+    r'\s*(?:sp|dp|cp|ct|cm|bz|f)\s*$',
+    caseSensitive: false,
+  ).firstMatch(normalized);
+  if (tokenMatch != null) {
+    return normalized.substring(0, tokenMatch.start);
+  }
+  return normalized.substring(0, normalized.length - 1);
+}
 
 class NewEntryPage extends ConsumerStatefulWidget {
   const NewEntryPage({super.key});
@@ -57,7 +75,7 @@ class _LocalizedDigitsController extends TextEditingController {
 
   void removeLastKeypadValue() {
     if (text.isEmpty) return;
-    text = _removeLastKeypadInput(text);
+    text = _removeLastKeypadToken(text);
     selection = TextSelection.collapsed(offset: text.length);
   }
 
@@ -478,18 +496,6 @@ String? _cpJodiNumber(String rawNumber) {
   return match.group(1) ?? match.group(2);
 }
 
-bool _isFamilyJodiNumber(String rawNumber) =>
-    _familyNumber(rawNumber)?.length == 2;
-
-bool _isManualJackpotBlockedNumber(String rawNumber) =>
-    _cpJodiNumber(rawNumber) != null ||
-    _isFamilyJodiNumber(rawNumber) ||
-    _isManualSangamNumber(rawNumber);
-
-bool _canUseManualJackpot(String rawNumber, String session) {
-  return session == 'Open' && !_isManualJackpotBlockedNumber(rawNumber);
-}
-
 String? _commonNumber(String rawNumber) {
   final match = _commonInputPattern.firstMatch(rawNumber.trim());
   if (match == null) return null;
@@ -633,14 +639,24 @@ String _effectiveEntrySession(String session, String? override) {
   return value == 'Close' || value == 'Open' ? value! : session;
 }
 
+bool _canUseJackpotForManualNumber(String rawNumber, String session) {
+  if (session != 'Open') return false;
+  if (_cpJodiNumber(rawNumber) != null) return false;
+  if (_isManualSangamNumber(rawNumber)) return false;
+  final familyNumber = _familyNumber(rawNumber);
+  if (familyNumber != null) return familyNumber.length == 3;
+  return !_isManualJodiNumber(rawNumber);
+}
+
 List<_JackpotLine> _filledJackpotEntries(
   _BetEntry entry, {
   int multiplier = 1,
   bool allowJackpot = true,
+  String session = 'Open',
 }) {
   if (!allowJackpot ||
       !entry.isJackpot ||
-      _isManualJackpotBlockedNumber(entry.number.text)) {
+      !_canUseJackpotForManualNumber(entry.number.text, session)) {
     return const [];
   }
   final rows = <_JackpotLine>[];
@@ -968,12 +984,14 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
   }
 
   String? _manualEntryError(_BetEntry entry) {
-    final isCloseSession = _effectiveManualSession(entry) == 'Close';
+    final effectiveSession = _effectiveManualSession(entry);
+    final isCloseSession = effectiveSession == 'Close';
     if (isCloseSession && entry.isJackpot) {
       return 'Jackpot not allowed in Close';
     }
-    if (_isManualJodiNumber(entry.number.text) && entry.isJackpot) {
-      return 'Jackpot not allowed in Jodi';
+    if (entry.isJackpot &&
+        !_canUseJackpotForManualNumber(entry.number.text, effectiveSession)) {
+      return 'Jackpot not allowed for this number';
     }
     if (entry.isJackpot) {
       for (var index = 0; index < entry.jackpotRowCount; index++) {
@@ -992,8 +1010,10 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
       if (_session == 'Close') {
         entry.sessionOverride = null;
       }
-      if (_effectiveManualSession(entry) == 'Close' ||
-          _isManualJodiNumber(entry.number.text)) {
+      if (!_canUseJackpotForManualNumber(
+        entry.number.text,
+        _effectiveManualSession(entry),
+      )) {
         entry.isJackpot = false;
       }
       entry.error = _manualEntryError(entry);
@@ -1071,11 +1091,16 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
             final baseAmount = _parseAmount(entry.amount.text);
             final multiplier = _familyMultiplierFor(familyNumber);
             final calculatedAmount = baseAmount * multiplier;
-            final canUseJackpot =
-                _canUseManualJackpot(rawNumber, sessionOverride ?? _session) &&
-                    entry.isJackpot;
+            final canUseJackpot = _canUseJackpotForManualNumber(
+              rawNumber,
+              sessionOverride ?? _session,
+            ) && entry.isJackpot;
             final jackpotEntries = canUseJackpot
-                ? _filledJackpotEntries(entry, multiplier: multiplier)
+                ? _filledJackpotEntries(
+                    entry,
+                    multiplier: multiplier,
+                    session: sessionOverride ?? _session,
+                  )
                 : const <_JackpotLine>[];
             final totalAmount =
                 calculatedAmount + _jackpotAmountTotal(jackpotEntries);
@@ -1296,9 +1321,10 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
           .map((e) => BetEntryData(
                 number: e.number.text,
                 amount: e.amount.text,
-                isJackpot: (_session == 'Close' ||
-                        (e.sessionOverride ?? _session) == 'Close' ||
-                        _isManualJackpotBlockedNumber(e.number.text))
+                isJackpot: !_canUseJackpotForManualNumber(
+                  e.number.text,
+                  e.sessionOverride ?? _session,
+                )
                     ? false
                     : e.isJackpot,
                 jackpotEntries: List<JackpotEntryData>.generate(
@@ -1359,9 +1385,10 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
         amount: entry.amount,
         jackpotEntries: entry.jackpotEntries,
       )
-        ..isJackpot = (_session == 'Close' ||
-                entry.sessionOverride == 'Close' ||
-                _isManualJackpotBlockedNumber(entry.number))
+        ..isJackpot = !_canUseJackpotForManualNumber(
+          entry.number,
+          entry.sessionOverride ?? _session,
+        )
             ? false
             : entry.isJackpot
         ..sessionOverride = _session == 'Close' ? null : entry.sessionOverride);
@@ -1373,9 +1400,10 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
         .map((entry) => BetEntryData(
               number: entry.number.text,
               amount: entry.amount.text,
-              isJackpot: (_session == 'Close' ||
-                      (entry.sessionOverride ?? _session) == 'Close' ||
-                      _isManualJackpotBlockedNumber(entry.number.text))
+              isJackpot: !_canUseJackpotForManualNumber(
+                entry.number.text,
+                entry.sessionOverride ?? _session,
+              )
                   ? false
                   : entry.isJackpot,
               jackpotEntries: List<JackpotEntryData>.generate(
@@ -1423,9 +1451,7 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
       if (_session == 'Close') {
         entry.sessionOverride = null;
       }
-      if (_session == 'Close' ||
-          effectiveSession == 'Close' ||
-          _isManualJackpotBlockedNumber(raw)) {
+      if (!_canUseJackpotForManualNumber(raw, effectiveSession)) {
         entry.isJackpot = false;
       }
     }
@@ -1861,9 +1887,6 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
     final pages = _receiptLinePages(receiptLines);
     final pageCount = pages.length;
     final activeOtcPages = _activeOtcPages;
-    final hasMixedPageOtc = pageCount > 1 &&
-        activeOtcPages.isNotEmpty &&
-        activeOtcPages.length < pageCount;
     final items = receiptLines.map(_receiptLinePayload).toList();
 
     if (items.isEmpty) return;
@@ -1873,50 +1896,16 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
     });
 
     try {
-      final savedReceipts = <ReceiptDetail>[];
-      if (hasMixedPageOtc) {
-        for (var pageIndex = 0; pageIndex < pages.length; pageIndex++) {
-          final pageItems = pages[pageIndex].map(_receiptLinePayload).toList();
-          if (pageItems.isEmpty) continue;
-          final receipt =
-              await ref.read(newEntryControllerProvider.notifier).saveReceipt(
-                    market: market.id,
-                    marketName: market.name,
-                    session: _session,
-                    items: pageItems,
-                    isOtc: activeOtcPages.contains(pageIndex),
-                    shouldPrint: shouldPrint,
-                  );
-          if (receipt == null) {
-            if (!mounted) return;
-            throw StateError(
-              AppLocalizations.trCurrent(
-                'Receipt page {page} was not saved.',
-                params: {'page': pageIndex + 1},
-              ),
-            );
-          }
-          savedReceipts.add(receipt);
-        }
-      } else {
-        final receipt =
-            await ref.read(newEntryControllerProvider.notifier).saveReceipt(
-                  market: market.id,
-                  marketName: market.name,
-                  session: _session,
-                  items: items,
-                  isOtc: activeOtcPages.isNotEmpty,
-                  shouldPrint: shouldPrint,
-                );
-        if (receipt == null) {
-          if (!mounted) return;
-          throw StateError(
-              AppLocalizations.trCurrent('Receipt was not saved.'));
-        }
-        savedReceipts.add(receipt);
-      }
-
-      if (savedReceipts.isEmpty) {
+      final receipt =
+          await ref.read(newEntryControllerProvider.notifier).saveReceipt(
+                market: market.id,
+                marketName: market.name,
+                session: _session,
+                items: items,
+                isOtc: activeOtcPages.isNotEmpty,
+                shouldPrint: shouldPrint,
+              );
+      if (receipt == null) {
         if (!mounted) return;
         throw StateError(AppLocalizations.trCurrent('Receipt was not saved.'));
       }
@@ -1942,21 +1931,14 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            savedReceipts.length == 1
-                ? context.tr(
-                    print
-                        ? 'Receipt {receipt} saved. Print job added.'
-                        : 'Receipt {receipt} saved.',
-                    params: {
-                      'receipt': savedReceipts.first.receipt.receiptNumber,
-                    },
-                  )
-                : context.tr(
-                    print
-                        ? '{count} receipts saved. Print jobs added.'
-                        : '{count} receipts saved.',
-                    params: {'count': savedReceipts.length},
-                  ),
+            context.tr(
+              print
+                  ? 'Receipt {receipt} saved. Print job added.'
+                  : 'Receipt {receipt} saved.',
+              params: {
+                'receipt': receipt.receipt.receiptNumber,
+              },
+            ),
           ),
         ),
       );
@@ -2110,7 +2092,7 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
       children: [
         Row(
           children: [
-            const Expanded(
+            Expanded(
               child: _SectionTitle(
                 number: null,
                 label: 'NEW ENTRY',
@@ -2283,7 +2265,7 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
       children: [
         Row(
           children: [
-            const Expanded(
+            Expanded(
               child: _SectionTitle(
                 number: null,
                 label: 'NEW ENTRY',
@@ -2845,9 +2827,9 @@ class _BetTable extends StatelessWidget {
         final effectiveSession =
             _effectiveEntrySession(session, entry.sessionOverride);
         final raw = entry.number.text.trim();
-        final shouldClearJackpot = (effectiveSession == 'Close' ||
-                _isManualJackpotBlockedNumber(raw)) &&
-            entry.isJackpot;
+        final shouldClearJackpot =
+            !_canUseJackpotForManualNumber(raw, effectiveSession) &&
+                entry.isJackpot;
         if (shouldClearJackpot) entry.isJackpot = false;
         entry.error = _manualNumberError(
           raw,
@@ -2886,7 +2868,10 @@ class _BetTable extends StatelessWidget {
         if (!ownsController) continue;
 
         final raw = entry.number.text;
-        final canUseJackpot = _canUseManualJackpot(raw, session);
+        final canUseJackpot = _canUseJackpotForManualNumber(
+          raw,
+          _effectiveEntrySession(session, entry.sessionOverride),
+        );
         if (!canUseJackpot) return null;
 
         entry.isJackpot = !entry.isJackpot;
@@ -3074,9 +3059,9 @@ class _BetRowState extends State<_BetRow> {
   void _validateNumber() {
     final raw = entry.number.text.trim();
     final effectiveSession = entry.sessionOverride ?? session;
-    final shouldClearJackpot = (effectiveSession == 'Close' ||
-            _isManualJackpotBlockedNumber(raw)) &&
-        entry.isJackpot;
+    final shouldClearJackpot =
+        !_canUseJackpotForManualNumber(raw, effectiveSession) &&
+            entry.isJackpot;
     final newError = _manualNumberError(
       raw,
       isCloseSession: effectiveSession == 'Close',
@@ -3243,31 +3228,35 @@ class _BetRowState extends State<_BetRow> {
     _focusJackpotNumber(newIndex);
   }
 
-  void _deleteJackpotRow(int rowIndex) {
+  void _removeJackpotRow(int rowIndex) {
     if (rowIndex < 0 || rowIndex >= entry.jackpotRowCount) return;
     setState(() {
-      if (entry.jackpotRowCount == 1) {
+      if (entry.jackpotRowCount <= 1) {
         entry.jackpotNumbers.first.clear();
         entry.jackpotAmounts.first.clear();
-        return;
+      } else {
+        for (var index = rowIndex; index < entry.jackpotRowCount - 1; index++) {
+          entry.jackpotNumbers[index].text =
+              entry.jackpotNumbers[index + 1].text;
+          entry.jackpotAmounts[index].text =
+              entry.jackpotAmounts[index + 1].text;
+        }
+        final lastIndex = entry.jackpotRowCount - 1;
+        entry.jackpotNumbers[lastIndex].clear();
+        entry.jackpotAmounts[lastIndex].clear();
+        entry.jackpotRowCount--;
       }
-      for (var index = rowIndex; index < entry.jackpotRowCount - 1; index++) {
-        entry.jackpotNumbers[index].text = entry.jackpotNumbers[index + 1].text;
-        entry.jackpotAmounts[index].text = entry.jackpotAmounts[index + 1].text;
-      }
-      final lastIndex = entry.jackpotRowCount - 1;
-      entry.jackpotNumbers[lastIndex].clear();
-      entry.jackpotAmounts[lastIndex].clear();
-      entry.jackpotRowCount--;
     });
     onChanged();
-    final nextFocusIndex =
-        rowIndex >= entry.jackpotRowCount ? entry.jackpotRowCount - 1 : rowIndex;
-    _focusJackpotNumber(nextFocusIndex);
+    final nextFocusIndex = rowIndex >= entry.jackpotRowCount
+        ? entry.jackpotRowCount - 1
+        : rowIndex;
+    if (nextFocusIndex >= 0) _focusJackpotNumber(nextFocusIndex);
   }
 
   TextEditingController? _openJackpot() {
-    final canUseJackpot = _canUseManualJackpot(entry.number.text, session);
+    final canUseJackpot =
+        _canUseJackpotForManualNumber(entry.number.text, effectiveSession);
     if (!canUseJackpot) return null;
     setState(() {
       entry.isJackpot = !entry.isJackpot;
@@ -3299,7 +3288,7 @@ class _BetRowState extends State<_BetRow> {
   Widget build(BuildContext context) {
     final effectiveSession = entry.sessionOverride ?? session;
     final canUseJackpot =
-        _canUseManualJackpot(entry.number.text, effectiveSession);
+        _canUseJackpotForManualNumber(entry.number.text, effectiveSession);
     final showJackpotBoxes = entry.isJackpot && canUseJackpot;
     return Container(
       padding: EdgeInsets.symmetric(
@@ -3485,12 +3474,12 @@ class _BetRowState extends State<_BetRow> {
                 rowCount: entry.jackpotRowCount,
                 compact: compact,
                 onAdd: entry.jackpotRowCount >= 10 ? null : _addJackpotRow,
+                onRemove: _removeJackpotRow,
                 mainAmountController: entry.amount,
                 mainAmountFocus: entry.amountFocus,
                 onNumberSubmitted: _submitJackpotNumber,
                 onAmountSubmitted: _submitJackpotAmount,
                 onMobileAmountFill: _fillJackpotAmountBelow,
-                onDeleteRow: _deleteJackpotRow,
                 keypadOnJackpot: widget.keypadOnJackpot,
                 keypadBackTargetFor: _keypadBackTargetFor,
                 keypadNextTargetFor: _keypadNextTargetFor,
@@ -3518,12 +3507,12 @@ class _JackpotEntryRows extends StatelessWidget {
     required this.rowCount,
     required this.compact,
     required this.onAdd,
+    required this.onRemove,
     required this.mainAmountController,
     required this.mainAmountFocus,
     required this.onNumberSubmitted,
     required this.onAmountSubmitted,
     required this.onMobileAmountFill,
-    required this.onDeleteRow,
     required this.keypadOnJackpot,
     required this.keypadBackTargetFor,
     required this.keypadNextTargetFor,
@@ -3542,12 +3531,12 @@ class _JackpotEntryRows extends StatelessWidget {
   final int rowCount;
   final bool compact;
   final VoidCallback? onAdd;
+  final ValueChanged<int> onRemove;
   final TextEditingController mainAmountController;
   final FocusNode mainAmountFocus;
   final ValueChanged<int> onNumberSubmitted;
   final ValueChanged<int> onAmountSubmitted;
   final ValueChanged<int> onMobileAmountFill;
-  final ValueChanged<int> onDeleteRow;
   final TextEditingController? Function() keypadOnJackpot;
   final TextEditingController? Function(TextEditingController controller)
       keypadBackTargetFor;
@@ -3565,6 +3554,7 @@ class _JackpotEntryRows extends StatelessWidget {
   Widget build(BuildContext context) {
     final numberWidth = compact ? 32.0 : 38.0;
     final amountWidth = compact ? 58.0 : 68.0;
+    final deleteWidth = compact ? 24.0 : 28.0;
     final height = compact ? 24.0 : 28.0;
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -3647,16 +3637,16 @@ class _JackpotEntryRows extends StatelessWidget {
                 ),
                 SizedBox(width: compact ? 3 : 5),
                 SizedBox(
-                  width: compact ? 24 : 28,
+                  width: deleteWidth,
                   height: height,
                   child: IconButton(
-                    tooltip: context.tr('Delete jackpot row'),
-                    onPressed: () => onDeleteRow(index),
+                    tooltip: context.tr('Delete row'),
+                    onPressed: () => onRemove(index),
                     padding: EdgeInsets.zero,
                     visualDensity: VisualDensity.compact,
                     icon: Icon(
-                      Icons.delete_outline,
-                      size: compact ? 15 : 17,
+                      Icons.close,
+                      size: compact ? 14 : 16,
                       color: _NewEntryPageState._red,
                     ),
                   ),
@@ -3871,19 +3861,6 @@ const _nonNumericKeypadInputKeys = {
 bool _isNonNumericInputKey(String key) =>
     _nonNumericKeypadInputKeys.contains(key);
 
-const _compoundKeypadInputKeys = ['SP', 'DP', 'CP', 'CT', 'CM', 'BZ'];
-
-String _removeLastKeypadInput(String text) {
-  if (text.isEmpty) return text;
-  final upperText = text.toUpperCase();
-  for (final key in _compoundKeypadInputKeys) {
-    if (upperText.endsWith(key)) {
-      return text.substring(0, text.length - key.length);
-    }
-  }
-  return text.substring(0, text.length - 1);
-}
-
 class MatkaNumberKeypadSheet extends StatefulWidget {
   const MatkaNumberKeypadSheet({
     required this.controller,
@@ -4026,7 +4003,7 @@ class _MatkaNumberKeypadSheetState extends State<MatkaNumberKeypadSheet> {
     }
     if (controller.text.isEmpty) return;
 
-    final text = _removeLastKeypadInput(controller.text);
+    final text = _removeLastKeypadToken(controller.text);
     controller.value = controller.value.copyWith(
       text: text,
       selection: TextSelection.collapsed(offset: text.length),
@@ -4177,7 +4154,6 @@ class _MatkaKey extends StatelessWidget {
     final isNavigation = label == 'back' || label == 'next';
     final isJackpot = label == 'Jackpot';
     final isRemove = label == 'remove';
-    final isNumber = label.length == 1 && int.tryParse(label) != null;
     final isAction = isNavigation ||
         isJackpot ||
         isRemove ||
@@ -4224,7 +4200,7 @@ class _MatkaKey extends StatelessWidget {
                 : const Color(0xFFD8E0EA);
 
     return SizedBox(
-      height: isNumber ? 44 : 38,
+      height: 38,
       child: Material(
         color: enabled && label == 'Enter'
             ? const Color(0xFF064DB5)
@@ -6567,6 +6543,7 @@ class _ReceiptPreviewTicket extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isIndic = _isIndicPreviewLanguage(context);
     final amountTotal = AppLocalizations.localizeDigits(
       _formatAmount(pageTotalAmount),
     );
@@ -6605,15 +6582,31 @@ class _ReceiptPreviewTicket extends StatelessWidget {
                               TextSpan(
                                 text: context.tr('PARCHI NO. '),
                                 style: TextStyle(
-                                  fontSize: compact ? 10 : 12,
-                                  fontWeight: FontWeight.w800,
+                                  fontSize: compact
+                                      ? isIndic
+                                          ? 11
+                                          : 10
+                                      : isIndic
+                                          ? 13
+                                          : 12,
+                                  fontWeight: isIndic
+                                      ? FontWeight.w700
+                                      : FontWeight.w800,
+                                  height: isIndic ? 1.25 : null,
+                                  fontFamilyFallback:
+                                      _previewFontFallback(isIndic),
                                 ),
                               ),
                               TextSpan(
                                 text: AppLocalizations.localizeDigits(parchiNo),
                                 style: TextStyle(
                                   fontSize: compact ? 11 : 13,
-                                  fontWeight: FontWeight.w900,
+                                  fontWeight: isIndic
+                                      ? FontWeight.w800
+                                      : FontWeight.w900,
+                                  height: isIndic ? 1.2 : null,
+                                  fontFamilyFallback:
+                                      _previewFontFallback(isIndic),
                                   letterSpacing: 0,
                                 ),
                               ),
@@ -6629,9 +6622,16 @@ class _ReceiptPreviewTicket extends StatelessWidget {
                           context.trMaybe(session.toUpperCase()),
                           style: TextStyle(
                             color: const Color(0xFF111820),
-                            fontSize: compact ? 9 : 11,
-                            fontWeight: FontWeight.w900,
-                            height: 1,
+                            fontSize: compact
+                                ? isIndic
+                                    ? 10
+                                    : 9
+                                : 11,
+                            fontWeight: isIndic
+                                ? FontWeight.w800
+                                : FontWeight.w900,
+                            height: isIndic ? 1.2 : 1,
+                            fontFamilyFallback: _previewFontFallback(isIndic),
                             letterSpacing: 0,
                           ),
                         ),
@@ -6647,8 +6647,17 @@ class _ReceiptPreviewTicket extends StatelessWidget {
                         ),
                         style: TextStyle(
                           color: const Color(0xFF111820),
-                          fontSize: compact ? 10 : 11,
-                          fontWeight: FontWeight.w800,
+                          fontSize: compact
+                              ? isIndic
+                                  ? 11
+                                  : 10
+                              : isIndic
+                                  ? 12
+                                  : 11,
+                          fontWeight:
+                              isIndic ? FontWeight.w700 : FontWeight.w800,
+                          height: isIndic ? 1.25 : null,
+                          fontFamilyFallback: _previewFontFallback(isIndic),
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -6658,8 +6667,17 @@ class _ReceiptPreviewTicket extends StatelessWidget {
                         ),
                         style: TextStyle(
                           color: const Color(0xFF111820),
-                          fontSize: compact ? 10 : 11,
-                          fontWeight: FontWeight.w800,
+                          fontSize: compact
+                              ? isIndic
+                                  ? 11
+                                  : 10
+                              : isIndic
+                                  ? 12
+                                  : 11,
+                          fontWeight:
+                              isIndic ? FontWeight.w700 : FontWeight.w800,
+                          height: isIndic ? 1.25 : null,
+                          fontFamilyFallback: _previewFontFallback(isIndic),
                         ),
                       ),
                     ],
@@ -6676,8 +6694,16 @@ class _ReceiptPreviewTicket extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: const Color(0xFF111820),
-                  fontSize: compact ? 16 : 18,
-                  fontWeight: FontWeight.w900,
+                  fontSize: compact
+                      ? isIndic
+                          ? 15
+                          : 16
+                      : isIndic
+                          ? 17
+                          : 18,
+                  fontWeight: isIndic ? FontWeight.w800 : FontWeight.w900,
+                  height: isIndic ? 1.25 : null,
+                  fontFamilyFallback: _previewFontFallback(isIndic),
                   letterSpacing: 0,
                 ),
               ),
@@ -7303,6 +7329,15 @@ class _PreviewRule extends StatelessWidget {
 String _previewMarketTitle(String marketSession) {
   final title = marketSession.split(' - ').first.trim();
   return (title.isEmpty ? '-' : title).toUpperCase();
+}
+
+bool _isIndicPreviewLanguage(BuildContext context) {
+  final code = Localizations.localeOf(context).languageCode;
+  return code == AppLanguage.hindi.code || code == AppLanguage.marathi.code;
+}
+
+List<String>? _previewFontFallback(bool isIndic) {
+  return isIndic ? _previewIndicFontFallback : null;
 }
 
 class _TotalsBar extends StatelessWidget {

@@ -68,6 +68,10 @@ ParchiRenderModel buildParchiRenderModel(
   final receipt = detail.receipt;
   final sourceItems = detail.consolidatedItems;
   final itemPages = _receiptItemPages(sourceItems);
+  final pageTotals = computeParchiPageTotals(
+    sourceItems,
+    isOtc: receipt.isOtc,
+  );
   final baseParchiNo = (overrideParchiNo?.trim().isNotEmpty ?? false)
       ? overrideParchiNo!.trim()
       : receipt.receiptNumber.trim();
@@ -75,13 +79,10 @@ ParchiRenderModel buildParchiRenderModel(
   final pages = <ParchiRenderPage>[];
   for (var pageIndex = 0; pageIndex < itemPages.length; pageIndex++) {
     final pageItems = itemPages[pageIndex];
-    final pageTotal = itemPages.length == 1
-        ? receipt.totalAmount
-        : _pageTotalAmount(pageItems, receipt.isOtc);
     pages.add(
       ParchiRenderPage(
         parchiNo: _parchiNoForPage(baseParchiNo, pageIndex),
-        totalAmount: pageTotal,
+        totalAmount: pageTotals[pageIndex],
         isOtc: receipt.isOtc,
         lines: [
           for (var index = 0; index < pageItems.length; index++)
@@ -133,13 +134,78 @@ ParchiRenderModel buildParchiRenderModel(
         ? [
             ParchiRenderPage(
               parchiNo: baseParchiNo,
-              totalAmount: receipt.totalAmount,
+              totalAmount: pageTotals.first,
               isOtc: receipt.isOtc,
               lines: const [],
             ),
           ]
         : pages,
   );
+}
+
+List<num> computeParchiPageTotals(
+  List<ReceiptItemModel> items, {
+  required bool isOtc,
+}) {
+  if (items.isEmpty) return const [0];
+
+  final totals = <num>[];
+  var currentPageTotal = 0.0;
+  var currentEntryCount = 0;
+
+  void pushCurrentPage() {
+    totals.add(currentPageTotal * (isOtc ? 2 : 1));
+    currentPageTotal = 0;
+    currentEntryCount = 0;
+  }
+
+  for (final item in items) {
+    final jackpotEntries = _visibleJackpotEntries(item);
+    final requiredEntryCount = 1 + jackpotEntries.length;
+    if (currentEntryCount > 0 &&
+        currentEntryCount + requiredEntryCount > parchiEntriesPerPage) {
+      pushCurrentPage();
+    }
+
+    final availableOnMain = parchiEntriesPerPage - currentEntryCount - 1;
+    final mainJackpotCount = jackpotEntries.length < availableOnMain
+        ? jackpotEntries.length
+        : availableOnMain;
+    final jackpotTotal = jackpotEntries.fold<double>(
+      0,
+      (total, entry) => total + _parseReceiptAmount(entry.amount),
+    );
+    final mainJackpotTotal = jackpotEntries.take(mainJackpotCount).fold<double>(
+          0,
+          (total, entry) => total + _parseReceiptAmount(entry.amount),
+        );
+    final mainAmount = item.amount.toDouble() - jackpotTotal + mainJackpotTotal;
+    currentPageTotal += mainAmount < 0 ? 0 : mainAmount;
+    currentEntryCount += 1 + mainJackpotCount;
+
+    var jackpotIndex = mainJackpotCount;
+    while (jackpotIndex < jackpotEntries.length) {
+      if (currentEntryCount >= parchiEntriesPerPage) pushCurrentPage();
+      final available = parchiEntriesPerPage - currentEntryCount;
+      final nextIndex = jackpotIndex + available > jackpotEntries.length
+          ? jackpotEntries.length
+          : jackpotIndex + available;
+      currentPageTotal +=
+          jackpotEntries.sublist(jackpotIndex, nextIndex).fold<double>(
+                0,
+                (total, entry) => total + _parseReceiptAmount(entry.amount),
+              );
+      currentEntryCount += nextIndex - jackpotIndex;
+      jackpotIndex = nextIndex;
+    }
+  }
+
+  if (currentEntryCount > 0 || totals.isEmpty) pushCurrentPage();
+  return totals;
+}
+
+double _parseReceiptAmount(String value) {
+  return double.tryParse(value.replaceAll(',', '').trim()) ?? 0;
 }
 
 String formatParchiAmount(num amount) {
@@ -289,15 +355,6 @@ List<JackpotEntryModel> _visibleJackpotEntries(ReceiptItemModel item) {
   return item.jackpotEntries
       .where((entry) => entry.number.isNotEmpty || entry.amount.isNotEmpty)
       .toList(growable: false);
-}
-
-num _pageTotalAmount(List<_ParchiPageItem> items, bool isOtc) {
-  final baseTotal = items.fold<num>(
-    0,
-    (total, pageItem) =>
-        total + (pageItem.showMainEntry ? pageItem.item.amount : 0),
-  );
-  return isOtc ? baseTotal * 2 : baseTotal;
 }
 
 String _parchiNoForPage(String parchiNo, int pageIndex) {

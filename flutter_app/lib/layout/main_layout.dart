@@ -26,6 +26,7 @@ class MainLayout extends StatelessWidget {
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
           ),
           centerTitle: true,
+          actions: const [],
         ),
         drawer: const AppNavigationDrawer(),
         body: child,

@@ -184,7 +184,7 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const NumberedTitle('1', 'Filters'),
+        NumberedTitle('1', context.tr('Filters')),
         const SizedBox(height: 10),
         LayoutBuilder(
           builder: (context, constraints) {
@@ -603,7 +603,7 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(context.tr('Delete Parchi permanently?')),
+        title: const Text('Delete Parchi permanently?'),
         content: Text(
           'This will delete ${receipt.receiptNumber}, all bet entries, and print history from the database.',
         ),
@@ -620,10 +620,10 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
       ),
     );
     if (confirmed != true) return;
-    await ref
-        .read(receiptRepositoryProvider)
-        .deleteReceipt(receiptId: receipt.id);
-    if (!mounted) return;
+    final deleted = await ref
+        .read(entriesControllerProvider.notifier)
+        .deleteReceipt(receipt.id);
+    if (!mounted || !deleted) return;
     if (closeContext != null && closeContext.mounted) {
       Navigator.of(closeContext).pop();
     }

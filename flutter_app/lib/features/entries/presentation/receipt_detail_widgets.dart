@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import 'package:matka_management/core/language/app_localizations.dart';
 import 'package:matka_management/features/entries/data/receipt_models.dart';
+import 'package:matka_management/features/entries/presentation/parchi_render_model.dart';
 import 'package:matka_management/shared/widgets/aligned_jackpot_marker.dart';
 
 const entryBlue = Color(0xFF064DB5);
@@ -48,6 +49,20 @@ String formatParchiDate(DateTime? value) =>
 String formatParchiTime(DateTime? value) =>
     value == null ? '-' : DateFormat('hh:mm a').format(value);
 
+String _parchiNoForPage(String parchiNo, int pageIndex) {
+  if (pageIndex <= 0) return parchiNo;
+  final match = RegExp(r'^(.*?)(\d+)$').firstMatch(parchiNo.trim());
+  if (match == null) return '$parchiNo-${pageIndex + 1}';
+  final prefix = match.group(1) ?? '';
+  final numberText = match.group(2) ?? '';
+  final number = int.tryParse(numberText);
+  if (number == null) return '$parchiNo-${pageIndex + 1}';
+  return '$prefix${(number + pageIndex).toString().padLeft(
+        numberText.length,
+        '0',
+      )}';
+}
+
 class _ParchiPageItem {
   const _ParchiPageItem({
     required this.item,
@@ -79,6 +94,11 @@ List<List<_ParchiPageItem>> _receiptItemPages(List<ReceiptItemModel> items) {
 
   for (final item in items) {
     final jackpotEntries = _visibleJackpotEntries(item);
+    final requiredEntryCount = 1 + jackpotEntries.length;
+    if (currentEntryCount > 0 &&
+        currentEntryCount + requiredEntryCount > _parchiEntriesPerPage) {
+      pushCurrentPage();
+    }
     ensurePageSpace();
 
     final jackpotSpaceOnMainPage =
@@ -461,8 +481,7 @@ class ReceiptItemsTable extends StatelessWidget {
               context.trMaybe(items[index].displayType),
               AppLocalizations.localizeDigits(items[index].displayNumber),
               AppLocalizations.localizeDigits(
-                items[index].effectiveDisplayAmount,
-              ),
+                  items[index].effectiveDisplayAmount),
             ]),
         ],
       ),
@@ -503,7 +522,7 @@ class ReceiptItemsTable extends StatelessWidget {
         overflow: TextOverflow.ellipsis,
         style: TextStyle(
           fontSize: 12,
-          fontWeight: header ? FontWeight.w900 : FontWeight.w700,
+          fontWeight: header ? FontWeight.w900 : FontWeight.w500,
         ),
       ),
     );
@@ -549,7 +568,7 @@ class PrintHistoryView extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '${context.trMaybe(log.printType)}  #${AppLocalizations.localizeDigits('${log.printNumber ?? '-'}')}  ${AppLocalizations.localizeDigits(formatDateTime(log.printedAt))}',
+                    '${context.trMaybe(log.printType)}  #${AppLocalizations.localizeDigits('${log.printNumber ?? '-'}')}  ${formatDateTime(log.printedAt)}',
                   ),
                   Text(
                     context.tr(
@@ -595,11 +614,8 @@ class PrintHistoryView extends StatelessWidget {
               logs[index].printId,
               context.trMaybe(logs[index].printType),
               AppLocalizations.localizeDigits(
-                '${logs[index].printNumber ?? '-'}',
-              ),
-              AppLocalizations.localizeDigits(
-                formatDateTime(logs[index].printedAt),
-              ),
+                  '${logs[index].printNumber ?? '-'}'),
+              formatDateTime(logs[index].printedAt),
               logs[index].printerName,
               AppLocalizations.localizeDigits(
                 formatDateTime(logs[index].createdAt),
@@ -666,6 +682,10 @@ class PrintedReceiptPreview extends StatelessWidget {
   Widget build(BuildContext context) {
     final receipt = detail.receipt;
     final pages = _receiptItemPages(detail.consolidatedItems);
+    final pageTotals = computeParchiPageTotals(
+      detail.consolidatedItems,
+      isOtc: receipt.isOtc,
+    );
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -677,8 +697,12 @@ class PrintedReceiptPreview extends StatelessWidget {
               ),
               child: _PrintedReceiptTicket(
                 receipt: receipt,
+                parchiNo: _parchiNoForPage(
+                  canonicalParchiNumber(receipt.receiptNumber),
+                  pageIndex,
+                ),
                 items: pages[pageIndex],
-                showTotal: pageIndex == pages.length - 1,
+                pageTotal: pageTotals[pageIndex],
               ),
             ),
         ],
@@ -690,13 +714,15 @@ class PrintedReceiptPreview extends StatelessWidget {
 class _PrintedReceiptTicket extends StatelessWidget {
   const _PrintedReceiptTicket({
     required this.receipt,
+    required this.parchiNo,
     required this.items,
-    required this.showTotal,
+    required this.pageTotal,
   });
 
   final ReceiptSummary receipt;
+  final String parchiNo;
   final List<_ParchiPageItem> items;
-  final bool showTotal;
+  final num pageTotal;
 
   @override
   Widget build(BuildContext context) {
@@ -705,7 +731,7 @@ class _PrintedReceiptTicket extends StatelessWidget {
       context,
       items,
       receipt.session,
-      receipt.totalAmountText,
+      formatParchiAmount(pageTotal),
     );
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 220),
@@ -737,7 +763,7 @@ class _PrintedReceiptTicket extends StatelessWidget {
                           ),
                           TextSpan(
                             text: AppLocalizations.localizeDigits(
-                              canonicalParchiNumber(receipt.receiptNumber),
+                              parchiNo,
                             ),
                             style: TextStyle(
                               fontSize: 11,
@@ -822,7 +848,7 @@ class _PrintedReceiptTicket extends StatelessWidget {
                   metrics: columnMetrics,
                 ),
               const SizedBox(height: 12),
-              if (showTotal && receipt.isOtc) ...[
+              if (receipt.isOtc) ...[
                 Text(
                   context.tr('OTC'),
                   textAlign: TextAlign.center,
@@ -837,11 +863,11 @@ class _PrintedReceiptTicket extends StatelessWidget {
                 const SizedBox(height: 6),
               ],
               const _ParchiRule(),
-              if (showTotal) ...[
+              ...[
                 const SizedBox(height: 10),
                 _ParchiTotalRow(
                   amount: AppLocalizations.localizeDigits(
-                    receipt.totalAmountText,
+                    formatParchiAmount(pageTotal),
                   ),
                   metrics: columnMetrics,
                 ),

@@ -129,31 +129,34 @@ class RecordBoxWidget extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text.rich(
-                                TextSpan(
-                                  children: [
-                                    TextSpan(
-                                      text: context.tr('PARCHI NO. '),
-                                      style: TextStyle(
-                                        fontSize: tinySize,
-                                        fontWeight: FontWeight.w800,
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: Text.rich(
+                                  TextSpan(
+                                    children: [
+                                      TextSpan(
+                                        text: context.tr('PARCHI NO. '),
+                                        style: TextStyle(
+                                          fontSize: tinySize,
+                                          fontWeight: FontWeight.w800,
+                                        ),
                                       ),
-                                    ),
-                                    TextSpan(
-                                      text: parchiNo,
-                                      style: TextStyle(
-                                        fontSize: headerSize,
-                                        fontWeight: FontWeight.w900,
-                                        letterSpacing: 0,
+                                      TextSpan(
+                                        text: parchiNo,
+                                        style: TextStyle(
+                                          fontSize: headerSize,
+                                          fontWeight: FontWeight.w900,
+                                          letterSpacing: 0,
+                                        ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Color(0xFF111820),
-                                  height: 1.2,
+                                    ],
+                                  ),
+                                  maxLines: 1,
+                                  style: const TextStyle(
+                                    color: Color(0xFF111820),
+                                    height: 1.2,
+                                  ),
                                 ),
                               ),
                               SizedBox(height: 2 * scale),
@@ -180,7 +183,6 @@ class RecordBoxWidget extends StatelessWidget {
                                 fontSize: tinySize,
                                 color: const Color(0xFF111820),
                                 weight: FontWeight.w800,
-                                fitText: true,
                               ),
                               SizedBox(height: 3 * scale),
                               _BoxText(
@@ -191,7 +193,6 @@ class RecordBoxWidget extends StatelessWidget {
                                 fontSize: tinySize,
                                 color: const Color(0xFF111820),
                                 weight: FontWeight.w800,
-                                fitText: true,
                               ),
                             ],
                           ),
@@ -200,32 +201,21 @@ class RecordBoxWidget extends StatelessWidget {
                     ),
                     SizedBox(height: 7 * scale),
                     if (ownerName != null && ownerName!.trim().isNotEmpty) ...[
-                      Text(
+                      _BoxText(
                         ownerName!.trim().toUpperCase(),
                         textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: const Color(0xFF111820),
-                          fontSize: 13 * scale,
-                          fontWeight: FontWeight.w900,
-                          height: 1,
-                          letterSpacing: 0,
-                        ),
+                        fontSize: 13 * scale,
+                        color: const Color(0xFF111820),
+                        weight: FontWeight.w900,
                       ),
                       SizedBox(height: 3 * scale),
                     ],
-                    Text(
+                    _BoxText(
                       marketTitle,
                       textAlign: TextAlign.center,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: const Color(0xFF111820),
-                        fontSize: titleSize,
-                        fontWeight: FontWeight.w900,
-                        height: 1,
-                        letterSpacing: 0,
-                      ),
+                      fontSize: titleSize,
+                      color: const Color(0xFF111820),
+                      weight: FontWeight.w900,
                     ),
                     SizedBox(height: 6 * scale),
                     const _PreviewRule(),
@@ -449,12 +439,13 @@ class _ShareReceiptItemRow extends StatelessWidget {
                             width: numberColumnWidth +
                                 columnGap +
                                 amountColumnWidth,
-                            child: Text(
+                            child: _BoxText(
                               context.trMaybe(topLabel),
                               textAlign: TextAlign.left,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: _receiptAlphabetTextStyle(fontSize),
+                              fontSize: fontSize,
+                              color: Colors.black,
+                              weight: FontWeight.w900,
+                              shadows: _receiptAlphabetShadow,
                             ),
                           ),
                         ),
@@ -651,7 +642,6 @@ class _BoxText extends StatelessWidget {
     required this.weight,
     this.textAlign = TextAlign.left,
     this.shadows,
-    this.fitText = false,
   });
 
   final String text;
@@ -660,14 +650,13 @@ class _BoxText extends StatelessWidget {
   final FontWeight weight;
   final TextAlign textAlign;
   final List<Shadow>? shadows;
-  final bool fitText;
 
   @override
   Widget build(BuildContext context) {
     final textWidget = Text(
       text,
       maxLines: 1,
-      overflow: fitText ? TextOverflow.visible : TextOverflow.ellipsis,
+      overflow: TextOverflow.visible,
       textAlign: textAlign,
       style: TextStyle(
         fontSize: fontSize,
@@ -678,28 +667,14 @@ class _BoxText extends StatelessWidget {
         shadows: shadows,
       ),
     );
-    if (fitText) {
-      return FittedBox(
-        fit: BoxFit.scaleDown,
-        alignment: textAlign == TextAlign.right
-            ? Alignment.centerRight
-            : Alignment.centerLeft,
-        child: textWidget,
-      );
-    }
-    return Text(
-      text,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      textAlign: textAlign,
-      style: TextStyle(
-        fontSize: fontSize,
-        fontWeight: weight,
-        color: color,
-        height: 1,
-        letterSpacing: 0,
-        shadows: shadows,
-      ),
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: textAlign == TextAlign.right
+          ? Alignment.centerRight
+          : textAlign == TextAlign.center
+              ? Alignment.center
+              : Alignment.centerLeft,
+      child: textWidget,
     );
   }
 }
