@@ -205,35 +205,27 @@ class EscPosReceiptBuilder {
         : storedMarket?.isNotEmpty == true
             ? storedMarket!
             : '-';
-    final rowPages = _buildRowPages(detail.consolidatedItems, receipt.session);
-    final pageTotals = computeReceiptPageTotals(
-      detail.consolidatedItems,
+    final rows = _buildRows(detail.consolidatedItems, receipt.session);
+    final total = detail.consolidatedItems.fold<num>(
+          0,
+          (sum, item) => sum + item.amount,
+        ) *
+        (receipt.isOtc ? 2 : 1);
+    final totalText = AppLocalizations.localizeDigits(_formatAmount(total));
+
+    final receiptImage = await _buildReceiptImage(
+      parchi: parchi,
+      createdAt: createdAt,
+      session: session,
+      market: AppLocalizations.localizeMarketName(market.toUpperCase()),
+      ownerName: ownerName,
+      rows: rows,
+      totalText: totalText,
       isOtc: receipt.isOtc,
     );
-
-    for (var pageIndex = 0; pageIndex < rowPages.length; pageIndex++) {
-      final pageParchiNo = _parchiNoForPage(parchi, pageIndex);
-      final pageTotalText = AppLocalizations.localizeDigits(
-        _formatAmount(pageTotals[pageIndex]),
-      );
-      final receiptImage = await _buildReceiptImage(
-        parchi: pageParchiNo,
-        createdAt: createdAt,
-        session: session,
-        market: AppLocalizations.localizeMarketName(market.toUpperCase()),
-        ownerName: ownerName,
-        rows: rowPages[pageIndex],
-        totalText: pageTotalText,
-        isOtc: receipt.isOtc,
-        showTotal: pageIndex == rowPages.length - 1,
-      );
-      bytes.addAll(generator.imageRaster(receiptImage, align: PosAlign.center));
-      bytes.addAll(generator.feed(_receiptFeedBeforeCut));
-      if (pageIndex != rowPages.length - 1) {
-        bytes.addAll(generator.cut(mode: PosCutMode.full));
-      }
-    }
-    bytes.addAll(generator.cut(mode: PosCutMode.full));
+    bytes.addAll(generator.imageRaster(receiptImage, align: PosAlign.center));
+    bytes.addAll(generator.feed(3));
+    bytes.addAll(generator.cut());
     return bytes;
   }
 
@@ -749,35 +741,4 @@ String _jackpotArrowFor(String parentNumber, String jackpotNumber) {
 String _sessionLabel(String session) {
   final value = session.trim();
   return value.isEmpty ? '-' : value.toUpperCase();
-}
-
-List<num> computeReceiptPageTotals(
-  List<ReceiptItemModel> items, {
-  required bool isOtc,
-}) {
-  if (items.isEmpty) return const [0];
-
-  final totals = <num>[];
-  var currentPageTotal = 0.0;
-  var currentEntryCount = 0;
-
-  for (final item in items) {
-    final jackpotEntries = item.jackpotEntries
-        .where((entry) => entry.number.isNotEmpty || entry.amount.isNotEmpty)
-        .toList(growable: false);
-    final requiredEntryCount = 1 + jackpotEntries.length;
-
-    if (currentEntryCount > 0 &&
-        currentEntryCount + requiredEntryCount > _parchiEntriesPerPage) {
-      totals.add(currentPageTotal * (isOtc ? 2 : 1));
-      currentPageTotal = 0;
-      currentEntryCount = 0;
-    }
-
-    currentPageTotal += item.amount.toDouble();
-    currentEntryCount += requiredEntryCount;
-  }
-
-  totals.add(currentPageTotal * (isOtc ? 2 : 1));
-  return totals;
 }
