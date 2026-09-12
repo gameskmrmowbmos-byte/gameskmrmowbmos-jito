@@ -244,8 +244,7 @@ List<List<_EscPosReceiptRow>> _buildRowPages(
 
     ensurePageSpace();
 
-    final jackpotSpaceOnMainPage =
-        _parchiEntriesPerPage - currentEntryCount - 1;
+    final jackpotSpaceOnMainPage = _parchiEntriesPerPage - currentEntryCount - 1;
     final mainJackpotCount = jackpotEntries.length < jackpotSpaceOnMainPage
         ? jackpotEntries.length
         : jackpotSpaceOnMainPage;
@@ -267,8 +266,7 @@ List<List<_EscPosReceiptRow>> _buildRowPages(
           _EscPosJackpotRow(
             number: AppLocalizations.localizeDigits(
               '${_jackpotArrowFor(
-                formatParchiNumber(
-                    item, item.sessionOverride ?? receiptSession),
+                formatParchiNumber(item, item.sessionOverride ?? receiptSession),
                 jackpot.number,
               )}${jackpot.number} >',
             ),
@@ -285,8 +283,7 @@ List<List<_EscPosReceiptRow>> _buildRowPages(
       final nextIndex = jackpotIndex + available > jackpotEntries.length
           ? jackpotEntries.length
           : jackpotIndex + available;
-      final continuationEntries =
-          jackpotEntries.sublist(jackpotIndex, nextIndex);
+      final continuationEntries = jackpotEntries.sublist(jackpotIndex, nextIndex);
 
       currentPage.add(_EscPosReceiptRow(
         number: '',
@@ -297,8 +294,7 @@ List<List<_EscPosReceiptRow>> _buildRowPages(
             _EscPosJackpotRow(
               number: AppLocalizations.localizeDigits(
                 '${_jackpotArrowFor(
-                  formatParchiNumber(
-                      item, item.sessionOverride ?? receiptSession),
+                  formatParchiNumber(item, item.sessionOverride ?? receiptSession),
                   jackpot.number,
                 )}${jackpot.number} >',
               ),
@@ -717,8 +713,8 @@ _ReceiptImageMetrics _imageTableMetrics(
   List<_EscPosReceiptRow> rows,
   String totalText,
 ) {
-  var numberWidth = _measureText(
-      AppLocalizations.trCurrent('NUMBER'), _receiptTableHeaderStyle);
+  var numberWidth =
+      _measureText(AppLocalizations.trCurrent('NUMBER'), _receiptTableHeaderStyle);
   var amountWidth =
       _measureText(AppLocalizations.trCurrent('AMT'), _receiptTableHeaderStyle);
   numberWidth = _maxDouble(
