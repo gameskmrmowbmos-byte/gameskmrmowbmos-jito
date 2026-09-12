@@ -35,7 +35,12 @@ app.use(
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Client-Platform'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Client-Platform',
+      'X-Device-Id',
+    ],
   }),
 );
 app.use(express.json({ limit: '200kb' }));
@@ -74,4 +79,3 @@ app.use(notFound);
 app.use(errorHandler);
 
 module.exports = app;
-

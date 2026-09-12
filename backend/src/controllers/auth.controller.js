@@ -38,12 +38,16 @@ function tokenResponse(req, user, tokens) {
   };
 }
 
+function requestDeviceId(req) {
+  return `${req.get('x-device-id') || req.body?.deviceId || ''}`.trim();
+}
+
 const login = asyncHandler(async (req, res) => {
   try {
     const { user, tokens } = await authService.authenticate(
       req.body.identifier,
       req.body.password,
-      { deviceId: req.body.deviceId },
+      { deviceId: requestDeviceId(req) },
     );
     user.loginHistory = [
       ...(user.loginHistory || []).slice(-49),
@@ -109,7 +113,9 @@ const refresh = asyncHandler(async (req, res) => {
   const rawToken = req.cookies.refreshToken || req.body.refreshToken;
   if (!rawToken) throw ApiError.unauthorized('Refresh token is required');
 
-  const { user, tokens } = await authService.rotateRefreshToken(rawToken);
+  const { user, tokens } = await authService.rotateRefreshToken(rawToken, {
+    deviceId: requestDeviceId(req),
+  });
   res.cookie('refreshToken', tokens.refreshToken, cookieOptions);
   return success(res, {
     message: 'Session refreshed',
@@ -119,7 +125,9 @@ const refresh = asyncHandler(async (req, res) => {
 
 const logout = asyncHandler(async (req, res) => {
   const rawToken = req.cookies.refreshToken || req.body.refreshToken;
-  await authService.invalidateRefreshToken(rawToken);
+  await authService.invalidateRefreshToken(rawToken, {
+    deviceId: requestDeviceId(req),
+  });
   res.clearCookie('refreshToken', clearCookieOptions);
   await recordAudit({
     req,

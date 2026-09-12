@@ -129,15 +129,15 @@ class AuthRepository {
 
   Future<void> logout() async {
     final refreshToken = await _storage.readRefreshToken();
+    final deviceId = await _storage.installationId();
     try {
       await _api.sendJson(
         'POST',
         ApiEndpoints.logout,
-        data: refreshToken == null
-            ? <String, dynamic>{}
-            : {
-                'refreshToken': refreshToken,
-              },
+        data: {
+          'deviceId': deviceId,
+          if (refreshToken != null) 'refreshToken': refreshToken,
+        },
       );
     } catch (_) {
       // Ignore API errors during logout (e.g. token already expired)
