@@ -460,7 +460,8 @@ class ReceiptItemsTable extends StatelessWidget {
               AppLocalizations.localizeDigits('${index + 1}'),
               context.trMaybe(items[index].displayType),
               AppLocalizations.localizeDigits(items[index].displayNumber),
-              AppLocalizations.localizeDigits(items[index].effectiveDisplayAmount),
+              AppLocalizations.localizeDigits(
+                  items[index].effectiveDisplayAmount),
             ]),
         ],
       ),
@@ -592,7 +593,8 @@ class PrintHistoryView extends StatelessWidget {
               '${index + 1}',
               logs[index].printId,
               context.trMaybe(logs[index].printType),
-              AppLocalizations.localizeDigits('${logs[index].printNumber ?? '-'}'),
+              AppLocalizations.localizeDigits(
+                  '${logs[index].printNumber ?? '-'}'),
               formatDateTime(logs[index].printedAt),
               logs[index].printerName,
               AppLocalizations.localizeDigits(
@@ -723,12 +725,10 @@ class _PrintedReceiptTicket extends StatelessWidget {
                             text: context.tr('PARCHI NO. '),
                             style: TextStyle(
                               fontSize: isIndic ? 11 : 10,
-                              fontWeight: isIndic
-                                  ? FontWeight.w700
-                                  : FontWeight.w800,
+                              fontWeight:
+                                  isIndic ? FontWeight.w700 : FontWeight.w800,
                               height: isIndic ? 1.25 : null,
-                              fontFamilyFallback:
-                                  _receiptFontFallback(isIndic),
+                              fontFamilyFallback: _receiptFontFallback(isIndic),
                             ),
                           ),
                           TextSpan(
@@ -737,12 +737,10 @@ class _PrintedReceiptTicket extends StatelessWidget {
                             ),
                             style: TextStyle(
                               fontSize: 11,
-                              fontWeight: isIndic
-                                  ? FontWeight.w800
-                                  : FontWeight.w900,
+                              fontWeight:
+                                  isIndic ? FontWeight.w800 : FontWeight.w900,
                               height: isIndic ? 1.2 : null,
-                              fontFamilyFallback:
-                                  _receiptFontFallback(isIndic),
+                              fontFamilyFallback: _receiptFontFallback(isIndic),
                             ),
                           ),
                         ])),
@@ -751,9 +749,8 @@ class _PrintedReceiptTicket extends StatelessWidget {
                           context.tr(receipt.session.toUpperCase()),
                           style: TextStyle(
                             fontSize: isIndic ? 10 : 9,
-                            fontWeight: isIndic
-                                ? FontWeight.w800
-                                : FontWeight.w900,
+                            fontWeight:
+                                isIndic ? FontWeight.w800 : FontWeight.w900,
                             height: isIndic ? 1.2 : 1,
                             fontFamilyFallback: _receiptFontFallback(isIndic),
                           ),
@@ -769,9 +766,8 @@ class _PrintedReceiptTicket extends StatelessWidget {
                               receipt.createdAt ?? receipt.date)),
                           style: TextStyle(
                             fontSize: isIndic ? 11 : 10,
-                            fontWeight: isIndic
-                                ? FontWeight.w700
-                                : FontWeight.w800,
+                            fontWeight:
+                                isIndic ? FontWeight.w700 : FontWeight.w800,
                             height: isIndic ? 1.25 : null,
                             fontFamilyFallback: _receiptFontFallback(isIndic),
                           )),
@@ -781,9 +777,8 @@ class _PrintedReceiptTicket extends StatelessWidget {
                               receipt.createdAt ?? receipt.date)),
                           style: TextStyle(
                             fontSize: isIndic ? 11 : 10,
-                            fontWeight: isIndic
-                                ? FontWeight.w700
-                                : FontWeight.w800,
+                            fontWeight:
+                                isIndic ? FontWeight.w700 : FontWeight.w800,
                             height: isIndic ? 1.25 : null,
                             fontFamilyFallback: _receiptFontFallback(isIndic),
                           )),
