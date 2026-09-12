@@ -13,21 +13,18 @@ class AuthState {
     this.user,
     this.accessStatus,
     this.error,
-    this.busy = false,
   });
 
   const AuthState.initializing()
       : status = AuthStatus.initializing,
         user = null,
         accessStatus = null,
-        error = null,
-        busy = true;
+        error = null;
 
   final AuthStatus status;
   final AuthUser? user;
   final AccessStatus? accessStatus;
   final String? error;
-  final bool busy;
 
   bool get hasAccessRestriction =>
       status == AuthStatus.authenticated && accessStatus?.allowed == false;
@@ -67,10 +64,7 @@ class AuthController extends StateNotifier<AuthState> {
   }
 
   Future<void> login(String identifier, String password) async {
-    state = const AuthState(
-      status: AuthStatus.unauthenticated,
-      busy: true,
-    );
+    state = const AuthState.initializing();
     try {
       final loginResult = await _repository.login(
         identifier: identifier,

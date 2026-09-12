@@ -73,14 +73,12 @@ String _buildReceiptHtml(
   final tickets = List.generate(pages.length, (pageIndex) {
     final pageItems = pages[pageIndex];
     final pageParchiNo = _parchiNoForPage(displayedParchiNo, pageIndex);
-    final pageTotal = _localizeDigits(
-      _formatAmount(_pageTotalAmount(pageItems, receipt.isOtc)),
-    );
+    final totalAmount = _localizeDigits(_formatAmount(receipt.totalAmount));
     final totalBlock = '''
     $otcMarker
       <div class="grid-rule"></div>
       <div class="total-label">${_escapeHtml(AppLocalizations.trCurrent('TOTAL'))}</div>
-      <div class="total-value">${_escapeHtml(pageTotal)}</div>
+      <div class="total-value">${_escapeHtml(totalAmount)}</div>
       <div class="grid-rule final-rule"></div>
 ''';
     return '''
@@ -121,7 +119,7 @@ String _buildReceiptHtml(
       width: 58mm;
       margin: 0;
       padding: 0;
-      font-family: "Noto Sans Devanagari", Arial, Helvetica, sans-serif;
+      font-family: "Noto Sans Devanagari", "Nirmala UI", Mangal, Arial, Helvetica, sans-serif;
     }
 
     .ticket {
@@ -152,30 +150,32 @@ String _buildReceiptHtml(
     }
 
     .parchi-label {
-      font-size: 10px;
-      font-weight: 800;
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1.25;
     }
 
     .parchi-number {
       font-size: 11px;
-      font-weight: 900;
+      font-weight: 800;
+      line-height: 1.2;
     }
 
     .session-label {
       margin-top: 2px;
       color: #111820;
-      font-size: 9px;
-      font-weight: 900;
-      line-height: 1;
+      font-size: 10px;
+      font-weight: 800;
+      line-height: 1.2;
       letter-spacing: 0;
     }
 
     .market {
       margin: 12px 0 8px;
       text-align: center;
-      font-size: 16px;
-      font-weight: 900;
-      line-height: 1.1;
+      font-size: 15px;
+      font-weight: 800;
+      line-height: 1.25;
       letter-spacing: 0;
     }
 
@@ -183,17 +183,17 @@ String _buildReceiptHtml(
       margin-top: 12px;
       text-align: center;
       font-size: 11px;
-      font-weight: 900;
-      line-height: 1;
+      font-weight: 800;
+      line-height: 1.2;
       letter-spacing: 0;
     }
 
     .datetime {
       color: #111820;
       text-align: right;
-      font-size: 10px;
-      font-weight: 800;
-      line-height: 1.2;
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1.25;
       letter-spacing: 0;
     }
 
@@ -339,9 +339,9 @@ String _buildReceiptHtml(
       padding: 0 1mm;
       margin: 2mm auto 0;
       text-align: center;
-      font-size: 7px;
+      font-size: 9px;
       font-weight: 700;
-      line-height: 1.1;
+      line-height: 1.3;
       overflow-wrap: anywhere;
     }
 
@@ -465,20 +465,8 @@ String _parchiNoForPage(String parchiNo, int pageIndex) {
   return '$prefix${(number + pageIndex).toString().padLeft(numberText.length, '0')}';
 }
 
-num _pageTotalAmount(List<_ParchiPrintItem> items, bool isOtc) {
-  final baseTotal = items.fold<num>(
-    0,
-    (total, pageItem) =>
-        total + (pageItem.showMainEntry ? pageItem.item.amount : 0),
-  );
-  return isOtc ? baseTotal * 2 : baseTotal;
-}
-
 String _receiptRows(List<_ParchiPrintItem> items, String session) {
-  final buffer = StringBuffer();
-  String? currentPageGroupLabel;
-
-  for (final pageItem in items) {
+  return items.map((pageItem) {
     final item = pageItem.item;
     final formattedNumber = _localizeDigits(
       _normalizePrintedFamilyNumber(
@@ -492,31 +480,26 @@ String _receiptRows(List<_ParchiPrintItem> items, String session) {
       <div class="jackpot-amt">${_escapeHtml(_localizeDigits(entry.amount))}</div>
     ''';
     }).join();
-    final groupLabel = pageItem.showMainEntry ? _itemGroupLabel(item) : null;
-    final topLabel = groupLabel != null && groupLabel != currentPageGroupLabel
-        ? '<div class="item-label">${_escapeHtml(groupLabel)}</div>'
-        : '';
+    final topLabel = !pageItem.showMainEntry
+        ? ''
+        : item.isBazarSangam
+            ? '<div class="item-label">BAZAR</div>'
+            : item.isMotorPana
+                ? '<div class="item-label">MP</div>'
+                : '';
     final mainRow = pageItem.showMainEntry
         ? '''
       <div class="num">${_numberHtml(formattedNumber)}</div>
       <div class="amt">${_escapeHtml(_localizeDigits(item.effectiveDisplayAmount))}</div>
 '''
         : '';
-    currentPageGroupLabel = groupLabel;
 
-    buffer.write('''
+    return '''
       $topLabel
       $mainRow
       $jackpotRows
-    ''');
-  }
-  return buffer.toString();
-}
-
-String? _itemGroupLabel(ReceiptItemModel item) {
-  if (item.isBazarSangam) return 'BAZAR';
-  if (item.isMotorPana) return 'MP';
-  return null;
+    ''';
+  }).join();
 }
 
 String _numberHtml(String rawText) {
