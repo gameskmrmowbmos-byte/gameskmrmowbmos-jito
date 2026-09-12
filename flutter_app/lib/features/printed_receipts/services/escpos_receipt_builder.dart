@@ -11,9 +11,9 @@ import 'package:matka_management/features/entries/data/receipt_models.dart';
 const _parchiEntriesPerPage = 10;
 const _receiptFeedBeforeCut = 0;
 const _receiptImageWidth = 372.0;
-const _receiptTicketWidth = 368.0;
+const _receiptTicketWidth = 338.0;
 const _receiptTicketX = (_receiptImageWidth - _receiptTicketWidth) / 2;
-const _receiptPaddingX = _receiptTicketX + 3.0;
+const _receiptPaddingX = _receiptTicketX + 17.0;
 const _receiptPaddingTop = 18.0;
 const _receiptPaddingBottom = 2.0;
 const _receiptContentWidth = _receiptTicketWidth - 6.0;
@@ -26,48 +26,58 @@ const _receiptStrongTextShadow = <ui.Shadow>[
   ui.Shadow(color: _receiptInk, offset: ui.Offset(0.45, 0), blurRadius: 0),
   ui.Shadow(color: _receiptInk, offset: ui.Offset(0, 0.45), blurRadius: 0),
 ];
+const _receiptHeaderTextShadow = <ui.Shadow>[
+  ui.Shadow(color: _receiptInk, offset: ui.Offset(0.32, 0), blurRadius: 0),
+  ui.Shadow(color: _receiptInk, offset: ui.Offset(0, 0.32), blurRadius: 0),
+];
+const _receiptIndicFontFallback = <String>[
+  'Noto Sans Devanagari',
+  'Nirmala UI',
+  'Mangal',
+];
 
 const _topLabelStyle = TextStyle(
   color: _receiptInk,
-  fontSize: 18,
+  fontSize: 17,
   fontWeight: FontWeight.w800,
   height: 1.15,
 );
 const _topNumberStyle = TextStyle(
   color: _receiptInk,
-  fontSize: 23,
+  fontSize: 19,
   fontWeight: FontWeight.w900,
   height: 1.15,
 );
 const _sessionStyle = TextStyle(
   color: _receiptInk,
-  fontSize: 17,
+  fontSize: 15,
   fontWeight: FontWeight.w900,
   height: 1,
 );
 const _dateStyle = TextStyle(
   color: _receiptInk,
-  fontSize: 22,
-  fontWeight: FontWeight.w900,
+  fontSize: 17,
+  fontWeight: FontWeight.w800,
   height: 1.15,
 );
 const _marketStyle = TextStyle(
   color: _receiptInk,
-  fontSize: 29,
+  fontSize: 27,
   fontWeight: FontWeight.w900,
   height: 1.1,
 );
 const _ownerStyle = TextStyle(
   color: _receiptInk,
-  fontSize: 23,
+  fontSize: 19,
   fontWeight: FontWeight.w900,
   height: 1,
 );
 const _headerStyle = TextStyle(
   color: _receiptInk,
-  fontSize: 22,
+  fontSize: 20,
   fontWeight: FontWeight.w900,
   height: 1.1,
+  shadows: _receiptStrongTextShadow,
 );
 const _entryStyle = TextStyle(
   color: _receiptInk,
@@ -283,8 +293,8 @@ class EscPosReceiptBuilder {
         printerName,
         styles: const PosStyles(align: PosAlign.center),
       ),
-      ...generator.feed(_receiptFeedBeforeCut),
-      ...generator.cut(mode: PosCutMode.full),
+      ...generator.feed(3),
+      ...generator.cut(),
     ];
   }
 
@@ -309,13 +319,8 @@ class _EscPosReceiptRow {
 }
 
 class _EscPosJackpotRow {
-  const _EscPosJackpotRow({
-    required this.parentNumber,
-    required this.number,
-    required this.amount,
-  });
+  const _EscPosJackpotRow({required this.number, required this.amount});
 
-  final String parentNumber;
   final String number;
   final String amount;
 }
@@ -341,7 +346,6 @@ Future<image_lib.Image> _buildReceiptImage({
   required List<_EscPosReceiptRow> rows,
   required String totalText,
   required bool isOtc,
-  required bool showTotal,
 }) async {
   final metrics = _imageTableMetrics(rows, totalText);
   final height = _layoutReceiptImage(
@@ -354,7 +358,6 @@ Future<image_lib.Image> _buildReceiptImage({
     rows: rows,
     totalText: totalText,
     isOtc: isOtc,
-    showTotal: showTotal,
     metrics: metrics,
   ).ceil();
 
@@ -370,7 +373,6 @@ Future<image_lib.Image> _buildReceiptImage({
     rows: rows,
     totalText: totalText,
     isOtc: isOtc,
-    showTotal: showTotal,
     metrics: metrics,
     height: height.toDouble(),
   );
@@ -399,7 +401,6 @@ double _layoutReceiptImage({
   required List<_EscPosReceiptRow> rows,
   required String totalText,
   required bool isOtc,
-  required bool showTotal,
   required _ReceiptImageMetrics metrics,
   double? height,
 }) {
@@ -423,7 +424,7 @@ double _layoutReceiptImage({
   _paintText(
     canvas,
     AppLocalizations.trCurrent('PARCHI NO.'),
-    _topLabelStyle,
+    _receiptTopLabelStyle,
     _receiptPaddingX,
     y,
     width: leftWidth,
@@ -432,17 +433,17 @@ double _layoutReceiptImage({
   _paintText(
     canvas,
     dateText,
-    _dateStyle,
+    _receiptDateStyle,
     _receiptImageWidth - _receiptPaddingX - rightTextWidth,
     y,
     width: rightTextWidth,
     textAlign: TextAlign.right,
   );
-  y += 28;
+  y += 25;
   _paintText(
     canvas,
     AppLocalizations.localizeDigits(parchi),
-    _topNumberStyle,
+    _receiptTopNumberStyle,
     _receiptPaddingX,
     y,
     width: leftWidth,
@@ -451,20 +452,14 @@ double _layoutReceiptImage({
   _paintText(
     canvas,
     timeText,
-    _dateStyle,
+    _receiptDateStyle,
     _receiptImageWidth - _receiptPaddingX - rightTextWidth,
     y,
     width: rightTextWidth,
     textAlign: TextAlign.right,
   );
   y += 28;
-  _paintText(
-    canvas,
-    session.toUpperCase(),
-    _receiptSessionStyle,
-    _receiptPaddingX,
-    y,
-  );
+  _paintText(canvas, session.toUpperCase(), _sessionStyle, _receiptPaddingX, y);
   y += 28;
 
   final owner = ownerName?.trim() ?? '';
@@ -472,7 +467,7 @@ double _layoutReceiptImage({
     y += _paintText(
       canvas,
       owner.toUpperCase(),
-      _ownerStyle,
+      _receiptOwnerStyle,
       _receiptPaddingX,
       y,
       width: _receiptContentWidth,
@@ -484,7 +479,7 @@ double _layoutReceiptImage({
   y += _paintText(
     canvas,
     '$market - $session',
-    _marketStyle,
+    _receiptMarketStyle,
     _receiptPaddingX,
     y,
     width: _receiptContentWidth,
@@ -499,7 +494,7 @@ double _layoutReceiptImage({
   _paintTableText(
     canvas,
     AppLocalizations.trCurrent('NUMBER'),
-    _headerStyle,
+    _receiptTableHeaderStyle,
     tableX,
     y,
     metrics.numberWidth,
@@ -507,13 +502,13 @@ double _layoutReceiptImage({
   _paintTableText(
     canvas,
     AppLocalizations.trCurrent('AMT'),
-    _headerStyle,
+    _receiptTableHeaderStyle,
     tableX + metrics.numberWidth + _receiptTableGap,
     y,
     metrics.amountWidth,
     textAlign: TextAlign.right,
   );
-  y += 39;
+  y += 33;
 
   for (final row in rows) {
     if (row.topLabel != null) {
@@ -525,51 +520,40 @@ double _layoutReceiptImage({
         y,
         metrics.totalWidth,
       );
-      y += 13;
+      y += 9;
     }
     if (row.showMainEntry) {
-      _paintEntryNumber(
-        canvas,
-        row.number,
-        tableX,
-        y,
-        metrics.numberWidth,
-      );
+      _paintTableText(
+          canvas, row.number, _entryStyle, tableX, y, metrics.numberWidth);
       y += _paintTableText(
         canvas,
         row.amount,
-        _entryAmountStyle,
+        _entryStyle,
         tableX + metrics.numberWidth + _receiptTableGap,
         y,
         metrics.amountWidth,
         textAlign: TextAlign.right,
       );
-      y += 15;
+      y += 10;
     }
     for (final jackpot in row.jackpotEntries) {
-      _paintJackpotNumber(
-        canvas,
-        jackpot.parentNumber,
-        jackpot.number,
-        tableX,
-        y,
-        metrics.numberWidth,
-      );
+      _paintTableText(canvas, jackpot.number, _jackpotStyle, tableX, y,
+          metrics.numberWidth);
       y += _paintTableText(
         canvas,
         jackpot.amount,
-        _jackpotAmountStyle,
+        _jackpotStyle,
         tableX + metrics.numberWidth + _receiptTableGap,
         y,
         metrics.amountWidth,
         textAlign: TextAlign.right,
       );
-      y += 14;
+      y += 9;
     }
   }
 
   y += rows.isEmpty ? 50 : 18;
-  if (showTotal && isOtc) {
+  if (isOtc) {
     y += _paintText(
       canvas,
       'OTC',
@@ -582,8 +566,7 @@ double _layoutReceiptImage({
     y += 10;
   }
   _paintRule(canvas, y);
-  if (showTotal) {
-    y += _receiptRuleHeight + 22;
+  y += _receiptRuleHeight + 22;
 
     _paintTableText(
       canvas,
@@ -611,7 +594,7 @@ double _layoutReceiptImage({
     AppLocalizations.trCurrent(
       'Please check the receipt. No complaints will be accepted later.',
     ),
-    _receiptInstructionStyle,
+    _instructionStyle,
     _receiptPaddingX,
     y,
     width: _receiptContentWidth,
@@ -628,38 +611,31 @@ _ReceiptImageMetrics _imageTableMetrics(
   String totalText,
 ) {
   var numberWidth =
-      _measureText(AppLocalizations.trCurrent('NUMBER'), _headerStyle);
+      _measureText(AppLocalizations.trCurrent('NUMBER'), _receiptTableHeaderStyle);
   var amountWidth =
-      _measureText(AppLocalizations.trCurrent('AMT'), _headerStyle);
+      _measureText(AppLocalizations.trCurrent('AMT'), _receiptTableHeaderStyle);
   numberWidth = _maxDouble(
     numberWidth,
     _measureText(AppLocalizations.trCurrent('TOTAL'), _totalStyle),
   );
-  amountWidth =
-      _maxDouble(amountWidth, _measureText(totalText, _totalAmountStyle));
+  amountWidth = _maxDouble(amountWidth, _measureText(totalText, _totalStyle));
 
   for (final row in rows) {
     if (row.topLabel != null) {
-      numberWidth = _maxDouble(
-        numberWidth,
-        _measureText(row.topLabel!, _entryStyle),
-      );
+      numberWidth =
+          _maxDouble(numberWidth, _measureText(row.topLabel!, _entryStyle));
     }
     if (row.showMainEntry) {
-      numberWidth = _maxDouble(
-        numberWidth,
-        _measureTextSpan(_entryNumberSpan(row.number)),
-      );
+      numberWidth =
+          _maxDouble(numberWidth, _measureText(row.number, _entryStyle));
       amountWidth =
-          _maxDouble(amountWidth, _measureText(row.amount, _entryAmountStyle));
+          _maxDouble(amountWidth, _measureText(row.amount, _entryStyle));
     }
     for (final jackpot in row.jackpotEntries) {
-      numberWidth = _maxDouble(
-        numberWidth,
-        _measureTextSpan(_entryNumberSpan(jackpot.parentNumber)),
-      );
-      amountWidth = _maxDouble(
-          amountWidth, _measureText(jackpot.amount, _jackpotAmountStyle));
+      numberWidth =
+          _maxDouble(numberWidth, _measureText(jackpot.number, _jackpotStyle));
+      amountWidth =
+          _maxDouble(amountWidth, _measureText(jackpot.amount, _jackpotStyle));
     }
   }
 
@@ -715,120 +691,6 @@ double _paintTableText(
   );
 }
 
-double _paintEntryNumber(
-  ui.Canvas? canvas,
-  String text,
-  double x,
-  double y,
-  double width,
-) {
-  return _paintTextSpan(
-    canvas,
-    _entryNumberSpan(text),
-    x,
-    y,
-    maxWidth: width,
-    maxLines: 1,
-  );
-}
-
-TextSpan _entryNumberSpan(String text) {
-  final parts = NumberDisplayParts.fromDisplay(text);
-  return TextSpan(
-    children: [
-      if (parts.leadingArrow.isNotEmpty)
-        TextSpan(text: '${parts.leadingArrow} ', style: _entryMarkerStyle),
-      if (parts.beforeSuffix.isNotEmpty)
-        TextSpan(text: parts.beforeSuffix, style: _entryNumberStyle),
-      if (parts.suffix.isNotEmpty)
-        TextSpan(
-          text: '${parts.beforeSuffix.isEmpty ? '' : ' '}${parts.suffix}',
-          style: _entryMarkerStyle,
-        ),
-      if (parts.trailingArrow.isNotEmpty)
-        TextSpan(text: ' ${parts.trailingArrow}', style: _entryMarkerStyle),
-    ],
-  );
-}
-
-double _paintJackpotNumber(
-  ui.Canvas? canvas,
-  String parentText,
-  String text,
-  double x,
-  double y,
-  double width,
-) {
-  final boundaryWidth = _measureTextSpan(_entryNumberSpan(parentText))
-      .clamp(1.0, width)
-      .toDouble();
-  final childText = text.trim();
-  final childWidth = _measureText(childText, _jackpotNumberStyle)
-      .clamp(0.0, boundaryWidth)
-      .toDouble();
-  final endingWidth = _measureText('>', _jackpotMarkerStyle);
-  final gapWidth = _measureText(' ', _jackpotNumberStyle);
-  final fixedWidth = childWidth + gapWidth + endingWidth;
-  final arrowWidth =
-      (boundaryWidth - fixedWidth - gapWidth).clamp(0.0, boundaryWidth);
-  final textHeight = _measureTextHeight(childText, _jackpotNumberStyle);
-
-  if (canvas != null) {
-    _paintJackpotArrow(canvas, x, y, arrowWidth.toDouble(), textHeight);
-    _paintText(
-      canvas,
-      childText,
-      _jackpotNumberStyle,
-      x + arrowWidth + gapWidth,
-      y,
-      width: childWidth,
-      maxLines: 1,
-    );
-    _paintText(
-      canvas,
-      '>',
-      _jackpotMarkerStyle,
-      x + arrowWidth + gapWidth + childWidth + gapWidth,
-      y,
-      width: endingWidth,
-      maxLines: 1,
-    );
-  }
-
-  return textHeight;
-}
-
-void _paintJackpotArrow(
-  ui.Canvas canvas,
-  double x,
-  double y,
-  double width,
-  double height,
-) {
-  if (width <= 0 || height <= 0) return;
-  final paint = ui.Paint()
-    ..color = _receiptInk
-    ..strokeWidth = 2.0
-    ..strokeCap = ui.StrokeCap.square
-    ..strokeJoin = ui.StrokeJoin.miter
-    ..style = ui.PaintingStyle.stroke;
-  final centerY = y + height / 2;
-  final headLength = width < 9 ? width : 9.0;
-  final shaftEnd = x + width - headLength;
-  final tip = ui.Offset(x + width, centerY);
-  canvas.drawLine(ui.Offset(x, centerY), tip, paint);
-  canvas.drawLine(
-    ui.Offset(shaftEnd, centerY - headLength / 2),
-    tip,
-    paint,
-  );
-  canvas.drawLine(
-    ui.Offset(shaftEnd, centerY + headLength / 2),
-    tip,
-    paint,
-  );
-}
-
 double _paintTextSpan(
   ui.Canvas? canvas,
   InlineSpan span,
@@ -856,27 +718,13 @@ double _paintTextSpan(
 }
 
 double _measureText(String text, TextStyle style) {
-  return _measureTextSpan(TextSpan(text: text, style: style));
-}
-
-double _measureTextSpan(InlineSpan span) {
-  final painter = TextPainter(
-    text: span,
-    maxLines: 1,
-    textDirection: ui.TextDirection.ltr,
-    textScaler: TextScaler.noScaling,
-  )..layout();
-  return painter.width;
-}
-
-double _measureTextHeight(String text, TextStyle style) {
   final painter = TextPainter(
     text: TextSpan(text: text, style: style),
     maxLines: 1,
     textDirection: ui.TextDirection.ltr,
     textScaler: TextScaler.noScaling,
   )..layout();
-  return painter.height;
+  return painter.width;
 }
 
 void _paintRule(ui.Canvas? canvas, double y) {
@@ -896,28 +744,11 @@ double _maxDouble(double first, double second) {
   return first > second ? first : second;
 }
 
-List<List<_EscPosReceiptRow>> _buildRowPages(
+List<_EscPosReceiptRow> _buildRows(
   List<ReceiptItemModel> items,
   String receiptSession,
 ) {
-  if (items.isEmpty) return const [<_EscPosReceiptRow>[]];
-  final pages = <List<_EscPosReceiptRow>>[];
-  var currentPage = <_EscPosReceiptRow>[];
-  var currentEntryCount = 0;
-  String? currentPageGroupLabel;
-
-  void pushCurrentPage() {
-    if (currentPage.isEmpty) return;
-    pages.add(currentPage);
-    currentPage = <_EscPosReceiptRow>[];
-    currentEntryCount = 0;
-    currentPageGroupLabel = null;
-  }
-
-  void ensurePageSpace() {
-    if (currentEntryCount >= _parchiEntriesPerPage) pushCurrentPage();
-  }
-
+  final rows = <_EscPosReceiptRow>[];
   for (final item in items) {
     final number = AppLocalizations.localizeDigits(
       formatParchiNumber(
@@ -925,76 +756,38 @@ List<List<_EscPosReceiptRow>> _buildRowPages(
         item.sessionOverride ?? receiptSession,
       ),
     );
-    final jackpotEntries = [
-      for (final jackpot in item.jackpotEntries)
-        if (jackpot.number.isNotEmpty || jackpot.amount.isNotEmpty)
-          _EscPosJackpotRow(
-            parentNumber: number,
-            number: AppLocalizations.localizeDigits(jackpot.number),
-            amount: AppLocalizations.localizeDigits(jackpot.amount),
-          ),
-    ];
-    final amount = AppLocalizations.localizeDigits(item.effectiveDisplayAmount);
-    final groupLabel = _itemGroupLabel(item);
 
-    ensurePageSpace();
-
-    final itemEntryCount = 1 + jackpotEntries.length;
-    final itemDoesNotFitCurrentPage = currentEntryCount > 0 &&
-        currentEntryCount + itemEntryCount > _parchiEntriesPerPage;
-    if (itemDoesNotFitCurrentPage) {
-      pushCurrentPage();
-    }
-
-    var jackpotIndex = 0;
-    do {
-      ensurePageSpace();
-      final available = _parchiEntriesPerPage - currentEntryCount - 1;
-      final nextIndex = jackpotIndex + available > jackpotEntries.length
-          ? jackpotEntries.length
-          : jackpotIndex + available;
-
-      final topLabel = groupLabel != null && groupLabel != currentPageGroupLabel
-          ? groupLabel
-          : null;
-      currentPage.add(_EscPosReceiptRow(
-        number: number,
-        amount: amount,
-        showMainEntry: true,
-        topLabel: topLabel,
-        jackpotEntries: jackpotEntries.sublist(jackpotIndex, nextIndex),
-      ));
-      currentPageGroupLabel = groupLabel;
-      currentEntryCount += 1 + nextIndex - jackpotIndex;
-      jackpotIndex = nextIndex;
-
-      if (jackpotIndex < jackpotEntries.length) {
-        pushCurrentPage();
-      }
-    } while (jackpotIndex < jackpotEntries.length);
+    rows.add(_EscPosReceiptRow(
+      number: number,
+      amount: AppLocalizations.localizeDigits(item.effectiveDisplayAmount),
+      showMainEntry: true,
+      topLabel: item.isBazarSangam
+          ? 'BAZAR'
+          : item.isMotorPana
+              ? 'MP'
+              : null,
+      jackpotEntries: [
+        for (final jackpot in item.jackpotEntries)
+          if (jackpot.number.isNotEmpty || jackpot.amount.isNotEmpty)
+            _EscPosJackpotRow(
+              number: AppLocalizations.localizeDigits(
+                '${_jackpotArrowFor(number, jackpot.number)}'
+                '${jackpot.number} >',
+              ),
+              amount: AppLocalizations.localizeDigits(jackpot.amount),
+            ),
+      ],
+    ));
   }
-  pushCurrentPage();
-  return pages;
+  return rows;
 }
 
-String? _itemGroupLabel(ReceiptItemModel item) {
-  if (item.isBazarSangam) return 'BAZAR';
-  if (item.isMotorPana) return 'MP';
-  return null;
-}
-
-String _parchiNoForPage(String parchiNo, int pageIndex) {
-  if (pageIndex <= 0) return parchiNo;
-  final match = RegExp(r'^(.*?)(\d+)$').firstMatch(parchiNo.trim());
-  if (match == null) return '$parchiNo-${pageIndex + 1}';
-  final prefix = match.group(1) ?? '';
-  final numberText = match.group(2) ?? '';
-  final number = int.tryParse(numberText);
-  if (number == null) return '$parchiNo-${pageIndex + 1}';
-  return '$prefix${(number + pageIndex).toString().padLeft(
-        numberText.length,
-        '0',
-      )}';
+String _jackpotArrowFor(String parentNumber, String jackpotNumber) {
+  final markerIndex = parentNumber.lastIndexOf('>');
+  if (markerIndex == -1) return '->';
+  final parentPrefixLength = parentNumber.substring(0, markerIndex).length;
+  final dashCount = parentPrefixLength - jackpotNumber.trim().length - 2;
+  return '${'-' * (dashCount < 1 ? 1 : dashCount)}>';
 }
 
 String _sessionLabel(String session) {

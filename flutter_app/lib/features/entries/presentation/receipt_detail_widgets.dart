@@ -3,7 +3,6 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart' hide TextDirection;
-import 'package:matka_management/core/language/app_localizations.dart';
 import 'package:matka_management/features/entries/data/receipt_models.dart';
 import 'package:matka_management/shared/widgets/aligned_jackpot_marker.dart';
 
@@ -20,6 +19,20 @@ const _receiptAlphabetShadow = <Shadow>[
 const _receiptGreenAlphabetShadow = <Shadow>[
   Shadow(color: entryGreen, offset: Offset(0.18, 0), blurRadius: 0),
 ];
+const _receiptIndicFontFallback = <String>[
+  'Noto Sans Devanagari',
+  'Nirmala UI',
+  'Mangal',
+];
+
+bool _isIndicReceiptPreviewLanguage(BuildContext context) {
+  final code = Localizations.localeOf(context).languageCode;
+  return code == AppLanguage.hindi.code || code == AppLanguage.marathi.code;
+}
+
+List<String>? _receiptFontFallback(bool isIndic) {
+  return isIndic ? _receiptIndicFontFallback : null;
+}
 
 final _date = DateFormat('dd-MM-yyyy');
 final _time = DateFormat('hh:mm a');
@@ -130,7 +143,7 @@ class EntryPageHeader extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                context.tr(title),
+                title,
                 style: const TextStyle(
                   color: entryBlue,
                   fontSize: 24,
@@ -139,10 +152,7 @@ class EntryPageHeader extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 3),
-              Text(
-                context.tr(subtitle),
-                style: const TextStyle(color: Color(0xFF334155)),
-              ),
+              Text(subtitle, style: const TextStyle(color: Color(0xFF334155))),
             ],
           ),
         ),
@@ -161,7 +171,7 @@ class NumberedTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(
-      context.tr('$number. $title'),
+      '$number. $title',
       style: const TextStyle(
         color: entryBlue,
         fontSize: 14,
@@ -196,7 +206,7 @@ class StatusBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(5),
       ),
       child: Text(
-        context.trMaybe(label),
+        label,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         textAlign: TextAlign.center,
@@ -227,7 +237,7 @@ class DetailRow extends StatelessWidget {
           SizedBox(
             width: 104,
             child: Text(
-              context.tr(label),
+              label,
               style: const TextStyle(fontWeight: FontWeight.w800),
             ),
           ),
@@ -278,9 +288,9 @@ class ReceiptDetailsPanel extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      context.tr('Parchi No.'),
-                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    const Text(
+                      'Parchi No.',
+                      style: TextStyle(fontWeight: FontWeight.w800),
                     ),
                     const SizedBox(height: 4),
                     InkWell(
@@ -290,8 +300,8 @@ class ReceiptDetailsPanel extends StatelessWidget {
                         );
                         if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(context.tr('Parchi number copied')),
+                          const SnackBar(
+                            content: Text('Parchi number copied'),
                           ),
                         );
                       },
@@ -312,42 +322,26 @@ class ReceiptDetailsPanel extends StatelessWidget {
             ],
           ),
           const Divider(height: 22),
-<<<<<<< HEAD
-          DetailRow('Market', receipt.market?.name ?? '-'),
-          DetailRow('Session', receipt.session.toUpperCase()),
-          DetailRow('Date & Time', formatDateTime(receipt.date)),
-          DetailRow('Entry Mode', _entryMode(detail)),
-=======
           DetailRow(
             'Market',
             AppLocalizations.localizeMarketName(receipt.market?.name ?? '-'),
           ),
           DetailRow('Session', context.tr(receipt.session.toUpperCase())),
-          DetailRow(
-            'Date & Time',
-            AppLocalizations.localizeDigits(formatDateTime(receipt.date)),
-          ),
+          DetailRow('Date & Time', formatDateTime(receipt.date)),
           DetailRow('Entry Mode', context.tr(_entryMode(detail))),
->>>>>>> parent of 052c76b (Merge branch 'main' of https://github.com/gameskmrmowbmos-byte/gameskmrmowbmos-jito)
           DetailRow('Operator', receipt.operator?.name ?? '-'),
           if (receipt.customerName != null)
             DetailRow('Customer', receipt.customerName!),
           if (receipt.customerMobile != null)
             DetailRow('Mobile', receipt.customerMobile!),
-          DetailRow(
-            'Items',
-            AppLocalizations.localizeDigits('${receipt.totalItems}'),
-          ),
+          DetailRow('Items', '${receipt.totalItems}'),
           DetailRow(
             'Total Amount',
-            '$rupee ${AppLocalizations.localizeDigits(receipt.totalAmountText)}${receipt.isOtc ? ' ${context.tr('OTC')}' : ''}',
+            '$rupee ${receipt.totalAmountText}${receipt.isOtc ? ' OTC' : ''}',
           ),
           DetailRow('Print Status', '',
               valueWidget: StatusBadge(receipt.printStatus)),
-          DetailRow(
-            'Print Count',
-            AppLocalizations.localizeDigits('${detail.printCount}'),
-          ),
+          DetailRow('Print Count', '${detail.printCount}'),
           DetailRow(
             'Reprints',
             '',
@@ -355,7 +349,7 @@ class ReceiptDetailsPanel extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  AppLocalizations.localizeDigits('${detail.reprintCount}'),
+                  '${detail.reprintCount}',
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
                 if (detail.reprintCount > 0 && onViewReprints != null) ...[
@@ -363,7 +357,7 @@ class ReceiptDetailsPanel extends StatelessWidget {
                   SizedBox.square(
                     dimension: 28,
                     child: IconButton(
-                      tooltip: context.tr('View reprint reasons'),
+                      tooltip: 'View reprint reasons',
                       padding: EdgeInsets.zero,
                       visualDensity: VisualDensity.compact,
                       onPressed: onViewReprints,
@@ -376,11 +370,18 @@ class ReceiptDetailsPanel extends StatelessWidget {
           ),
           DetailRow(
             'Created At',
-            formatDateTime(receipt.createdAt ?? receipt.date),
+            AppLocalizations.localizeDigits(
+              formatDateTime(receipt.createdAt ?? receipt.date),
+            ),
           ),
           if (receipt.notes != null) DetailRow('Note', receipt.notes!),
           if (receipt.cancelledAt != null)
-            DetailRow('Cancelled At', formatDateTime(receipt.cancelledAt)),
+            DetailRow(
+              'Cancelled At',
+              AppLocalizations.localizeDigits(
+                formatDateTime(receipt.cancelledAt),
+              ),
+            ),
           if (receipt.cancellationReason != null)
             DetailRow('Cancel Reason', receipt.cancellationReason!),
           if (showActions) ...[
@@ -393,7 +394,7 @@ class ReceiptDetailsPanel extends StatelessWidget {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.delete_outline),
-              label: Text(context.tr('Delete Parchi')),
+              label: const Text('Delete Parchi'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: entryRed,
                 side: const BorderSide(color: entryRed),
@@ -425,17 +426,17 @@ class ReceiptItemsTable extends StatelessWidget {
               decoration: _panelDecoration(),
               child: Row(
                 children: [
-                  Text(AppLocalizations.localizeDigits('${index + 1}'),
+                  Text('${index + 1}',
                       style: const TextStyle(fontWeight: FontWeight.w900)),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      '${items[index].displayType}  ${items[index].displayNumber}',
+                      '${context.trMaybe(items[index].displayType)}  ${AppLocalizations.localizeDigits(items[index].displayNumber)}',
                       style: const TextStyle(fontWeight: FontWeight.w800),
                     ),
                   ),
                   Text(
-                    '$rupee ${AppLocalizations.localizeDigits(items[index].effectiveDisplayAmount)}',
+                    '$rupee ${items[index].effectiveDisplayAmount}',
                     style: const TextStyle(fontWeight: FontWeight.w900),
                   ),
                 ],
@@ -450,22 +451,11 @@ class ReceiptItemsTable extends StatelessWidget {
       child: Column(
         children: [
           _itemRow(
-            [
-              context.tr('SR.'),
-              context.tr('TYPE'),
-              context.tr('NUMBER'),
-              context.tr('AMOUNT ($rupee)'),
-            ],
+            const ['SR.', 'TYPE', 'NUMBER', 'AMOUNT ($rupee)'],
             header: true,
           ),
           for (var index = 0; index < items.length; index++)
             _itemRow([
-<<<<<<< HEAD
-              '${index + 1}',
-              items[index].displayType,
-              items[index].displayNumber,
-              items[index].effectiveDisplayAmount,
-=======
               AppLocalizations.localizeDigits('${index + 1}'),
               context.trMaybe(items[index].displayType),
               AppLocalizations.localizeDigits(items[index].displayNumber),
@@ -534,7 +524,7 @@ class PrintHistoryView extends StatelessWidget {
       return Container(
         padding: const EdgeInsets.all(18),
         decoration: _panelDecoration(),
-        child: Text(context.tr('No print history found.')),
+        child: const Text('No print history found.'),
       );
     }
     if (compact) {
@@ -575,23 +565,11 @@ class PrintHistoryView extends StatelessWidget {
                   Text(
                     context.tr(
                       'Created At: {date}',
-                      params: {
-                        'date': AppLocalizations.localizeDigits(
-                          formatDateTime(log.createdAt),
-                        ),
-                      },
+                      params: {'date': formatDateTime(log.createdAt)},
                     ),
->>>>>>> parent of 052c76b (Merge branch 'main' of https://github.com/gameskmrmowbmos-byte/gameskmrmowbmos-jito)
                   ),
-                  Text('Printer: ${log.printerName}'),
-                  Text('Created At: ${formatDateTime(log.createdAt)}'),
                   if (log.reprintReason != null || log.retryReason != null)
-                    Text(
-                      context.tr(
-                        'Reason: {reason}',
-                        params: {'reason': log.reprintReason ?? log.retryReason},
-                      ),
-                    ),
+                    Text('Reason: ${log.reprintReason ?? log.retryReason}'),
                 ],
               ),
             ),
@@ -603,28 +581,23 @@ class PrintHistoryView extends StatelessWidget {
       child: Column(
         children: [
           _printRow(
-            [
-              context.tr('SR.'),
-              context.tr('PRINT ID'),
-              context.tr('TYPE'),
-              context.tr('PRINT NO.'),
-              context.tr('PRINT TIME'),
-              context.tr('PRINTER'),
-              context.tr('CREATED AT'),
-              context.tr('REASON'),
-              context.tr('STATUS')
+            const [
+              'SR.',
+              'PRINT ID',
+              'TYPE',
+              'PRINT NO.',
+              'PRINT TIME',
+              'PRINTER',
+              'CREATED AT',
+              'REASON',
+              'STATUS'
             ],
             header: true,
           ),
           for (var index = 0; index < logs.length; index++)
             _printRow([
-              AppLocalizations.localizeDigits('${index + 1}'),
+              '${index + 1}',
               logs[index].printId,
-<<<<<<< HEAD
-              logs[index].printType,
-              '${logs[index].printNumber ?? '-'}',
-              formatDateTime(logs[index].printedAt),
-=======
               context.trMaybe(logs[index].printType),
               AppLocalizations.localizeDigits(
                 '${logs[index].printNumber ?? '-'}',
@@ -640,7 +613,9 @@ class PrintHistoryView extends StatelessWidget {
               ),
 >>>>>>> parent of 052c76b (Merge branch 'main' of https://github.com/gameskmrmowbmos-byte/gameskmrmowbmos-jito)
               logs[index].printerName,
-              formatDateTime(logs[index].createdAt),
+              AppLocalizations.localizeDigits(
+                formatDateTime(logs[index].createdAt),
+              ),
               logs[index].reprintReason ?? logs[index].retryReason ?? '-',
               logs[index].status,
             ]),
@@ -737,6 +712,7 @@ class _PrintedReceiptTicket extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isIndic = _isIndicReceiptPreviewLanguage(context);
     final columnMetrics = _printedParchiColumnMetrics(
       context,
       items,
@@ -761,24 +737,44 @@ class _PrintedReceiptTicket extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text.rich(TextSpan(children: [
-                          const TextSpan(
-                            text: 'PARCHI NO. ',
+                          TextSpan(
+                            text: context.tr('PARCHI NO. '),
                             style: TextStyle(
-                                fontSize: 10, fontWeight: FontWeight.w800),
+                              fontSize: isIndic ? 11 : 10,
+                              fontWeight: isIndic
+                                  ? FontWeight.w700
+                                  : FontWeight.w800,
+                              height: isIndic ? 1.25 : null,
+                              fontFamilyFallback:
+                                  _receiptFontFallback(isIndic),
+                            ),
                           ),
                           TextSpan(
-                            text: canonicalParchiNumber(receipt.receiptNumber),
-                            style: const TextStyle(
-                                fontSize: 11, fontWeight: FontWeight.w900),
+                            text: AppLocalizations.localizeDigits(
+                              canonicalParchiNumber(receipt.receiptNumber),
+                            ),
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: isIndic
+                                  ? FontWeight.w800
+                                  : FontWeight.w900,
+                              height: isIndic ? 1.2 : null,
+                              fontFamilyFallback:
+                                  _receiptFontFallback(isIndic),
+                            ),
                           ),
                         ])),
                         const SizedBox(height: 2),
                         Text(
-                          receipt.session.toUpperCase(),
-                          style: const TextStyle(
-                              fontSize: 9,
-                              fontWeight: FontWeight.w900,
-                              height: 1),
+                          context.tr(receipt.session.toUpperCase()),
+                          style: TextStyle(
+                            fontSize: isIndic ? 10 : 9,
+                            fontWeight: isIndic
+                                ? FontWeight.w800
+                                : FontWeight.w900,
+                            height: isIndic ? 1.2 : 1,
+                            fontFamilyFallback: _receiptFontFallback(isIndic),
+                          ),
                         ),
                       ],
                     ),
@@ -786,25 +782,45 @@ class _PrintedReceiptTicket extends StatelessWidget {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text(formatParchiDate(receipt.createdAt ?? receipt.date),
-                          style: const TextStyle(
-                              fontSize: 10, fontWeight: FontWeight.w800)),
+                      Text(
+                          AppLocalizations.localizeDigits(formatParchiDate(
+                              receipt.createdAt ?? receipt.date)),
+                          style: TextStyle(
+                            fontSize: isIndic ? 11 : 10,
+                            fontWeight: isIndic
+                                ? FontWeight.w700
+                                : FontWeight.w800,
+                            height: isIndic ? 1.25 : null,
+                            fontFamilyFallback: _receiptFontFallback(isIndic),
+                          )),
                       const SizedBox(height: 4),
-                      Text(formatParchiTime(receipt.createdAt ?? receipt.date),
-                          style: const TextStyle(
-                              fontSize: 10, fontWeight: FontWeight.w800)),
+                      Text(
+                          AppLocalizations.localizeDigits(formatParchiTime(
+                              receipt.createdAt ?? receipt.date)),
+                          style: TextStyle(
+                            fontSize: isIndic ? 11 : 10,
+                            fontWeight: isIndic
+                                ? FontWeight.w700
+                                : FontWeight.w800,
+                            height: isIndic ? 1.25 : null,
+                            fontFamilyFallback: _receiptFontFallback(isIndic),
+                          )),
                     ],
                   ),
                 ],
               ),
               const SizedBox(height: 12),
               Text(
-                '${receipt.market?.name ?? '-'} - ${receipt.session}',
+                '${AppLocalizations.localizeMarketName(receipt.market?.name ?? '-')} - ${context.tr(receipt.session.toUpperCase())}',
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+                style: TextStyle(
+                  fontSize: isIndic ? 15 : 16,
+                  fontWeight: isIndic ? FontWeight.w800 : FontWeight.w900,
+                  height: isIndic ? 1.25 : null,
+                  fontFamilyFallback: _receiptFontFallback(isIndic),
+                ),
               ),
               const SizedBox(height: 8),
               const _ParchiRule(),
@@ -826,10 +842,10 @@ class _PrintedReceiptTicket extends StatelessWidget {
                 ),
               const SizedBox(height: 12),
               if (showTotal && receipt.isOtc) ...[
-                const Text(
-                  'OTC',
+                Text(
+                  context.tr('OTC'),
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: entryGreen,
                     fontSize: 12,
                     fontWeight: FontWeight.w900,
@@ -843,7 +859,9 @@ class _PrintedReceiptTicket extends StatelessWidget {
               if (showTotal) ...[
                 const SizedBox(height: 10),
                 _ParchiTotalRow(
-                  amount: receipt.totalAmountText,
+                  amount: AppLocalizations.localizeDigits(
+                    receipt.totalAmountText,
+                  ),
                   metrics: columnMetrics,
                 ),
                 const SizedBox(height: 10),
@@ -874,9 +892,9 @@ class _ParchiTotalRow extends StatelessWidget {
           children: [
             SizedBox(
               width: metrics.numberWidth,
-              child: const Text(
-                'TOTAL',
-                style: TextStyle(
+              child: Text(
+                context.tr('TOTAL'),
+                style: const TextStyle(
                   color: Color(0xFF111820),
                   fontSize: 14,
                   fontWeight: FontWeight.w900,
@@ -921,18 +939,20 @@ class _ParchiHeader extends StatelessWidget {
           children: [
             SizedBox(
               width: metrics.numberWidth,
-              child: const Text(
-                'NUMBER',
-                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900),
+              child: Text(
+                context.tr('NUMBER'),
+                style:
+                    const TextStyle(fontSize: 10, fontWeight: FontWeight.w900),
               ),
             ),
             SizedBox(width: metrics.gap),
             SizedBox(
               width: metrics.amountWidth,
-              child: const Text(
-                'AMT',
+              child: Text(
+                context.tr('AMT'),
                 textAlign: TextAlign.right,
-                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900),
+                style:
+                    const TextStyle(fontSize: 10, fontWeight: FontWeight.w900),
               ),
             ),
           ],
@@ -1019,7 +1039,7 @@ class _ParchiItemRow extends StatelessWidget {
                 child: SizedBox(
                   width: metrics.totalWidth,
                   child: Text(
-                    topLabel,
+                    context.tr(topLabel),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
@@ -1050,7 +1070,9 @@ class _ParchiItemRow extends StatelessWidget {
                           if (number.startsWith('>'))
                             const TextSpan(text: '> ', style: suffixTextStyle),
                           TextSpan(
-                            text: _displayNumberMain(number),
+                            text: AppLocalizations.localizeDigits(
+                              _displayNumberMain(number),
+                            ),
                             style: baseTextStyle,
                           ),
                           if (_displayNumberSuffix(number).isNotEmpty)
@@ -1072,7 +1094,7 @@ class _ParchiItemRow extends StatelessWidget {
                   SizedBox(
                     width: metrics.amountWidth,
                     child: Text(
-                      amount,
+                      AppLocalizations.localizeDigits(amount),
                       textAlign: TextAlign.right,
                       style: const TextStyle(
                         color: Color(0xFF111820),
@@ -1099,7 +1121,8 @@ class _ParchiItemRow extends StatelessWidget {
                       width: metrics.numberWidth,
                       child: AlignedJackpotMarker(
                         parentText: number,
-                        childText: '${entry.number} >',
+                        childText:
+                            '${AppLocalizations.localizeDigits(entry.number)} >',
                         parentStyle: baseTextStyle,
                         arrowStyle: jackpotArrowStyle,
                         childStyle: jackpotTextStyle,
@@ -1109,7 +1132,7 @@ class _ParchiItemRow extends StatelessWidget {
                     SizedBox(
                       width: metrics.amountWidth,
                       child: Text(
-                        entry.amount,
+                        AppLocalizations.localizeDigits(entry.amount),
                         textAlign: TextAlign.right,
                         style: const TextStyle(
                           color: Color(0xFF111820),
@@ -1180,15 +1203,21 @@ _PrintedParchiColumnMetrics _printedParchiColumnMetrics(
     fontWeight: FontWeight.w900,
     letterSpacing: 0,
   );
-  var numberWidth = _measurePrintedParchiText('NUMBER', headerStyle, context);
-  var amountWidth = _measurePrintedParchiText('AMT', headerStyle, context);
+  var numberWidth =
+      _measurePrintedParchiText(context.tr('NUMBER'), headerStyle, context);
+  var amountWidth =
+      _measurePrintedParchiText(context.tr('AMT'), headerStyle, context);
   numberWidth = math.max(
     numberWidth,
-    _measurePrintedParchiText('TOTAL', totalStyle, context),
+    _measurePrintedParchiText(context.tr('TOTAL'), totalStyle, context),
   );
   amountWidth = math.max(
     amountWidth,
-    _measurePrintedParchiText(totalAmount, totalStyle, context),
+    _measurePrintedParchiText(
+      AppLocalizations.localizeDigits(totalAmount),
+      totalStyle,
+      context,
+    ),
   );
 
   for (final pageItem in items) {
@@ -1207,7 +1236,9 @@ _PrintedParchiColumnMetrics _printedParchiColumnMetrics(
       amountWidth = math.max(
         amountWidth,
         _measurePrintedParchiText(
-          pageItem.item.effectiveDisplayAmount,
+          AppLocalizations.localizeDigits(
+            pageItem.item.effectiveDisplayAmount,
+          ),
           amountStyle,
           context,
         ),
@@ -1220,7 +1251,11 @@ _PrintedParchiColumnMetrics _printedParchiColumnMetrics(
       );
       amountWidth = math.max(
         amountWidth,
-        _measurePrintedParchiText(entry.amount, amountStyle, context),
+        _measurePrintedParchiText(
+          AppLocalizations.localizeDigits(entry.amount),
+          amountStyle,
+          context,
+        ),
       );
     }
   }
@@ -1241,7 +1276,10 @@ TextSpan _printedParchiNumberSpan(
   return TextSpan(
     children: [
       if (number.startsWith('>')) TextSpan(text: '> ', style: suffixStyle),
-      TextSpan(text: _displayNumberMain(number), style: numberStyle),
+      TextSpan(
+        text: AppLocalizations.localizeDigits(_displayNumberMain(number)),
+        style: numberStyle,
+      ),
       if (_displayNumberSuffix(number).isNotEmpty)
         TextSpan(text: ' ${_displayNumberSuffix(number)}', style: suffixStyle),
       if (number.endsWith('>')) TextSpan(text: ' >', style: suffixStyle),
