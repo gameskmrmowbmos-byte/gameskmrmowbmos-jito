@@ -57,14 +57,14 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
         children: [
           // Main UI Content
           Padding(
-            padding: EdgeInsets.all(isMobile ? 12 : 24),
+            padding: EdgeInsets.all(isMobile ? 8 : 24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _buildHeader(context, state, isMobile: isMobile),
-                const SizedBox(height: 16),
+                SizedBox(height: isMobile ? 8 : 16),
                 _buildFiltersBar(context, state, isMobile: isMobile),
-                const SizedBox(height: 16),
+                SizedBox(height: isMobile ? 8 : 16),
                 if (state.error != null) ...[
                   _buildErrorBanner(state.error!),
                   const SizedBox(height: 12),
@@ -123,6 +123,8 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
             children: [
               Text(
                 context.tr('SHARE RECORDS'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   color: _bluePrimary,
                   fontSize: 22,
@@ -134,6 +136,8 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
               Text(
                 context
                     .tr('Generate and export A4 record sheets as PDF or PNG'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   color: Color(0xFF64748B),
                   fontSize: 13,
@@ -165,6 +169,8 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
                     icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
                     label: Text(
                       context.tr('Download PDF'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontWeight: FontWeight.w800),
                     ),
                   ),
@@ -180,6 +186,8 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
                     icon: const Icon(Icons.download, size: 18),
                     label: Text(
                       context.tr('Download PNG'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontWeight: FontWeight.w800),
                     ),
                   ),
@@ -196,6 +204,8 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
                     icon: const Icon(Icons.share, size: 18),
                     label: Text(
                       context.tr('Share WhatsApp'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontWeight: FontWeight.w800),
                     ),
                   ),
@@ -210,7 +220,11 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
                             .read(shareRecordsControllerProvider.notifier)
                             .loadRecords(),
                     icon: const Icon(Icons.refresh, size: 18),
-                    label: Text(context.tr('Refresh')),
+                    label: Text(
+                      context.tr('Refresh'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ],
               ),
@@ -238,7 +252,7 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
     );
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: EdgeInsets.all(isMobile ? 8 : 14),
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border.all(color: const Color(0xFFE2E8F0)),
@@ -246,47 +260,56 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final mobileFilterWidth = (constraints.maxWidth - 12) / 2;
-          return Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            crossAxisAlignment: WrapCrossAlignment.end,
-            children: [
+          final fieldHeight = isMobile ? 34.0 : 42.0;
+          final labelStyle = TextStyle(
+            fontSize: isMobile ? 10 : 11,
+            fontWeight: FontWeight.w900,
+            color: const Color(0xFF475569),
+          );
+          final controlGap = isMobile ? 8.0 : 12.0;
+          final labelGap = isMobile ? 3.0 : 6.0;
+          final controls = [
               // Date Filter
               SizedBox(
-                width: isMobile ? mobileFilterWidth : 170,
+                width: isMobile ? 118 : 170,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       context.tr('DATE'),
-                      style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w900,
-                          color: Color(0xFF475569)),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: labelStyle,
                     ),
-                    const SizedBox(height: 6),
-                    OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        alignment: Alignment.centerLeft,
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        minimumSize: const Size.fromHeight(42),
+                    SizedBox(height: labelGap),
+                    SizedBox(
+                      height: fieldHeight,
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          alignment: Alignment.centerLeft,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: isMobile ? 8 : 12,
+                          ),
+                          minimumSize: Size.fromHeight(fieldHeight),
+                        ),
+                        onPressed: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: state.filterDate,
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime(2035),
+                          );
+                          if (picked != null) notifier.setFilterDate(picked);
+                        },
+                        icon: Icon(Icons.calendar_month,
+                            size: isMobile ? 15 : 18, color: _bluePrimary),
+                        label: Text(dateStr,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                fontSize: isMobile ? 12 : null,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF0F172A))),
                       ),
-                      onPressed: () async {
-                        final picked = await showDatePicker(
-                          context: context,
-                          initialDate: state.filterDate,
-                          firstDate: DateTime(2020),
-                          lastDate: DateTime(2035),
-                        );
-                        if (picked != null) notifier.setFilterDate(picked);
-                      },
-                      icon: const Icon(Icons.calendar_month,
-                          size: 18, color: _bluePrimary),
-                      label: Text(dateStr,
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF0F172A))),
                     ),
                   ],
                 ),
@@ -294,41 +317,49 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
 
           // Market Filter
           SizedBox(
-            width: isMobile ? double.infinity : 200,
+            width: isMobile ? 150 : 200,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   context.tr('MARKET'),
-                  style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w900,
-                      color: Color(0xFF475569)),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: labelStyle,
                 ),
-                const SizedBox(height: 6),
-                DropdownButtonFormField<String>(
-                  initialValue: state.selectedMarketId ?? '',
-                  isExpanded: true,
-                  decoration: const InputDecoration(
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    border: OutlineInputBorder(),
-                  ),
-                  items: [
-                    DropdownMenuItem(
-                      value: '',
-                      child: Text(context.tr('ALL MARKETS')),
+                SizedBox(height: labelGap),
+                SizedBox(
+                  height: fieldHeight,
+                  child: DropdownButtonFormField<String>(
+                    initialValue: state.selectedMarketId ?? '',
+                    isExpanded: true,
+                    isDense: true,
+                    style: TextStyle(
+                      fontSize: isMobile ? 12 : null,
+                      color: const Color(0xFF0F172A),
+                      fontWeight: FontWeight.w700,
                     ),
-                    for (final market in state.markets)
+                    decoration: const InputDecoration(
+                      contentPadding:
+                          EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                      border: OutlineInputBorder(),
+                    ),
+                    items: [
                       DropdownMenuItem(
-                        value: market.id,
-                        child: Text(
-                          AppLocalizations.localizeMarketName(market.name),
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                        value: '',
+                        child: Text(context.tr('ALL MARKETS')),
                       ),
-                  ],
-                  onChanged: (val) => notifier.setMarketId(val),
+                      for (final market in state.markets)
+                        DropdownMenuItem(
+                          value: market.id,
+                          child: Text(
+                            AppLocalizations.localizeMarketName(market.name),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                    ],
+                    onChanged: (val) => notifier.setMarketId(val),
+                  ),
                 ),
               ],
             ),
@@ -336,39 +367,47 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
 
           // Session Filter
           SizedBox(
-            width: isMobile ? double.infinity : 170,
+            width: isMobile ? 128 : 170,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   context.tr('SESSION'),
-                  style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w900,
-                      color: Color(0xFF475569)),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: labelStyle,
                 ),
-                const SizedBox(height: 6),
-                DropdownButtonFormField<String>(
-                  initialValue: state.selectedSession,
-                  isExpanded: true,
-                  decoration: const InputDecoration(
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    border: OutlineInputBorder(),
-                  ),
-                  items: [
-                    DropdownMenuItem(
-                        value: 'Open', child: Text(context.tr('OPEN'))),
-                    DropdownMenuItem(
-                        value: 'Close', child: Text(context.tr('CLOSE'))),
-                    DropdownMenuItem(
-                      value: 'All',
-                      child: Text(context.tr('ALL SESSIONS')),
+                SizedBox(height: labelGap),
+                SizedBox(
+                  height: fieldHeight,
+                  child: DropdownButtonFormField<String>(
+                    initialValue: state.selectedSession,
+                    isExpanded: true,
+                    isDense: true,
+                    style: TextStyle(
+                      fontSize: isMobile ? 12 : null,
+                      color: const Color(0xFF0F172A),
+                      fontWeight: FontWeight.w700,
                     ),
-                  ],
-                  onChanged: (val) {
-                    if (val != null) notifier.setSession(val);
-                  },
+                    decoration: const InputDecoration(
+                      contentPadding:
+                          EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                      border: OutlineInputBorder(),
+                    ),
+                    items: [
+                      DropdownMenuItem(
+                          value: 'Open', child: Text(context.tr('OPEN'))),
+                      DropdownMenuItem(
+                          value: 'Close', child: Text(context.tr('CLOSE'))),
+                      DropdownMenuItem(
+                        value: 'All',
+                        child: Text(context.tr('ALL SESSIONS')),
+                      ),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) notifier.setSession(val);
+                    },
+                  ),
                 ),
               ],
             ),
@@ -376,34 +415,62 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
 
               // Search Button
               SizedBox(
-                width: isMobile ? mobileFilterWidth : 140,
-                height: 42,
+                width: isMobile ? 92 : 140,
+                height: fieldHeight,
                 child: FilledButton.icon(
-                  style: FilledButton.styleFrom(backgroundColor: _bluePrimary),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: _bluePrimary,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isMobile ? 8 : 12,
+                    ),
+                  ),
                   onPressed: state.loading || state.exporting || state.sharing
                       ? null
                       : () => notifier.loadRecords(),
-                  icon: const Icon(Icons.search, size: 18),
+                  icon: Icon(Icons.search, size: isMobile ? 15 : 18),
                   label: Text(
                     context.tr('Search'),
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontWeight: FontWeight.w800),
+                    style: TextStyle(
+                      fontSize: isMobile ? 12 : null,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
               ),
 
               // Clear Button
               SizedBox(
-                width: isMobile ? mobileFilterWidth : 110,
-                height: 42,
+                width: isMobile ? 74 : 110,
+                height: fieldHeight,
                 child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isMobile ? 8 : 12,
+                    ),
+                  ),
                   onPressed: state.loading || state.exporting || state.sharing
                       ? null
                       : () => notifier.clearFilters(),
-                  child: Text(context.tr('Clear')),
+                  child: Text(
+                    context.tr('Clear'),
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: isMobile ? 12 : null),
+                  ),
                 ),
               ),
-            ],
+            ];
+          return SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                for (var index = 0; index < controls.length; index++) ...[
+                  if (index > 0) SizedBox(width: controlGap),
+                  controls[index],
+                ],
+              ],
+            ),
           );
         },
       ),
@@ -411,217 +478,220 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
   }
 
   Widget _buildDesktopLayout(ShareRecordsState state) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // Left Column: 1. OVERALL PREVIEW (ALL PAGES) (~28% width)
-        Expanded(
-          flex: 28,
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  context.tr('1. OVERALL PREVIEW (ALL PAGES)'),
-                  style: const TextStyle(
-                    color: _bluePrimary,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  context.tr(
-                    'Total Pages : {pages}',
-                    params: {'pages': state.totalPages},
-                  ),
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
-                ),
-                const SizedBox(height: 12),
-
-                // Vertical List of Page Thumbnails
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: state.totalPages,
-                    itemBuilder: (context, index) {
-                      final isSelected = index == state.selectedPageIndex;
-                      final pageData = state.pages[index];
-
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: InkWell(
-                          onTap: () => ref
-                              .read(shareRecordsControllerProvider.notifier)
-                              .selectPage(index),
-                          borderRadius: BorderRadius.circular(4),
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? _bluePrimary.withValues(alpha: 0.05)
-                                  : const Color(0xFFFAFAFA),
-                              border: Border.all(
-                                color: isSelected
-                                    ? _bluePrimary
-                                    : const Color(0xFFCBD5E1),
-                                width: isSelected ? 2 : 1,
-                              ),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  context.tr(
-                                    'Page {page}',
-                                    params: {'page': pageData.pageNumber},
-                                  ),
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 12,
-                                    color: isSelected
-                                        ? _bluePrimary
-                                        : const Color(0xFF334155),
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                AspectRatio(
-                                  aspectRatio: 1.414,
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      border: Border.all(
-                                          color: const Color(0xFFE2E8F0)),
-                                    ),
-                                    child: FittedBox(
-                                      fit: BoxFit.contain,
-                                      child: A4RecordPageWidget(
-                                        pageData: pageData,
-                                        width: A4RecordPageWidget.exportWidth,
-                                        ownerName: ref
-                                            .read(authProvider)
-                                            .user
-                                            ?.ownerName,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-
-                const SizedBox(height: 12),
-                // Left Column Action Buttons
-                FilledButton.icon(
-                  style: FilledButton.styleFrom(backgroundColor: _bluePrimary),
-                  onPressed: state.exporting || state.sharing
-                      ? null
-                      : () => _downloadAllPages(state),
-                  icon: const Icon(Icons.download, size: 18),
-                  label: Text(
-                    context.tr('Download All Pages (PNG)'),
-                    style: const TextStyle(fontWeight: FontWeight.w800),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  onPressed: state.exporting || state.sharing
-                      ? null
-                      : () => _downloadAllPagesPdf(state),
-                  icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
-                  label: Text(
-                    context.tr('Download All Pages (PDF)'),
-                    style: const TextStyle(fontWeight: FontWeight.w800),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                FilledButton.icon(
-                  style: FilledButton.styleFrom(backgroundColor: _greenPrimary),
-                  onPressed: state.exporting || state.sharing
-                      ? null
-                      : () => _shareAllPages(state),
-                  icon: const Icon(Icons.share, size: 18),
-                  label: Text(
-                    context.tr('Share All Pages on WhatsApp'),
-                    style: const TextStyle(fontWeight: FontWeight.w800),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  context.tr(
-                    'Note: Each page contains max 10 records arranged in 2 rows and 5 columns.',
-                  ),
-                  style: const TextStyle(
-                      fontSize: 11,
-                      color: Color(0xFF64748B),
-                      fontStyle: FontStyle.italic),
-                ),
-              ],
+    final allPagesPanel = Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            context.tr('1. OVERALL PREVIEW (ALL PAGES)'),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: _bluePrimary,
+              fontSize: 13,
+              fontWeight: FontWeight.w900,
             ),
           ),
-        ),
-
-        const SizedBox(width: 16),
-
-        // Right Column: 2. SINGLE PAGE PREVIEW (~72% width)
-        Expanded(
-          flex: 72,
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-              borderRadius: BorderRadius.circular(6),
+          const SizedBox(height: 12),
+          Text(
+            context.tr(
+              'Total Pages : {pages}',
+              params: {'pages': state.totalPages},
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _buildSinglePageHeaderControls(state),
-                const SizedBox(height: 16),
+            style: const TextStyle(
+                fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 12),
 
-                // Large Fitted Single Page Preview
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Center(
-                      child: AspectRatio(
-                        aspectRatio: 1.414,
-                        child: FittedBox(
-                          fit: BoxFit.contain,
-                          child: state.selectedPage != null
-                              ? A4RecordPageWidget(
-                                  pageData: state.selectedPage!,
+          // Vertical List of Page Thumbnails
+          Expanded(
+            child: ListView.builder(
+              itemCount: state.totalPages,
+              itemBuilder: (context, index) {
+                final isSelected = index == state.selectedPageIndex;
+                final pageData = state.pages[index];
+
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: InkWell(
+                    onTap: () => ref
+                        .read(shareRecordsControllerProvider.notifier)
+                        .selectPage(index),
+                    borderRadius: BorderRadius.circular(4),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? _bluePrimary.withValues(alpha: 0.05)
+                            : const Color(0xFFFAFAFA),
+                        border: Border.all(
+                          color: isSelected
+                              ? _bluePrimary
+                              : const Color(0xFFCBD5E1),
+                          width: isSelected ? 2 : 1,
+                        ),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            context.tr(
+                              'Page {page}',
+                              params: {'page': pageData.pageNumber},
+                            ),
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 12,
+                              color: isSelected
+                                  ? _bluePrimary
+                                  : const Color(0xFF334155),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          AspectRatio(
+                            aspectRatio: 1.414,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: Border.all(
+                                    color: const Color(0xFFE2E8F0)),
+                              ),
+                              child: FittedBox(
+                                fit: BoxFit.contain,
+                                child: A4RecordPageWidget(
+                                  pageData: pageData,
                                   width: A4RecordPageWidget.exportWidth,
                                   ownerName:
                                       ref.read(authProvider).user?.ownerName,
-                                )
-                              : const SizedBox.shrink(),
-                        ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                ),
-              ],
+                );
+              },
             ),
           ),
-        ),
+
+          const SizedBox(height: 12),
+          // Left Column Action Buttons
+          FilledButton.icon(
+            style: FilledButton.styleFrom(backgroundColor: _bluePrimary),
+            onPressed: state.exporting || state.sharing
+                ? null
+                : () => _downloadAllPages(state),
+            icon: const Icon(Icons.download, size: 18),
+            label: Text(
+              context.tr('Download All Pages (PNG)'),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: state.exporting || state.sharing
+                ? null
+                : () => _downloadAllPagesPdf(state),
+            icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
+            label: Text(
+              context.tr('Download All Pages (PDF)'),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+          ),
+          const SizedBox(height: 8),
+          FilledButton.icon(
+            style: FilledButton.styleFrom(backgroundColor: _greenPrimary),
+            onPressed: state.exporting || state.sharing
+                ? null
+                : () => _shareAllPages(state),
+            icon: const Icon(Icons.share, size: 18),
+            label: Text(
+              context.tr('Share All Pages on WhatsApp'),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            context.tr(
+              'Note: Each page contains max 10 records arranged in 2 rows and 5 columns.',
+            ),
+            style: const TextStyle(
+                fontSize: 11,
+                color: Color(0xFF64748B),
+                fontStyle: FontStyle.italic),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+
+    final singlePagePanel = Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildSinglePageHeaderControls(state),
+          const SizedBox(height: 16),
+
+          // Large Fitted Single Page Preview
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F9),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Center(
+                child: AspectRatio(
+                  aspectRatio: 1.414,
+                  child: FittedBox(
+                    fit: BoxFit.contain,
+                    child: state.selectedPage != null
+                        ? A4RecordPageWidget(
+                            pageData: state.selectedPage!,
+                            width: A4RecordPageWidget.exportWidth,
+                            ownerName: ref.read(authProvider).user?.ownerName,
+                          )
+                        : const SizedBox.shrink(),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(flex: 28, child: allPagesPanel),
+        const SizedBox(width: 16),
+        Expanded(flex: 72, child: singlePagePanel),
       ],
     );
   }
@@ -636,14 +706,20 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
       children: [
         Text(
           context.tr('2. SINGLE PAGE PREVIEW'),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: const TextStyle(
               color: _bluePrimary, fontSize: 13, fontWeight: FontWeight.w900),
         ),
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(context.tr('Page '),
-                style: const TextStyle(fontWeight: FontWeight.w700)),
+            Text(
+              context.tr('Page '),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
             SizedBox(
               width: 64,
               height: 36,
@@ -668,6 +744,8 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
             ),
             Text(
               context.tr(' of {total}', params: {'total': state.totalPages}),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontWeight: FontWeight.w700),
             ),
           ],
@@ -787,19 +865,22 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
                                 children: [
                                   Row(
                                     children: [
-                                      Text(
-                                        context.tr(
-                                          'Page {page} of {total}',
-                                          params: {
-                                            'page': pageData.pageNumber,
-                                            'total': state.totalPages,
-                                          },
+                                      Expanded(
+                                        child: Text(
+                                          context.tr(
+                                            'Page {page} of {total}',
+                                            params: {
+                                              'page': pageData.pageNumber,
+                                              'total': state.totalPages,
+                                            },
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.w900,
+                                              fontSize: 13),
                                         ),
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.w900,
-                                            fontSize: 13),
                                       ),
-                                      const Spacer(),
                                       TextButton(
                                         onPressed: () {
                                           ref
@@ -853,7 +934,11 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
                                     ? null
                                     : () => _downloadAllPages(state),
                                 icon: const Icon(Icons.download, size: 16),
-                                label: Text(context.tr('PNG')),
+                                label: Text(
+                                  context.tr('PNG'),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -866,7 +951,11 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
                                     : () => _downloadAllPagesPdf(state),
                                 icon: const Icon(Icons.picture_as_pdf_outlined,
                                     size: 16),
-                                label: Text(context.tr('PDF')),
+                                label: Text(
+                                  context.tr('PDF'),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -880,7 +969,11 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
                                     ? null
                                     : () => _shareAllPages(state),
                                 icon: const Icon(Icons.share, size: 16),
-                                label: Text(context.tr('Share')),
+                                label: Text(
+                                  context.tr('Share'),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
                             ),
                           ],
@@ -904,15 +997,21 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
                                     .previousPage(),
                             icon: const Icon(Icons.chevron_left),
                           ),
-                          Text(
-                            context.tr(
-                              'Page {page} of {total}',
-                              params: {
-                                'page': state.selectedPageIndex + 1,
-                                'total': state.totalPages,
-                              },
+                          Expanded(
+                            child: Text(
+                              context.tr(
+                                'Page {page} of {total}',
+                                params: {
+                                  'page': state.selectedPageIndex + 1,
+                                  'total': state.totalPages,
+                                },
+                              ),
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w900),
                             ),
-                            style: const TextStyle(fontWeight: FontWeight.w900),
                           ),
                           IconButton(
                             onPressed: state.selectedPageIndex >=
@@ -928,68 +1027,105 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
                       ),
                       const SizedBox(height: 8),
                       Expanded(
-                        child: InteractiveViewer(
-                          maxScale: 3.0,
-                          minScale: 1.0,
-                          child: SingleChildScrollView(
-                            child: FittedBox(
-                              fit: BoxFit.contain,
-                              child: state.selectedPage != null
-                                  ? A4RecordPageWidget(
-                                      pageData: state.selectedPage!,
-                                      width: A4RecordPageWidget.exportWidth,
-                                      ownerName: ref
-                                          .read(authProvider)
-                                          .user
-                                          ?.ownerName,
-                                    )
-                                  : const SizedBox.shrink(),
-                            ),
-                          ),
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            return InteractiveViewer(
+                              maxScale: 3.0,
+                              minScale: 1.0,
+                              child: Center(
+                                child: SizedBox(
+                                  width: constraints.maxWidth,
+                                  height: constraints.maxHeight,
+                                  child: FittedBox(
+                                    fit: BoxFit.contain,
+                                    child: state.selectedPage != null
+                                        ? A4RecordPageWidget(
+                                            pageData: state.selectedPage!,
+                                            width:
+                                                A4RecordPageWidget.exportWidth,
+                                            ownerName: ref
+                                                .read(authProvider)
+                                                .user
+                                                ?.ownerName,
+                                          )
+                                        : const SizedBox.shrink(),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: state.exporting ||
-                                      state.sharing ||
-                                      state.selectedPage == null
-                                  ? null
-                                  : () => _downloadSinglePage(state),
-                              icon: const Icon(Icons.download, size: 16),
-                              label: Text(context.tr('PNG')),
+                      const SizedBox(height: 6),
+                      SizedBox(
+                        height: 34,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  padding:
+                                      const EdgeInsets.symmetric(horizontal: 8),
+                                ),
+                                onPressed: state.exporting ||
+                                        state.sharing ||
+                                        state.selectedPage == null
+                                    ? null
+                                    : () => _downloadSinglePage(state),
+                                icon: const Icon(Icons.download, size: 15),
+                                label: Text(
+                                  context.tr('PNG'),
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: state.exporting ||
-                                      state.sharing ||
-                                      state.selectedPage == null
-                                  ? null
-                                  : () => _downloadSinglePagePdf(state),
-                              icon: const Icon(Icons.picture_as_pdf_outlined,
-                                  size: 16),
-                              label: Text(context.tr('PDF')),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  padding:
+                                      const EdgeInsets.symmetric(horizontal: 8),
+                                ),
+                                onPressed: state.exporting ||
+                                        state.sharing ||
+                                        state.selectedPage == null
+                                    ? null
+                                    : () => _downloadSinglePagePdf(state),
+                                icon: const Icon(
+                                  Icons.picture_as_pdf_outlined,
+                                  size: 15,
+                                ),
+                                label: Text(
+                                  context.tr('PDF'),
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: FilledButton.icon(
-                              style: FilledButton.styleFrom(
-                                  backgroundColor: _greenPrimary),
-                              onPressed: state.exporting ||
-                                      state.sharing ||
-                                      state.selectedPage == null
-                                  ? null
-                                  : () => _shareSinglePage(state),
-                              icon: const Icon(Icons.share, size: 16),
-                              label: Text(context.tr('Share')),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: FilledButton.icon(
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: _greenPrimary,
+                                  padding:
+                                      const EdgeInsets.symmetric(horizontal: 8),
+                                ),
+                                onPressed: state.exporting ||
+                                        state.sharing ||
+                                        state.selectedPage == null
+                                    ? null
+                                    : () => _shareSinglePage(state),
+                                icon: const Icon(Icons.share, size: 15),
+                                label: Text(
+                                  context.tr('Share'),
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -1011,6 +1147,9 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
           const SizedBox(height: 16),
           Text(
             context.tr('No Records Found'),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
             style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w900,
@@ -1021,6 +1160,9 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
             context.tr(
               'No records are available for the selected date, market and session.',
             ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
             style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
           ),
         ],
@@ -1043,6 +1185,8 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
           Expanded(
             child: Text(
               context.trMaybe(message),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                   color: Color(0xFFB91C1C), fontWeight: FontWeight.w700),
             ),
@@ -1074,6 +1218,8 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
           Expanded(
             child: Text(
               context.trMaybe(message),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                   color: Color(0xFF15803D), fontWeight: FontWeight.w700),
             ),
