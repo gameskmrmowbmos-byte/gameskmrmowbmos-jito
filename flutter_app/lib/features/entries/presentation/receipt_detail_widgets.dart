@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart' hide TextDirection;
+import 'package:matka_management/core/language/app_localizations.dart';
 import 'package:matka_management/features/entries/data/receipt_models.dart';
 import 'package:matka_management/shared/widgets/aligned_jackpot_marker.dart';
 
@@ -460,11 +461,8 @@ class ReceiptItemsTable extends StatelessWidget {
               context.trMaybe(items[index].displayType),
               AppLocalizations.localizeDigits(items[index].displayNumber),
               AppLocalizations.localizeDigits(
-                
                 items[index].effectiveDisplayAmount,
-              ,
               ),
->>>>>>> parent of 052c76b (Merge branch 'main' of https://github.com/gameskmrmowbmos-byte/gameskmrmowbmos-jito)
             ]),
         ],
       ),
@@ -551,10 +549,7 @@ class PrintHistoryView extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-<<<<<<< HEAD
-                    '${log.printType}  #${log.printNumber ?? '-'}  ${formatDateTime(log.printedAt)}',
-=======
-                        '${context.trMaybe(log.printType)}  #${AppLocalizations.localizeDigits('${log.printNumber ?? '-'}')}  ${AppLocalizations.localizeDigits(AppLocalizations.localizeDigits(formatDateTime(log.printedAt)))}',
+                    '${context.trMaybe(log.printType)}  #${AppLocalizations.localizeDigits('${log.printNumber ?? '-'}')}  ${AppLocalizations.localizeDigits(formatDateTime(log.printedAt))}',
                   ),
                   Text(
                     context.tr(
@@ -605,13 +600,6 @@ class PrintHistoryView extends StatelessWidget {
               AppLocalizations.localizeDigits(
                 formatDateTime(logs[index].printedAt),
               ),
-              AppLocalizations.localizeDigits(
-                '${logs[index].printNumber ?? '-'}',
-              ),
-              AppLocalizations.localizeDigits(
-                formatDateTime(logs[index].printedAt),
-              ),
->>>>>>> parent of 052c76b (Merge branch 'main' of https://github.com/gameskmrmowbmos-byte/gameskmrmowbmos-jito)
               logs[index].printerName,
               AppLocalizations.localizeDigits(
                 formatDateTime(logs[index].createdAt),
@@ -741,12 +729,10 @@ class _PrintedReceiptTicket extends StatelessWidget {
                             text: context.tr('PARCHI NO. '),
                             style: TextStyle(
                               fontSize: isIndic ? 11 : 10,
-                              fontWeight: isIndic
-                                  ? FontWeight.w700
-                                  : FontWeight.w800,
+                              fontWeight:
+                                  isIndic ? FontWeight.w700 : FontWeight.w800,
                               height: isIndic ? 1.25 : null,
-                              fontFamilyFallback:
-                                  _receiptFontFallback(isIndic),
+                              fontFamilyFallback: _receiptFontFallback(isIndic),
                             ),
                           ),
                           TextSpan(
@@ -755,12 +741,10 @@ class _PrintedReceiptTicket extends StatelessWidget {
                             ),
                             style: TextStyle(
                               fontSize: 11,
-                              fontWeight: isIndic
-                                  ? FontWeight.w800
-                                  : FontWeight.w900,
+                              fontWeight:
+                                  isIndic ? FontWeight.w800 : FontWeight.w900,
                               height: isIndic ? 1.2 : null,
-                              fontFamilyFallback:
-                                  _receiptFontFallback(isIndic),
+                              fontFamilyFallback: _receiptFontFallback(isIndic),
                             ),
                           ),
                         ])),
@@ -769,9 +753,8 @@ class _PrintedReceiptTicket extends StatelessWidget {
                           context.tr(receipt.session.toUpperCase()),
                           style: TextStyle(
                             fontSize: isIndic ? 10 : 9,
-                            fontWeight: isIndic
-                                ? FontWeight.w800
-                                : FontWeight.w900,
+                            fontWeight:
+                                isIndic ? FontWeight.w800 : FontWeight.w900,
                             height: isIndic ? 1.2 : 1,
                             fontFamilyFallback: _receiptFontFallback(isIndic),
                           ),
@@ -787,9 +770,8 @@ class _PrintedReceiptTicket extends StatelessWidget {
                               receipt.createdAt ?? receipt.date)),
                           style: TextStyle(
                             fontSize: isIndic ? 11 : 10,
-                            fontWeight: isIndic
-                                ? FontWeight.w700
-                                : FontWeight.w800,
+                            fontWeight:
+                                isIndic ? FontWeight.w700 : FontWeight.w800,
                             height: isIndic ? 1.25 : null,
                             fontFamilyFallback: _receiptFontFallback(isIndic),
                           )),
@@ -799,9 +781,8 @@ class _PrintedReceiptTicket extends StatelessWidget {
                               receipt.createdAt ?? receipt.date)),
                           style: TextStyle(
                             fontSize: isIndic ? 11 : 10,
-                            fontWeight: isIndic
-                                ? FontWeight.w700
-                                : FontWeight.w800,
+                            fontWeight:
+                                isIndic ? FontWeight.w700 : FontWeight.w800,
                             height: isIndic ? 1.25 : null,
                             fontFamilyFallback: _receiptFontFallback(isIndic),
                           )),

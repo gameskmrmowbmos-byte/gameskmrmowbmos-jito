@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:matka_management/core/language/app_localizations.dart';
-import 'package:matka_management/core/language/app_localizations.dart';
 import 'package:matka_management/core/widgets/loading_view.dart';
 import 'package:matka_management/features/entries/data/receipt_models.dart';
 import 'package:matka_management/features/entries/data/receipt_repository.dart';
@@ -604,11 +603,6 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-<<<<<<< HEAD
-        title: Text(context.tr('Delete Parchi permanently?')),
-        content: const Text(
-          'This will delete the parchi, all bet entries, and print history from the database.',
-=======
         title: Text(context.tr('Delete Parchi permanently?')),
         content: Text(
           'This will delete ${receipt.receiptNumber}, all bet entries, and print history from the database.',
@@ -626,10 +620,10 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
       ),
     );
     if (confirmed != true) return;
-    final deleted = await ref
-        .read(entriesControllerProvider.notifier)
-        .deleteReceipt(receipt.id);
-    if (!mounted || !deleted) return;
+    await ref
+        .read(receiptRepositoryProvider)
+        .deleteReceipt(receiptId: receipt.id);
+    if (!mounted) return;
     if (closeContext != null && closeContext.mounted) {
       Navigator.of(closeContext).pop();
     }

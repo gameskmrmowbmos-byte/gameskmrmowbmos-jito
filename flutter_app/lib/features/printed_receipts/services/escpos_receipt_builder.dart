@@ -86,6 +86,13 @@ const _entryStyle = TextStyle(
   height: 1,
   shadows: _receiptStrongTextShadow,
 );
+const _jackpotStyle = TextStyle(
+  color: _receiptInk,
+  fontSize: 25,
+  fontWeight: FontWeight.w900,
+  height: 1,
+  shadows: _receiptStrongTextShadow,
+);
 const _entryNumberStyle = TextStyle(
   color: _receiptInk,
   fontSize: 30,
@@ -346,6 +353,7 @@ Future<image_lib.Image> _buildReceiptImage({
   required List<_EscPosReceiptRow> rows,
   required String totalText,
   required bool isOtc,
+  required bool showTotal,
 }) async {
   final metrics = _imageTableMetrics(rows, totalText);
   final height = _layoutReceiptImage(
@@ -358,6 +366,7 @@ Future<image_lib.Image> _buildReceiptImage({
     rows: rows,
     totalText: totalText,
     isOtc: isOtc,
+    showTotal: showTotal,
     metrics: metrics,
   ).ceil();
 
@@ -373,6 +382,7 @@ Future<image_lib.Image> _buildReceiptImage({
     rows: rows,
     totalText: totalText,
     isOtc: isOtc,
+    showTotal: showTotal,
     metrics: metrics,
     height: height.toDouble(),
   );
@@ -401,6 +411,7 @@ double _layoutReceiptImage({
   required List<_EscPosReceiptRow> rows,
   required String totalText,
   required bool isOtc,
+  required bool showTotal,
   required _ReceiptImageMetrics metrics,
   double? height,
 }) {
@@ -568,6 +579,7 @@ double _layoutReceiptImage({
   _paintRule(canvas, y);
   y += _receiptRuleHeight + 22;
 
+  if (showTotal) {
     _paintTableText(
       canvas,
       AppLocalizations.trCurrent('TOTAL'),
@@ -610,8 +622,8 @@ _ReceiptImageMetrics _imageTableMetrics(
   List<_EscPosReceiptRow> rows,
   String totalText,
 ) {
-  var numberWidth =
-      _measureText(AppLocalizations.trCurrent('NUMBER'), _receiptTableHeaderStyle);
+  var numberWidth = _measureText(
+      AppLocalizations.trCurrent('NUMBER'), _receiptTableHeaderStyle);
   var amountWidth =
       _measureText(AppLocalizations.trCurrent('AMT'), _receiptTableHeaderStyle);
   numberWidth = _maxDouble(
@@ -780,6 +792,71 @@ List<_EscPosReceiptRow> _buildRows(
     ));
   }
   return rows;
+}
+
+List<List<_EscPosReceiptRow>> _buildRowPages(
+  List<ReceiptItemModel> items,
+  String receiptSession,
+) {
+  final rows = _buildRows(items, receiptSession);
+  if (rows.isEmpty) return [const <_EscPosReceiptRow>[]];
+
+  final pages = <List<_EscPosReceiptRow>>[];
+  var currentPage = <_EscPosReceiptRow>[];
+  var currentEntryCount = 0;
+
+  void pushPage() {
+    if (currentPage.isNotEmpty) pages.add(currentPage);
+    currentPage = <_EscPosReceiptRow>[];
+    currentEntryCount = 0;
+  }
+
+  for (final row in rows) {
+    if (currentEntryCount >= _parchiEntriesPerPage) pushPage();
+    final availableForJackpots = _parchiEntriesPerPage - currentEntryCount - 1;
+    final mainJackpotCount = row.jackpotEntries.length < availableForJackpots
+        ? row.jackpotEntries.length
+        : availableForJackpots;
+    currentPage.add(_EscPosReceiptRow(
+      number: row.number,
+      amount: row.amount,
+      showMainEntry: row.showMainEntry,
+      topLabel: row.topLabel,
+      jackpotEntries: row.jackpotEntries.sublist(0, mainJackpotCount),
+    ));
+    currentEntryCount += 1 + mainJackpotCount;
+
+    var jackpotIndex = mainJackpotCount;
+    while (jackpotIndex < row.jackpotEntries.length) {
+      if (currentEntryCount >= _parchiEntriesPerPage) pushPage();
+      final available = _parchiEntriesPerPage - currentEntryCount;
+      final nextIndex = (jackpotIndex + available).clamp(
+        jackpotIndex + 1,
+        row.jackpotEntries.length,
+      );
+      currentPage.add(_EscPosReceiptRow(
+        number: row.number,
+        amount: row.amount,
+        showMainEntry: false,
+        jackpotEntries: row.jackpotEntries.sublist(jackpotIndex, nextIndex),
+      ));
+      currentEntryCount += nextIndex - jackpotIndex;
+      jackpotIndex = nextIndex;
+    }
+  }
+  pushPage();
+  return pages;
+}
+
+String _parchiNoForPage(String parchiNo, int pageIndex) {
+  if (pageIndex <= 0) return parchiNo;
+  final match = RegExp(r'^(.*?)(\d+)$').firstMatch(parchiNo.trim());
+  if (match == null) return '$parchiNo-${pageIndex + 1}';
+  final prefix = match.group(1) ?? '';
+  final numberText = match.group(2) ?? '';
+  final number = int.tryParse(numberText);
+  if (number == null) return '$parchiNo-${pageIndex + 1}';
+  return '$prefix${(number + pageIndex).toString().padLeft(numberText.length, '0')}';
 }
 
 String _jackpotArrowFor(String parentNumber, String jackpotNumber) {
