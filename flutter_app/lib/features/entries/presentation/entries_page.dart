@@ -183,163 +183,129 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        NumberedTitle('1', context.tr('Filters')),
-        const SizedBox(height: 10),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final gap = compact ? 8.0 : 10.0;
-            final gridWidth = compact
-                ? constraints.maxWidth
-                : constraints.maxWidth.clamp(0, 430).toDouble();
-            final itemWidth = (gridWidth - gap) / 2;
-            return Align(
-              alignment: Alignment.centerLeft,
-              child: SizedBox(
-                width: gridWidth,
-                child: Wrap(
-                  spacing: gap,
-                  runSpacing: 9,
-                  crossAxisAlignment: WrapCrossAlignment.end,
-                  children: [
-                    _DateField(
-                      label: context.tr('From Date'),
-                      value: filters.fromDate,
-                      width: itemWidth,
-                      onPick: (date) =>
-                          _setFilters(filters.copyWith(fromDate: date)),
-                    ),
-                    _DateField(
-                      label: context.tr('To Date'),
-                      value: filters.toDate,
-                      width: itemWidth,
-                      onPick: (date) =>
-                          _setFilters(filters.copyWith(toDate: date)),
-                    ),
-                    _SelectField(
-                      label: context.tr('Market'),
-                      width: itemWidth,
-                      value: filters.marketId ?? '',
-                      items: {
-                        '': context.tr('All Markets'),
-                        for (final market in state.markets)
-                          market.id:
-                              AppLocalizations.localizeMarketName(market.name),
-                      },
-                      onChanged: (value) => _setFilters(
-                        filters.copyWith(
-                          marketId: value,
-                          clearMarket: value == null || value.isEmpty,
-                        ),
-                      ),
-                    ),
-                    _SelectField(
-                      label: context.tr('Session'),
-                      width: itemWidth,
-                      value: filters.session ?? '',
-                      items: {
-                        '': context.tr('All Sessions'),
-                        'Open': context.tr('Open'),
-                        'Close': context.tr('Close')
-                      },
-                      onChanged: (value) => _setFilters(
-                        filters.copyWith(
-                          session: value,
-                          clearSession: value == null || value.isEmpty,
-                        ),
-                      ),
-                    ),
-                    _SelectField(
-                      label: context.tr('Status'),
-                      width: itemWidth,
-                      value: filters.receiptStatus ?? '',
-                      items: {
-                        '': context.tr('All Status'),
-                        'Active': context.tr('Active'),
-                        'Cancelled': context.tr('Cancelled'),
-                      },
-                      onChanged: (value) => _setFilters(
-                        filters.copyWith(
-                          receiptStatus: value,
-                          clearReceiptStatus: value == null || value.isEmpty,
-                        ),
-                      ),
-                    ),
-                    _FilterTextField(
-                      label: context.tr('Parchi No.'),
-                      controller: _receiptController,
-                      width: itemWidth,
-                      onChanged: (value) => _setFilters(
-                        filters.copyWith(receiptNumber: value),
-                      ),
-                    ),
-                    _FilterTextField(
-                      label: context.tr('Number'),
-                      controller: _numberController,
-                      width: itemWidth,
-                      onChanged: (value) =>
-                          _setFilters(filters.copyWith(number: value)),
-                    ),
-                    _SelectField(
-                      label: context.tr('Print Status'),
-                      width: itemWidth,
-                      value: filters.printStatus ?? '',
-                      items: {
-                        '': context.tr('All'),
-                        'Printed': context.tr('Printed'),
-                        'Not Printed': context.tr('Not Printed'),
-                      },
-                      onChanged: (value) => _setFilters(
-                        filters.copyWith(
-                          printStatus: value,
-                          clearPrintStatus: value == null || value.isEmpty,
-                        ),
-                      ),
-                    ),
-                    SizedBox(
-                      width: itemWidth,
-                      height: 38,
-                      child: FilledButton.icon(
-                        style: FilledButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                        ),
-                        onPressed: state.loading
-                            ? null
-                            : () => ref
-                                .read(entriesControllerProvider.notifier)
-                                .search(),
-                        icon: const Icon(Icons.search, size: 16),
-                        label: Text(
-                          context.tr('Search'),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ),
-                    SizedBox(
-                      width: itemWidth,
-                      height: 38,
-                      child: OutlinedButton.icon(
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                        ),
-                        onPressed: state.loading
-                            ? null
-                            : () => ref
-                                .read(entriesControllerProvider.notifier)
-                                .clearFilters(),
-                        icon: const Icon(Icons.refresh, size: 16),
-                        label: Text(
-                          context.tr('Clear'),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ),
-                  ],
+        const NumberedTitle('1', 'Filters'),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 14,
+          runSpacing: 12,
+          crossAxisAlignment: WrapCrossAlignment.end,
+          children: [
+            _DateField(
+              label: 'From Date',
+              value: filters.fromDate,
+              width: compact ? double.infinity : 150,
+              onPick: (date) => _setFilters(filters.copyWith(fromDate: date)),
+            ),
+            _DateField(
+              label: 'To Date',
+              value: filters.toDate,
+              width: compact ? double.infinity : 150,
+              onPick: (date) => _setFilters(filters.copyWith(toDate: date)),
+            ),
+            _SelectField(
+              label: 'Market',
+              width: compact ? double.infinity : 160,
+              value: filters.marketId ?? '',
+              items: {
+                '': 'All Markets',
+                for (final market in state.markets) market.id: market.name,
+              },
+              onChanged: (value) => _setFilters(
+                filters.copyWith(
+                  marketId: value,
+                  clearMarket: value == null || value.isEmpty,
                 ),
               ),
-            );
-          },
+            ),
+            _SelectField(
+              label: 'Session',
+              width: compact ? double.infinity : 140,
+              value: filters.session ?? '',
+              items: const {
+                '': 'All Sessions',
+                'Open': 'Open',
+                'Close': 'Close'
+              },
+              onChanged: (value) => _setFilters(
+                filters.copyWith(
+                  session: value,
+                  clearSession: value == null || value.isEmpty,
+                ),
+              ),
+            ),
+            _SelectField(
+              label: 'Status',
+              width: compact ? double.infinity : 140,
+              value: filters.receiptStatus ?? '',
+              items: const {
+                '': 'All Status',
+                'Active': 'Active',
+                'Cancelled': 'Cancelled',
+              },
+              onChanged: (value) => _setFilters(
+                filters.copyWith(
+                  receiptStatus: value,
+                  clearReceiptStatus: value == null || value.isEmpty,
+                ),
+              ),
+            ),
+            _FilterTextField(
+              label: 'Parchi No.',
+              controller: _receiptController,
+              width: compact ? double.infinity : 160,
+              onChanged: (value) => _setFilters(
+                filters.copyWith(receiptNumber: value),
+              ),
+            ),
+            _FilterTextField(
+              label: 'Number',
+              controller: _numberController,
+              width: compact ? double.infinity : 150,
+              onChanged: (value) =>
+                  _setFilters(filters.copyWith(number: value)),
+            ),
+            _SelectField(
+              label: 'Print Status',
+              width: compact ? double.infinity : 190,
+              value: filters.printStatus ?? '',
+              items: const {
+                '': 'All',
+                'Printed': 'Printed',
+                'Not Printed': 'Not Printed',
+              },
+              onChanged: (value) => _setFilters(
+                filters.copyWith(
+                  printStatus: value,
+                  clearPrintStatus: value == null || value.isEmpty,
+                ),
+              ),
+            ),
+            SizedBox(
+              width: compact ? double.infinity : 130,
+              height: 42,
+              child: FilledButton.icon(
+                onPressed: state.loading
+                    ? null
+                    : () =>
+                        ref.read(entriesControllerProvider.notifier).search(),
+                icon: const Icon(Icons.search),
+                label: const Text('Search'),
+              ),
+            ),
+            SizedBox(
+              width: compact ? double.infinity : 130,
+              height: 42,
+              child: OutlinedButton.icon(
+                onPressed: state.loading
+                    ? null
+                    : () => ref
+                        .read(entriesControllerProvider.notifier)
+                        .clearFilters(),
+                icon: const Icon(Icons.refresh),
+                label: const Text('Clear'),
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -388,16 +354,13 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
                       .selectReceipt(receipt.id),
                   child: _tableRow(
                     [
-                      AppLocalizations.localizeDigits(
-                        '${(state.page - 1) * state.limit + index + 1}',
-                      ),
+                      '${(state.page - 1) * state.limit + index + 1}',
                       receipt.receiptNumber,
                       formatDateTime(_receiptCreatedAt(receipt)),
-                      AppLocalizations.localizeMarketName(
-                          receipt.market?.name ?? '-'),
-                      context.tr(receipt.session.toUpperCase()),
-                      AppLocalizations.localizeDigits('${receipt.totalItems}'),
-                      '${AppLocalizations.localizeDigits(receipt.totalAmountText)}${receipt.isOtc ? ' ${context.tr('OTC')}' : ''}',
+                      receipt.market?.name ?? '-',
+                      receipt.session.toUpperCase(),
+                      '${receipt.totalItems}',
+                      '${receipt.totalAmountText}${receipt.isOtc ? ' OTC' : ''}',
                       receipt.printStatus,
                       receipt.status,
                       '${receipt.reprintCount}',
@@ -496,7 +459,7 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
         ReceiptDetailsPanel(
           detail: detail,
           cancelling: state.cancelling,
-          onCancel: () => _confirmDelete(detail),
+          onCancel: () => _confirmDelete(),
           onViewReprints: () => _showReprintDetails(detail),
         ),
         const SizedBox(height: 14),
@@ -573,7 +536,7 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
                 ReceiptDetailsPanel(
                   detail: detail,
                   cancelling: state.cancelling,
-                  onCancel: () => _confirmDelete(detail, closeContext: context),
+                  onCancel: () => _confirmDelete(),
                   onViewReprints: () => _showReprintDetails(detail),
                 ),
                 const SizedBox(height: 16),
@@ -594,17 +557,13 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
     );
   }
 
-  Future<void> _confirmDelete(
-    ReceiptDetail detail, {
-    BuildContext? closeContext,
-  }) async {
-    final receipt = detail.receipt;
+  Future<void> _confirmDelete() async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Parchi permanently?'),
-        content: Text(
-          'This will delete ${receipt.receiptNumber}, all bet entries, and print history from the database.',
+        content: const Text(
+          'This will delete the parchi, all bet entries, and print history from the database.',
         ),
         actions: [
           TextButton(
@@ -619,16 +578,7 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
       ),
     );
     if (confirmed != true) return;
-    final deleted = await ref
-        .read(entriesControllerProvider.notifier)
-        .deleteReceipt(receipt.id);
-    if (!mounted || !deleted) return;
-    if (closeContext != null && closeContext.mounted) {
-      Navigator.of(closeContext).pop();
-    }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Parchi ${receipt.receiptNumber} deleted')),
-    );
+    await ref.read(entriesControllerProvider.notifier).deleteSelected();
   }
 
   Future<ReceiptDetail> _detailForReprintPopup(ReceiptSummary receipt) async {
@@ -806,15 +756,11 @@ class _ReprintDetailsDialog extends StatelessWidget {
                         const SizedBox(height: 8),
                         _ReprintDetailLine(
                           icon: Icons.calendar_month_outlined,
-                          text: AppLocalizations.localizeDigits(
-                            formatDate(printedAt),
-                          ),
+                          text: formatDate(printedAt),
                         ),
                         _ReprintDetailLine(
                           icon: Icons.schedule,
-                          text: AppLocalizations.localizeDigits(
-                            formatTime(printedAt),
-                          ),
+                          text: formatTime(printedAt),
                         ),
                         _ReprintDetailLine(
                           icon: Icons.notes_outlined,
@@ -1052,11 +998,7 @@ class _ReceiptCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          Text(
-            AppLocalizations.localizeDigits(
-              formatDateTime(_receiptCreatedAt(receipt)),
-            ),
-          ),
+          Text(formatDateTime(_receiptCreatedAt(receipt))),
           const SizedBox(height: 5),
           Text(
               '${receipt.market?.name ?? '-'} - ${receipt.session.toUpperCase()}'),

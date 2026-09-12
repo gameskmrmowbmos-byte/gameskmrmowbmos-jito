@@ -180,37 +180,21 @@ class EntriesController extends StateNotifier<EntriesState> {
     }
   }
 
-  Future<bool> deleteSelected() async {
+  Future<void> deleteSelected() async {
     final selected = state.selected;
-    if (selected == null) return false;
-    return deleteReceipt(selected.receipt.id);
-  }
-
-  Future<bool> deleteReceipt(String receiptId) async {
-    if (receiptId.trim().isEmpty) return false;
-    final selectedReceiptId = state.selected?.receipt.id;
+    if (selected == null) return;
     state = state.copyWith(cancelling: true, clearError: true);
     try {
-      await _repository.deleteReceipt(receiptId: receiptId);
-      final pageToLoad = _pageAfterDeletingOne();
+      await _repository.deleteReceipt(receiptId: selected.receipt.id);
       state = state.copyWith(
         cancelling: false,
-        clearSelected: selectedReceiptId == receiptId,
+        clearSelected: true,
         clearError: true,
       );
-      await loadReceipts(page: pageToLoad);
-      return true;
+      await loadReceipts(page: state.page);
     } on Object catch (error) {
       state = state.copyWith(cancelling: false, error: error.toString());
-      return false;
     }
-  }
-
-  int _pageAfterDeletingOne() {
-    final remainingTotal = state.total > 0 ? state.total - 1 : 0;
-    final nextTotalPages =
-        remainingTotal == 0 ? 1 : ((remainingTotal - 1) ~/ state.limit) + 1;
-    return state.page > nextTotalPages ? nextTotalPages : state.page;
   }
 
   Future<void> reprintSelected(String reason) async {

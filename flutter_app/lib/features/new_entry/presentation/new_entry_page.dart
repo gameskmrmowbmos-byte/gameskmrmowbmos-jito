@@ -26,11 +26,6 @@ const _receiptAlphabetShadow = <Shadow>[
 const _receiptGreenAlphabetShadow = <Shadow>[
   Shadow(color: Color(0xFF108438), offset: Offset(0.18, 0), blurRadius: 0),
 ];
-const _previewIndicFontFallback = <String>[
-  'Noto Sans Devanagari',
-  'Nirmala UI',
-  'Mangal',
-];
 
 class NewEntryPage extends ConsumerStatefulWidget {
   const NewEntryPage({super.key});
@@ -6497,7 +6492,6 @@ class _ReceiptPreviewTicket extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isIndic = _isIndicPreviewLanguage(context);
     final amountTotal = AppLocalizations.localizeDigits(
       _formatAmount(pageTotalAmount),
     );
@@ -6536,31 +6530,15 @@ class _ReceiptPreviewTicket extends StatelessWidget {
                               TextSpan(
                                 text: context.tr('PARCHI NO. '),
                                 style: TextStyle(
-                                  fontSize: compact
-                                      ? isIndic
-                                          ? 11
-                                          : 10
-                                      : isIndic
-                                          ? 13
-                                          : 12,
-                                  fontWeight: isIndic
-                                      ? FontWeight.w700
-                                      : FontWeight.w800,
-                                  height: isIndic ? 1.25 : null,
-                                  fontFamilyFallback:
-                                      _previewFontFallback(isIndic),
+                                  fontSize: compact ? 10 : 12,
+                                  fontWeight: FontWeight.w800,
                                 ),
                               ),
                               TextSpan(
                                 text: AppLocalizations.localizeDigits(parchiNo),
                                 style: TextStyle(
                                   fontSize: compact ? 11 : 13,
-                                  fontWeight: isIndic
-                                      ? FontWeight.w800
-                                      : FontWeight.w900,
-                                  height: isIndic ? 1.2 : null,
-                                  fontFamilyFallback:
-                                      _previewFontFallback(isIndic),
+                                  fontWeight: FontWeight.w900,
                                   letterSpacing: 0,
                                 ),
                               ),
@@ -6576,16 +6554,9 @@ class _ReceiptPreviewTicket extends StatelessWidget {
                           context.trMaybe(session.toUpperCase()),
                           style: TextStyle(
                             color: const Color(0xFF111820),
-                            fontSize: compact
-                                ? isIndic
-                                    ? 10
-                                    : 9
-                                : 11,
-                            fontWeight: isIndic
-                                ? FontWeight.w800
-                                : FontWeight.w900,
-                            height: isIndic ? 1.2 : 1,
-                            fontFamilyFallback: _previewFontFallback(isIndic),
+                            fontSize: compact ? 9 : 11,
+                            fontWeight: FontWeight.w900,
+                            height: 1,
                             letterSpacing: 0,
                           ),
                         ),
@@ -6601,17 +6572,8 @@ class _ReceiptPreviewTicket extends StatelessWidget {
                         ),
                         style: TextStyle(
                           color: const Color(0xFF111820),
-                          fontSize: compact
-                              ? isIndic
-                                  ? 11
-                                  : 10
-                              : isIndic
-                                  ? 12
-                                  : 11,
-                          fontWeight:
-                              isIndic ? FontWeight.w700 : FontWeight.w800,
-                          height: isIndic ? 1.25 : null,
-                          fontFamilyFallback: _previewFontFallback(isIndic),
+                          fontSize: compact ? 10 : 11,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -6621,17 +6583,8 @@ class _ReceiptPreviewTicket extends StatelessWidget {
                         ),
                         style: TextStyle(
                           color: const Color(0xFF111820),
-                          fontSize: compact
-                              ? isIndic
-                                  ? 11
-                                  : 10
-                              : isIndic
-                                  ? 12
-                                  : 11,
-                          fontWeight:
-                              isIndic ? FontWeight.w700 : FontWeight.w800,
-                          height: isIndic ? 1.25 : null,
-                          fontFamilyFallback: _previewFontFallback(isIndic),
+                          fontSize: compact ? 10 : 11,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
                     ],
@@ -6648,16 +6601,8 @@ class _ReceiptPreviewTicket extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: const Color(0xFF111820),
-                  fontSize: compact
-                      ? isIndic
-                          ? 15
-                          : 16
-                      : isIndic
-                          ? 17
-                          : 18,
-                  fontWeight: isIndic ? FontWeight.w800 : FontWeight.w900,
-                  height: isIndic ? 1.25 : null,
-                  fontFamilyFallback: _previewFontFallback(isIndic),
+                  fontSize: compact ? 16 : 18,
+                  fontWeight: FontWeight.w900,
                   letterSpacing: 0,
                 ),
               ),
@@ -7283,15 +7228,6 @@ class _PreviewRule extends StatelessWidget {
 String _previewMarketTitle(String marketSession) {
   final title = marketSession.split(' - ').first.trim();
   return (title.isEmpty ? '-' : title).toUpperCase();
-}
-
-bool _isIndicPreviewLanguage(BuildContext context) {
-  final code = Localizations.localeOf(context).languageCode;
-  return code == AppLanguage.hindi.code || code == AppLanguage.marathi.code;
-}
-
-List<String>? _previewFontFallback(bool isIndic) {
-  return isIndic ? _previewIndicFontFallback : null;
 }
 
 class _TotalsBar extends StatelessWidget {
