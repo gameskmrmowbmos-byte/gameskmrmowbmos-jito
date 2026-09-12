@@ -157,27 +157,35 @@ class EscPosReceiptBuilder {
         : storedMarket?.isNotEmpty == true
             ? storedMarket!
             : '-';
-    final rows = _buildRows(detail.consolidatedItems, receipt.session);
-    final total = detail.consolidatedItems.fold<num>(
-          0,
-          (sum, item) => sum + item.amount,
-        ) *
-        (receipt.isOtc ? 2 : 1);
-    final totalText = AppLocalizations.localizeDigits(_formatAmount(total));
-
-    final receiptImage = await _buildReceiptImage(
-      parchi: parchi,
-      createdAt: createdAt,
-      session: session,
-      market: AppLocalizations.localizeMarketName(market.toUpperCase()),
-      ownerName: ownerName,
-      rows: rows,
-      totalText: totalText,
+    final rowPages = _buildRowPages(detail.consolidatedItems, receipt.session);
+    final pageTotals = computeReceiptPageTotals(
+      detail.consolidatedItems,
       isOtc: receipt.isOtc,
     );
-    bytes.addAll(generator.imageRaster(receiptImage, align: PosAlign.center));
-    bytes.addAll(generator.feed(3));
-    bytes.addAll(generator.cut());
+
+    for (var pageIndex = 0; pageIndex < rowPages.length; pageIndex++) {
+      final pageParchiNo = _parchiNoForPage(parchi, pageIndex);
+      final pageTotalText = AppLocalizations.localizeDigits(
+        _formatAmount(pageTotals[pageIndex]),
+      );
+      final receiptImage = await _buildReceiptImage(
+        parchi: pageParchiNo,
+        createdAt: createdAt,
+        session: session,
+        market: AppLocalizations.localizeMarketName(market.toUpperCase()),
+        ownerName: ownerName,
+        rows: rowPages[pageIndex],
+        totalText: pageTotalText,
+        isOtc: receipt.isOtc,
+        showTotal: pageIndex == rowPages.length - 1,
+      );
+      bytes.addAll(generator.imageRaster(receiptImage, align: PosAlign.center));
+      bytes.addAll(generator.feed(_receiptFeedBeforeCut));
+      if (pageIndex != rowPages.length - 1) {
+        bytes.addAll(generator.cut(mode: PosCutMode.full));
+      }
+    }
+    bytes.addAll(generator.cut(mode: PosCutMode.full));
     return bytes;
   }
 
