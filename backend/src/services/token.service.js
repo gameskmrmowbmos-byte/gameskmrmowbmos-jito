@@ -3,19 +3,13 @@ const jwt = require('jsonwebtoken');
 const env = require('../config/env');
 const ApiError = require('../utils/apiError');
 
-function deviceHash(deviceId) {
-  if (!deviceId) return null;
-  return crypto.createHash('sha256').update(`${deviceId}`).digest('hex');
-}
-
-function signAccessToken(user, deviceId) {
+function signAccessToken(user) {
   return jwt.sign(
     {
       sub: user._id.toString(),
       role: user.role,
       type: 'access',
       tokenVersion: user.tokenVersion || 0,
-      deviceIdHash: deviceHash(deviceId),
     },
     env.accessSecret,
     { expiresIn: env.accessExpiresIn, issuer: 'matka-management-api' },
@@ -29,7 +23,7 @@ function signRefreshToken(user, deviceId) {
       type: 'refresh',
       tokenId: crypto.randomUUID(),
       tokenVersion: user.tokenVersion || 0,
-      deviceIdHash: deviceHash(deviceId),
+      deviceId: deviceId || null,
     },
     env.refreshSecret,
     { expiresIn: env.refreshExpiresIn, issuer: 'matka-management-api' },
@@ -54,7 +48,7 @@ function verifyToken(token, type) {
 
 function createTokenPair(user, deviceId) {
   return {
-    accessToken: signAccessToken(user, deviceId),
+    accessToken: signAccessToken(user),
     refreshToken: signRefreshToken(user, deviceId),
   };
 }
@@ -66,3 +60,4 @@ module.exports = {
   verifyAccessToken: (token) => verifyToken(token, 'access'),
   verifyRefreshToken: (token) => verifyToken(token, 'refresh'),
 };
+
