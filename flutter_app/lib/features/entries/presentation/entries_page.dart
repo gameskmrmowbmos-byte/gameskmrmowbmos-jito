@@ -63,8 +63,8 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
       children: [
         EntryPageHeader(
           icon: Icons.receipt_long_outlined,
-          title: context.tr('Entries'),
-          subtitle: context.tr('View and manage all saved entries'),
+          title: 'Entries',
+          subtitle: 'View and manage all saved entries',
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -99,7 +99,7 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    NumberedTitle('2', context.tr('Entries List')),
+                    const NumberedTitle('2', 'Entries List'),
                     const SizedBox(height: 10),
                     Expanded(child: _entriesTable(state)),
                     const SizedBox(height: 12),
@@ -113,7 +113,7 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    NumberedTitle('3', context.tr('Parchi Details')),
+                    const NumberedTitle('3', 'Parchi Details'),
                     const SizedBox(height: 10),
                     Expanded(child: _detailsPanel(state)),
                   ],
@@ -146,7 +146,7 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
           const SizedBox(height: 12),
           _filters(state, compact: true),
           const SizedBox(height: 18),
-          NumberedTitle('2', context.tr('Entries List')),
+          const NumberedTitle('2', 'Entries List'),
           const SizedBox(height: 10),
           if (state.error != null) ...[
             _InlineMessage(state.error!, color: entryRed),
@@ -184,7 +184,7 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        NumberedTitle('1', context.tr('Filters')),
+        const NumberedTitle('1', 'Filters'),
         const SizedBox(height: 10),
         LayoutBuilder(
           builder: (context, constraints) {
@@ -391,9 +391,13 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
                       .selectReceipt(receipt.id),
                   child: _tableRow(
                     [
-                      '${(state.page - 1) * state.limit + index + 1}',
+                      AppLocalizations.localizeDigits(
+                        '${(state.page - 1) * state.limit + index + 1}',
+                      ),
                       receipt.receiptNumber,
-                      formatDateTime(_receiptCreatedAt(receipt)),
+                      AppLocalizations.localizeDigits(
+                        formatDateTime(_receiptCreatedAt(receipt)),
+                      ),
                       AppLocalizations.localizeMarketName(
                           receipt.market?.name ?? '-'),
                       context.tr(receipt.session.toUpperCase()),
@@ -501,11 +505,11 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
           onViewReprints: () => _showReprintDetails(detail),
         ),
         const SizedBox(height: 14),
-        NumberedTitle('4', context.tr('Parchi Preview')),
+        const NumberedTitle('4', 'Parchi Preview'),
         const SizedBox(height: 8),
         PrintedReceiptPreview(detail: detail),
         const SizedBox(height: 14),
-        NumberedTitle('5', context.tr('Print History')),
+        const NumberedTitle('5', 'Print History'),
         const SizedBox(height: 8),
         PrintHistoryView(logs: detail.printLogs),
         const SizedBox(height: 10),
@@ -584,11 +588,11 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
                   onViewReprints: () => _showReprintDetails(detail),
                 ),
                 const SizedBox(height: 16),
-                NumberedTitle('4', context.tr('Parchi Preview')),
+                const NumberedTitle('4', 'Parchi Preview'),
                 const SizedBox(height: 8),
                 PrintedReceiptPreview(detail: detail),
                 const SizedBox(height: 14),
-                NumberedTitle('5', context.tr('Print History')),
+                const NumberedTitle('5', 'Print History'),
                 const SizedBox(height: 8),
                 PrintHistoryView(logs: detail.printLogs, compact: true),
                 const SizedBox(height: 10),
@@ -812,11 +816,15 @@ class _ReprintDetailsDialog extends StatelessWidget {
                         const SizedBox(height: 8),
                         _ReprintDetailLine(
                           icon: Icons.calendar_month_outlined,
-                          text: formatDate(printedAt),
+                          text: AppLocalizations.localizeDigits(
+                            formatDate(printedAt),
+                          ),
                         ),
                         _ReprintDetailLine(
                           icon: Icons.schedule,
-                          text: formatTime(printedAt),
+                          text: AppLocalizations.localizeDigits(
+                            formatTime(printedAt),
+                          ),
                         ),
                         _ReprintDetailLine(
                           icon: Icons.notes_outlined,
@@ -1081,7 +1089,11 @@ class _ReceiptCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          Text(formatDateTime(_receiptCreatedAt(receipt))),
+          Text(
+            AppLocalizations.localizeDigits(
+              formatDateTime(_receiptCreatedAt(receipt)),
+            ),
+          ),
           const SizedBox(height: 5),
           Text(
             '${AppLocalizations.localizeMarketName(receipt.market?.name ?? '-')} - ${context.tr(receipt.session.toUpperCase())}',

@@ -26,6 +26,15 @@ const _receiptStrongTextShadow = <ui.Shadow>[
   ui.Shadow(color: _receiptInk, offset: ui.Offset(0.45, 0), blurRadius: 0),
   ui.Shadow(color: _receiptInk, offset: ui.Offset(0, 0.45), blurRadius: 0),
 ];
+const _receiptHeaderTextShadow = <ui.Shadow>[
+  ui.Shadow(color: _receiptInk, offset: ui.Offset(0.32, 0), blurRadius: 0),
+  ui.Shadow(color: _receiptInk, offset: ui.Offset(0, 0.32), blurRadius: 0),
+];
+const _receiptIndicFontFallback = <String>[
+  'Noto Sans Devanagari',
+  'Nirmala UI',
+  'Mangal',
+];
 
 const _topLabelStyle = TextStyle(
   color: _receiptInk,
@@ -133,6 +142,89 @@ const _instructionStyle = TextStyle(
   fontWeight: FontWeight.w900,
   height: 1.2,
 );
+
+bool get _isIndicReceiptLanguage {
+  final code = AppLanguageStore.current.code;
+  return code == AppLanguage.hindi.code || code == AppLanguage.marathi.code;
+}
+
+TextStyle get _receiptTopLabelStyle => _isIndicReceiptLanguage
+    ? _topLabelStyle.copyWith(
+        fontSize: 18,
+        fontWeight: FontWeight.w800,
+        height: 1.25,
+        shadows: _receiptHeaderTextShadow,
+        fontFamilyFallback: _receiptIndicFontFallback,
+      )
+    : _topLabelStyle.copyWith(shadows: _receiptHeaderTextShadow);
+
+TextStyle get _receiptTopNumberStyle => _isIndicReceiptLanguage
+    ? _topNumberStyle.copyWith(
+        fontWeight: FontWeight.w900,
+        height: 1.25,
+        shadows: _receiptHeaderTextShadow,
+        fontFamilyFallback: _receiptIndicFontFallback,
+      )
+    : _topNumberStyle.copyWith(shadows: _receiptHeaderTextShadow);
+
+TextStyle get _receiptSessionStyle => _isIndicReceiptLanguage
+    ? _sessionStyle.copyWith(
+        fontWeight: FontWeight.w900,
+        height: 1.2,
+        shadows: _receiptHeaderTextShadow,
+        fontFamilyFallback: _receiptIndicFontFallback,
+      )
+    : _sessionStyle.copyWith(shadows: _receiptHeaderTextShadow);
+
+TextStyle get _receiptDateStyle => _isIndicReceiptLanguage
+    ? _dateStyle.copyWith(
+        fontSize: 22,
+        fontWeight: FontWeight.w900,
+        height: 1.25,
+        shadows: _receiptHeaderTextShadow,
+        fontFamilyFallback: _receiptIndicFontFallback,
+      )
+    : _dateStyle.copyWith(shadows: _receiptHeaderTextShadow);
+
+TextStyle get _receiptMarketStyle => _isIndicReceiptLanguage
+    ? _marketStyle.copyWith(
+        fontSize: 26,
+        fontWeight: FontWeight.w900,
+        height: 1.25,
+        shadows: _receiptHeaderTextShadow,
+        fontFamilyFallback: _receiptIndicFontFallback,
+      )
+    : _marketStyle.copyWith(shadows: _receiptHeaderTextShadow);
+
+TextStyle get _receiptOwnerStyle => _isIndicReceiptLanguage
+    ? _ownerStyle.copyWith(
+        fontSize: 23,
+        fontWeight: FontWeight.w900,
+        height: 1.2,
+        shadows: _receiptHeaderTextShadow,
+        fontFamilyFallback: _receiptIndicFontFallback,
+      )
+    : _ownerStyle.copyWith(shadows: _receiptHeaderTextShadow);
+
+TextStyle get _receiptTableHeaderStyle => _isIndicReceiptLanguage
+    ? _headerStyle.copyWith(
+        fontSize: 22,
+        fontWeight: FontWeight.w900,
+        height: 1.25,
+        shadows: _receiptHeaderTextShadow,
+        fontFamilyFallback: _receiptIndicFontFallback,
+      )
+    : _headerStyle.copyWith(shadows: _receiptHeaderTextShadow);
+
+TextStyle get _receiptInstructionStyle => _isIndicReceiptLanguage
+    ? _instructionStyle.copyWith(
+        fontSize: 21,
+        fontWeight: FontWeight.w900,
+        height: 1.3,
+        shadows: _receiptHeaderTextShadow,
+        fontFamilyFallback: _receiptIndicFontFallback,
+      )
+    : _instructionStyle.copyWith(shadows: _receiptHeaderTextShadow);
 
 class EscPosReceiptBuilder {
   Future<List<int>> buildReceipt(
@@ -340,7 +432,7 @@ double _layoutReceiptImage({
   _paintText(
     canvas,
     AppLocalizations.trCurrent('PARCHI NO.'),
-    _topLabelStyle,
+    _receiptTopLabelStyle,
     _receiptPaddingX,
     y,
     width: leftWidth,
@@ -349,7 +441,7 @@ double _layoutReceiptImage({
   _paintText(
     canvas,
     dateText,
-    _dateStyle,
+    _receiptDateStyle,
     _receiptImageWidth - _receiptPaddingX - rightTextWidth,
     y,
     width: rightTextWidth,
@@ -359,7 +451,7 @@ double _layoutReceiptImage({
   _paintText(
     canvas,
     AppLocalizations.localizeDigits(parchi),
-    _topNumberStyle,
+    _receiptTopNumberStyle,
     _receiptPaddingX,
     y,
     width: leftWidth,
@@ -368,14 +460,20 @@ double _layoutReceiptImage({
   _paintText(
     canvas,
     timeText,
-    _dateStyle,
+    _receiptDateStyle,
     _receiptImageWidth - _receiptPaddingX - rightTextWidth,
     y,
     width: rightTextWidth,
     textAlign: TextAlign.right,
   );
   y += 28;
-  _paintText(canvas, session.toUpperCase(), _sessionStyle, _receiptPaddingX, y);
+  _paintText(
+    canvas,
+    session.toUpperCase(),
+    _receiptSessionStyle,
+    _receiptPaddingX,
+    y,
+  );
   y += 28;
 
   final owner = ownerName?.trim() ?? '';
@@ -383,7 +481,7 @@ double _layoutReceiptImage({
     y += _paintText(
       canvas,
       owner.toUpperCase(),
-      _ownerStyle,
+      _receiptOwnerStyle,
       _receiptPaddingX,
       y,
       width: _receiptContentWidth,
@@ -395,7 +493,7 @@ double _layoutReceiptImage({
   y += _paintText(
     canvas,
     '$market - $session',
-    _marketStyle,
+    _receiptMarketStyle,
     _receiptPaddingX,
     y,
     width: _receiptContentWidth,
@@ -410,7 +508,7 @@ double _layoutReceiptImage({
   _paintTableText(
     canvas,
     AppLocalizations.trCurrent('NUMBER'),
-    _headerStyle,
+    _receiptTableHeaderStyle,
     tableX,
     y,
     metrics.numberWidth,
@@ -418,7 +516,7 @@ double _layoutReceiptImage({
   _paintTableText(
     canvas,
     AppLocalizations.trCurrent('AMT'),
-    _headerStyle,
+    _receiptTableHeaderStyle,
     tableX + metrics.numberWidth + _receiptTableGap,
     y,
     metrics.amountWidth,
@@ -522,7 +620,7 @@ double _layoutReceiptImage({
     AppLocalizations.trCurrent(
       'Please check the receipt. No complaints will be accepted later.',
     ),
-    _instructionStyle,
+    _receiptInstructionStyle,
     _receiptPaddingX,
     y,
     width: _receiptContentWidth,
@@ -539,9 +637,9 @@ _ReceiptImageMetrics _imageTableMetrics(
   String totalText,
 ) {
   var numberWidth =
-      _measureText(AppLocalizations.trCurrent('NUMBER'), _headerStyle);
+      _measureText(AppLocalizations.trCurrent('NUMBER'), _receiptTableHeaderStyle);
   var amountWidth =
-      _measureText(AppLocalizations.trCurrent('AMT'), _headerStyle);
+      _measureText(AppLocalizations.trCurrent('AMT'), _receiptTableHeaderStyle);
   numberWidth = _maxDouble(
     numberWidth,
     _measureText(AppLocalizations.trCurrent('TOTAL'), _totalStyle),

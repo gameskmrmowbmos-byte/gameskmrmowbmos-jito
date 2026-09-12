@@ -13,6 +13,11 @@ const _receiptAlphabetShadow = <Shadow>[
 const _receiptGreenAlphabetShadow = <Shadow>[
   Shadow(color: _entryGreen, offset: Offset(0.18, 0), blurRadius: 0),
 ];
+const _parchiIndicFontFallback = <String>[
+  'Noto Sans Devanagari',
+  'Nirmala UI',
+  'Mangal',
+];
 
 class ParchiReceiptPreview extends StatelessWidget {
   const ParchiReceiptPreview({
@@ -71,6 +76,7 @@ class ParchiTicketWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isIndic = _isIndicParchiLanguage(context);
     final amountTotal = AppLocalizations.localizeDigits(
       formatParchiAmount(page.totalAmount),
     );
@@ -108,8 +114,19 @@ class ParchiTicketWidget extends StatelessWidget {
                               TextSpan(
                                 text: context.tr('PARCHI NO. '),
                                 style: TextStyle(
-                                  fontSize: compact ? 10 : 12,
-                                  fontWeight: FontWeight.w800,
+                                  fontSize: compact
+                                      ? isIndic
+                                          ? 11
+                                          : 10
+                                      : isIndic
+                                          ? 13
+                                          : 12,
+                                  fontWeight: isIndic
+                                      ? FontWeight.w700
+                                      : FontWeight.w800,
+                                  height: isIndic ? 1.25 : null,
+                                  fontFamilyFallback:
+                                      _parchiFontFallback(isIndic),
                                 ),
                               ),
                               TextSpan(
@@ -118,7 +135,12 @@ class ParchiTicketWidget extends StatelessWidget {
                                 ),
                                 style: TextStyle(
                                   fontSize: compact ? 11 : 13,
-                                  fontWeight: FontWeight.w900,
+                                  fontWeight: isIndic
+                                      ? FontWeight.w800
+                                      : FontWeight.w900,
+                                  height: isIndic ? 1.2 : null,
+                                  fontFamilyFallback:
+                                      _parchiFontFallback(isIndic),
                                   letterSpacing: 0,
                                 ),
                               ),
@@ -143,8 +165,17 @@ class ParchiTicketWidget extends StatelessWidget {
                         ),
                         style: TextStyle(
                           color: const Color(0xFF111820),
-                          fontSize: compact ? 10 : 11,
-                          fontWeight: FontWeight.w800,
+                          fontSize: compact
+                              ? isIndic
+                                  ? 11
+                                  : 10
+                              : isIndic
+                                  ? 12
+                                  : 11,
+                          fontWeight:
+                              isIndic ? FontWeight.w700 : FontWeight.w800,
+                          height: isIndic ? 1.25 : null,
+                          fontFamilyFallback: _parchiFontFallback(isIndic),
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -154,8 +185,17 @@ class ParchiTicketWidget extends StatelessWidget {
                         ),
                         style: TextStyle(
                           color: const Color(0xFF111820),
-                          fontSize: compact ? 10 : 11,
-                          fontWeight: FontWeight.w800,
+                          fontSize: compact
+                              ? isIndic
+                                  ? 11
+                                  : 10
+                              : isIndic
+                                  ? 12
+                                  : 11,
+                          fontWeight:
+                              isIndic ? FontWeight.w700 : FontWeight.w800,
+                          height: isIndic ? 1.25 : null,
+                          fontFamilyFallback: _parchiFontFallback(isIndic),
                         ),
                       ),
                     ],
@@ -170,8 +210,16 @@ class ParchiTicketWidget extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: const Color(0xFF111820),
-                  fontSize: compact ? 16 : 18,
-                  fontWeight: FontWeight.w900,
+                  fontSize: compact
+                      ? isIndic
+                          ? 15
+                          : 16
+                      : isIndic
+                          ? 17
+                          : 18,
+                  fontWeight: isIndic ? FontWeight.w800 : FontWeight.w900,
+                  height: isIndic ? 1.25 : null,
+                  fontFamilyFallback: _parchiFontFallback(isIndic),
                   letterSpacing: 0,
                 ),
               ),
@@ -213,14 +261,16 @@ class ParchiTicketWidget extends StatelessWidget {
                   context.tr(
                     'Please check the receipt. No complaints will be accepted later.',
                   ),
-                  maxLines: 2,
+                  maxLines: isIndic ? 3 : 2,
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: const Color(0xFF111820),
-                    fontSize: compact ? 7 : 8,
+                    fontSize:
+                        compact ? (isIndic ? 9 : 7) : (isIndic ? 10 : 8),
                     fontWeight: FontWeight.w700,
-                    height: 1.1,
+                    height: isIndic ? 1.3 : 1.1,
+                    fontFamilyFallback: _parchiFontFallback(isIndic),
                   ),
                 ),
               ] else ...[
@@ -233,6 +283,15 @@ class ParchiTicketWidget extends StatelessWidget {
       ),
     );
   }
+}
+
+bool _isIndicParchiLanguage(BuildContext context) {
+  final code = Localizations.localeOf(context).languageCode;
+  return code == AppLanguage.hindi.code || code == AppLanguage.marathi.code;
+}
+
+List<String>? _parchiFontFallback(bool isIndic) {
+  return isIndic ? _parchiIndicFontFallback : null;
 }
 
 class _ParchiHeader extends StatelessWidget {
