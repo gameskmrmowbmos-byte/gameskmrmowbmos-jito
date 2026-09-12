@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:matka_management/core/language/app_localizations.dart';
+import 'package:matka_management/core/language/app_localizations.dart';
 import 'package:matka_management/core/widgets/loading_view.dart';
 import 'package:matka_management/features/entries/data/receipt_models.dart';
 import 'package:matka_management/features/entries/data/receipt_repository.dart';
@@ -185,38 +186,6 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const NumberedTitle('1', 'Filters'),
-<<<<<<< HEAD
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 14,
-          runSpacing: 12,
-          crossAxisAlignment: WrapCrossAlignment.end,
-          children: [
-            _DateField(
-              label: 'From Date',
-              value: filters.fromDate,
-              width: compact ? double.infinity : 150,
-              onPick: (date) => _setFilters(filters.copyWith(fromDate: date)),
-            ),
-            _DateField(
-              label: 'To Date',
-              value: filters.toDate,
-              width: compact ? double.infinity : 150,
-              onPick: (date) => _setFilters(filters.copyWith(toDate: date)),
-            ),
-            _SelectField(
-              label: 'Market',
-              width: compact ? double.infinity : 160,
-              value: filters.marketId ?? '',
-              items: {
-                '': 'All Markets',
-                for (final market in state.markets) market.id: market.name,
-              },
-              onChanged: (value) => _setFilters(
-                filters.copyWith(
-                  marketId: value,
-                  clearMarket: value == null || value.isEmpty,
-=======
         const SizedBox(height: 10),
         LayoutBuilder(
           builder: (context, constraints) {
@@ -514,16 +483,7 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
                     [
                       '${(state.page - 1) * state.limit + index + 1}',
                       receipt.receiptNumber,
-<<<<<<< HEAD
                       formatDateTime(_receiptCreatedAt(receipt)),
-                      receipt.market?.name ?? '-',
-                      receipt.session.toUpperCase(),
-                      '${receipt.totalItems}',
-                      '${receipt.totalAmountText}${receipt.isOtc ? ' OTC' : ''}',
-=======
-                      AppLocalizations.localizeDigits(
-                        formatDateTime(_receiptCreatedAt(receipt)),
-                      ),
                       AppLocalizations.localizeMarketName(
                           receipt.market?.name ?? '-'),
                       context.tr(receipt.session.toUpperCase()),
@@ -737,16 +697,13 @@ class _EntriesPageState extends ConsumerState<EntriesPage> {
       context: context,
       builder: (context) => AlertDialog(
 <<<<<<< HEAD
-        title: const Text('Delete Parchi permanently?'),
+        title: Text(context.tr('Delete Parchi permanently?')),
         content: const Text(
           'This will delete the parchi, all bet entries, and print history from the database.',
 =======
         title: Text(context.tr('Delete Parchi permanently?')),
         content: Text(
-          context.tr(
-            'This will delete the parchi, all bet entries, and print history from the database.',
-          ),
->>>>>>> parent of 052c76b (Merge branch 'main' of https://github.com/gameskmrmowbmos-byte/gameskmrmowbmos-jito)
+          'This will delete ${receipt.receiptNumber}, all bet entries, and print history from the database.',
         ),
         actions: [
           TextButton(

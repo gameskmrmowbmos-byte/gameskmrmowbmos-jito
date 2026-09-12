@@ -8,15 +8,17 @@ import 'package:intl/intl.dart';
 import 'package:matka_management/core/language/app_localizations.dart';
 import 'package:matka_management/features/entries/data/receipt_models.dart';
 
+const _parchiEntriesPerPage = 10;
+const _receiptFeedBeforeCut = 0;
 const _receiptImageWidth = 372.0;
 const _receiptTicketWidth = 368.0;
 const _receiptTicketX = (_receiptImageWidth - _receiptTicketWidth) / 2;
 const _receiptPaddingX = _receiptTicketX + 3.0;
 const _receiptPaddingTop = 18.0;
-const _receiptPaddingBottom = 22.0;
-const _receiptContentWidth = _receiptTicketWidth - 34.0;
-const _receiptTableMaxWidth = 286.0;
-const _receiptTableGap = 34.0;
+const _receiptPaddingBottom = 2.0;
+const _receiptContentWidth = _receiptTicketWidth - 6.0;
+const _receiptTableMaxWidth = 320.0;
+const _receiptTableGap = 36.0;
 const _receiptRuleHeight = 3.0;
 const _receiptInk = ui.Color(0xFF111820);
 const _receiptWhite = ui.Color(0xFFFFFFFF);
@@ -69,17 +71,48 @@ const _headerStyle = TextStyle(
 );
 const _entryStyle = TextStyle(
   color: _receiptInk,
-  fontSize: 24,
+  fontSize: 27,
   fontWeight: FontWeight.w900,
   height: 1,
   shadows: _receiptStrongTextShadow,
 );
-const _jackpotStyle = TextStyle(
+const _entryNumberStyle = TextStyle(
   color: _receiptInk,
-  fontSize: 22,
+  fontSize: 30,
+  fontWeight: FontWeight.w600,
+  height: 1,
+);
+const _entryMarkerStyle = TextStyle(
+  color: _receiptInk,
+  fontSize: 29,
   fontWeight: FontWeight.w900,
   height: 1,
   shadows: _receiptStrongTextShadow,
+);
+const _entryAmountStyle = TextStyle(
+  color: _receiptInk,
+  fontSize: 27,
+  fontWeight: FontWeight.w600,
+  height: 1,
+);
+const _jackpotNumberStyle = TextStyle(
+  color: _receiptInk,
+  fontSize: 28,
+  fontWeight: FontWeight.w600,
+  height: 1,
+);
+const _jackpotMarkerStyle = TextStyle(
+  color: _receiptInk,
+  fontSize: 27,
+  fontWeight: FontWeight.w900,
+  height: 1,
+  shadows: _receiptStrongTextShadow,
+);
+const _jackpotAmountStyle = TextStyle(
+  color: _receiptInk,
+  fontSize: 25,
+  fontWeight: FontWeight.w600,
+  height: 1,
 );
 const _totalStyle = TextStyle(
   color: _receiptInk,
@@ -87,6 +120,18 @@ const _totalStyle = TextStyle(
   fontWeight: FontWeight.w900,
   height: 1.1,
   shadows: _receiptStrongTextShadow,
+);
+const _totalAmountStyle = TextStyle(
+  color: _receiptInk,
+  fontSize: 27,
+  fontWeight: FontWeight.w600,
+  height: 1.1,
+);
+const _instructionStyle = TextStyle(
+  color: _receiptInk,
+  fontSize: 21,
+  fontWeight: FontWeight.w900,
+  height: 1.2,
 );
 
 bool get _isIndicReceiptLanguage {
@@ -195,7 +240,7 @@ class EscPosReceiptBuilder {
         : storedMarket?.isNotEmpty == true
             ? storedMarket!
             : '-';
-    final rows = _buildRows(detail.consolidatedItems, receipt.session);
+    final rowPages = _buildRowPages(detail.consolidatedItems, receipt.session);
     final total = detail.consolidatedItems.fold<num>(
           0,
           (sum, item) => sum + item.amount,
@@ -203,19 +248,26 @@ class EscPosReceiptBuilder {
         (receipt.isOtc ? 2 : 1);
     final totalText = AppLocalizations.localizeDigits(_formatAmount(total));
 
-    final receiptImage = await _buildReceiptImage(
-      parchi: parchi,
-      createdAt: createdAt,
-      session: session,
-      market: AppLocalizations.localizeMarketName(market.toUpperCase()),
-      ownerName: ownerName,
-      rows: rows,
-      totalText: totalText,
-      isOtc: receipt.isOtc,
-    );
-    bytes.addAll(generator.imageRaster(receiptImage, align: PosAlign.center));
-    bytes.addAll(generator.feed(3));
-    bytes.addAll(generator.cut());
+    for (var pageIndex = 0; pageIndex < rowPages.length; pageIndex++) {
+      final pageParchiNo = _parchiNoForPage(parchi, pageIndex);
+      final receiptImage = await _buildReceiptImage(
+        parchi: pageParchiNo,
+        createdAt: createdAt,
+        session: session,
+        market: AppLocalizations.localizeMarketName(market.toUpperCase()),
+        ownerName: ownerName,
+        rows: rowPages[pageIndex],
+        totalText: totalText,
+        isOtc: receipt.isOtc,
+        showTotal: pageIndex == rowPages.length - 1,
+      );
+      bytes.addAll(generator.imageRaster(receiptImage, align: PosAlign.center));
+      bytes.addAll(generator.feed(_receiptFeedBeforeCut));
+      if (pageIndex != rowPages.length - 1) {
+        bytes.addAll(generator.cut(mode: PosCutMode.full));
+      }
+    }
+    bytes.addAll(generator.cut(mode: PosCutMode.full));
     return bytes;
   }
 

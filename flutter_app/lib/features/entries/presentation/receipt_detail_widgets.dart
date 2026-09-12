@@ -470,7 +470,9 @@ class ReceiptItemsTable extends StatelessWidget {
               context.trMaybe(items[index].displayType),
               AppLocalizations.localizeDigits(items[index].displayNumber),
               AppLocalizations.localizeDigits(
+                
                 items[index].effectiveDisplayAmount,
+              ,
               ),
 >>>>>>> parent of 052c76b (Merge branch 'main' of https://github.com/gameskmrmowbmos-byte/gameskmrmowbmos-jito)
             ]),
@@ -562,7 +564,7 @@ class PrintHistoryView extends StatelessWidget {
 <<<<<<< HEAD
                     '${log.printType}  #${log.printNumber ?? '-'}  ${formatDateTime(log.printedAt)}',
 =======
-                      '${context.trMaybe(log.printType)}  #${AppLocalizations.localizeDigits('${log.printNumber ?? '-'}')}  ${AppLocalizations.localizeDigits(formatDateTime(log.printedAt))}',
+                        '${context.trMaybe(log.printType)}  #${AppLocalizations.localizeDigits('${log.printNumber ?? '-'}')}  ${AppLocalizations.localizeDigits(AppLocalizations.localizeDigits(formatDateTime(log.printedAt)))}',
                   ),
                   Text(
                     context.tr(
@@ -624,6 +626,12 @@ class PrintHistoryView extends StatelessWidget {
               formatDateTime(logs[index].printedAt),
 =======
               context.trMaybe(logs[index].printType),
+              AppLocalizations.localizeDigits(
+                '${logs[index].printNumber ?? '-'}',
+              ),
+              AppLocalizations.localizeDigits(
+                formatDateTime(logs[index].printedAt),
+              ),
               AppLocalizations.localizeDigits(
                 '${logs[index].printNumber ?? '-'}',
               ),
