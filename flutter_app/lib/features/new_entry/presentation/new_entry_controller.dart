@@ -85,6 +85,8 @@ class NewEntryController extends AutoDisposeAsyncNotifier<NewEntryData> {
     final printSession = shouldPrint ? prepareCustomerParchiPrint() : null;
     final previousData = state.valueOrNull;
     var receiptSaved = false;
+    Object? printError;
+    StackTrace? printStackTrace;
 
     try {
       debugPrint('[PRINT] Save & Print started');
@@ -104,14 +106,31 @@ class NewEntryController extends AutoDisposeAsyncNotifier<NewEntryData> {
       debugPrint('[PRINT] Receipt saved: ${receipt.receipt.id}');
 
       if (shouldPrint) {
-        final ownerName = ref.read(authProvider).user?.ownerName;
-        unawaited(_printSavedReceipt(
-          printSession: printSession,
-          receipt: receipt,
-          overrideParchiNo: overrideParchiNo,
-          marketName: marketName,
-          ownerName: ownerName,
-          printerName: printerName,
+        var printed = false;
+        try {
+          debugPrint('[PRINT] Building and sending receipt');
+          await printSession?.printReceipt(
+            receipt,
+            overrideParchiNo: overrideParchiNo,
+            marketName: marketName,
+            ownerName: ref.read(authProvider).user?.ownerName,
+          );
+          printed = true;
+          debugPrint('[PRINT] Physical print operation completed');
+        } on Object catch (error, stackTrace) {
+          printError = error;
+          printStackTrace = stackTrace;
+          debugPrint('[PRINT][ERROR] $error');
+        }
+
+        final historyPrinterName = printerName ??
+            await printSession?.activePrinterName ??
+            'Unknown printer';
+        unawaited(_savePrintHistory(
+          receiptId: receipt.receipt.id,
+          printerName: historyPrinterName,
+          printed: printed,
+          error: printError,
         ));
       }
 
@@ -121,6 +140,9 @@ class NewEntryController extends AutoDisposeAsyncNotifier<NewEntryData> {
         state = AsyncData(await _fetchData(marketId: market));
       }
 
+      if (printError != null) {
+        Error.throwWithStackTrace(printError, printStackTrace!);
+      }
       return receipt;
     } catch (e, st) {
       if (receiptSaved && previousData != null) {
@@ -149,42 +171,5 @@ class NewEntryController extends AutoDisposeAsyncNotifier<NewEntryData> {
     } on Object catch (historyError) {
       debugPrint('[PRINT][ERROR] Print history failed: $historyError');
     }
-  }
-
-  Future<void> _printSavedReceipt({
-    required CustomerParchiPrintSession? printSession,
-    required ReceiptDetail receipt,
-    required String? overrideParchiNo,
-    required String? marketName,
-    required String? ownerName,
-    required String? printerName,
-  }) async {
-    var printed = false;
-    Object? printError;
-
-    try {
-      debugPrint('[PRINT] Building and sending receipt');
-      await printSession?.printReceipt(
-        receipt,
-        overrideParchiNo: overrideParchiNo,
-        marketName: marketName,
-        ownerName: ownerName,
-      );
-      printed = true;
-      debugPrint('[PRINT] Physical print operation completed');
-    } on Object catch (error) {
-      printError = error;
-      debugPrint('[PRINT][ERROR] $error');
-    }
-
-    final historyPrinterName = printerName ??
-        await printSession?.activePrinterName ??
-        'Unknown printer';
-    await _savePrintHistory(
-      receiptId: receipt.receipt.id,
-      printerName: historyPrinterName,
-      printed: printed,
-      error: printError,
-    );
   }
 }

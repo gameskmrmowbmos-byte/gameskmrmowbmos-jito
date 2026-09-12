@@ -38,9 +38,12 @@ class ApiClient {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
+          final deviceId = await _storage.installationId();
+          options.headers['X-Device-Id'] = deviceId;
           var token = await _storage.readAccessToken();
           final canRefreshBeforeRequest = options.path != ApiEndpoints.login &&
-              options.path != ApiEndpoints.refresh;
+              options.path != ApiEndpoints.refresh &&
+              options.path != ApiEndpoints.logout;
           if (canRefreshBeforeRequest &&
               token != null &&
               token.isNotEmpty &&
@@ -93,6 +96,7 @@ class ApiClient {
           final shouldRefresh = error.response?.statusCode == 401 &&
               request.path != ApiEndpoints.login &&
               request.path != ApiEndpoints.refresh &&
+              request.path != ApiEndpoints.logout &&
               request.extra['retried'] != true;
           if (!shouldRefresh) return handler.next(error);
 
@@ -104,6 +108,7 @@ class ApiClient {
               throw const ApiException('Session refresh failed');
             }
             request.headers['Authorization'] = 'Bearer $token';
+            request.headers['X-Device-Id'] = await _storage.installationId();
             final response = await _dio.fetch<dynamic>(request);
             return handler.resolve(response);
           } on Object {
@@ -175,19 +180,26 @@ class ApiClient {
       if (!kIsWeb && (refreshToken == null || refreshToken.isEmpty)) {
         throw const ApiException('No refresh token available');
       }
+      final deviceId = await _storage.installationId();
       final refreshDio = Dio(
         BaseOptions(
           baseUrl: ApiConfig.baseUrl,
           headers: {
             'Accept': 'application/json',
             'X-Client-Platform': kIsWeb ? 'web' : 'native',
+            'X-Device-Id': deviceId,
           },
         ),
       );
       configureHttpAdapter(refreshDio);
       final response = await refreshDio.post<Map<String, dynamic>>(
         ApiEndpoints.refresh,
-        data: kIsWeb ? <String, dynamic>{} : {'refreshToken': refreshToken},
+        data: kIsWeb
+            ? <String, dynamic>{'deviceId': deviceId}
+            : {
+                'refreshToken': refreshToken,
+                'deviceId': deviceId,
+              },
       );
       final data = response.data?['data'] as Map<String, dynamic>?;
       final access = data?['accessToken']?.toString();

@@ -65,6 +65,11 @@ const refreshRules = [
     .optional()
     .isString()
     .withMessage('Refresh token must be a string'),
+  body('deviceId')
+    .optional()
+    .isString()
+    .isLength({ min: 16, max: 128 })
+    .withMessage('Device identifier is invalid'),
 ];
 
 const forgotPasswordRules = [
@@ -105,4 +110,3 @@ module.exports = {
   resetPasswordRules,
   changePasswordRules,
 };
-
