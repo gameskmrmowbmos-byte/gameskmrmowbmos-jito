@@ -1849,9 +1849,6 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
     final pages = _receiptLinePages(receiptLines);
     final pageCount = pages.length;
     final activeOtcPages = _activeOtcPages;
-    final hasMixedPageOtc = pageCount > 1 &&
-        activeOtcPages.isNotEmpty &&
-        activeOtcPages.length < pageCount;
     final items = receiptLines.map(_receiptLinePayload).toList();
 
     if (items.isEmpty) return;
@@ -1862,7 +1859,7 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
 
     try {
       final savedReceipts = <ReceiptDetail>[];
-      if (hasMixedPageOtc) {
+      if (pageCount > 1) {
         for (var pageIndex = 0; pageIndex < pages.length; pageIndex++) {
           final pageItems = pages[pageIndex].map(_receiptLinePayload).toList();
           if (pageItems.isEmpty) continue;
