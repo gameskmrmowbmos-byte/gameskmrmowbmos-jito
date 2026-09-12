@@ -56,7 +56,7 @@ class _LocalizedDigitsController extends TextEditingController {
 
   void removeLastKeypadValue() {
     if (text.isEmpty) return;
-    text = text.substring(0, text.length - 1);
+    text = _removeLastKeypadInput(text);
     selection = TextSelection.collapsed(offset: text.length);
   }
 
@@ -477,6 +477,14 @@ String? _cpJodiNumber(String rawNumber) {
   return match.group(1) ?? match.group(2);
 }
 
+bool _isFamilyJodiNumber(String rawNumber) =>
+    _familyNumber(rawNumber)?.length == 2;
+
+bool _isManualJackpotBlockedNumber(String rawNumber) =>
+    _cpJodiNumber(rawNumber) != null ||
+    _isFamilyJodiNumber(rawNumber) ||
+    _isManualSangamNumber(rawNumber);
+
 String? _commonNumber(String rawNumber) {
   final match = _commonInputPattern.firstMatch(rawNumber.trim());
   if (match == null) return null;
@@ -627,9 +635,7 @@ List<_JackpotLine> _filledJackpotEntries(
 }) {
   if (!allowJackpot ||
       !entry.isJackpot ||
-      _cpJodiNumber(entry.number.text) != null ||
-      _familyNumber(entry.number.text) != null ||
-      _isManualSangamNumber(entry.number.text)) {
+      _isManualJackpotBlockedNumber(entry.number.text)) {
     return const [];
   }
   final rows = <_JackpotLine>[];
@@ -1060,17 +1066,26 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
             final baseAmount = _parseAmount(entry.amount.text);
             final multiplier = _familyMultiplierFor(familyNumber);
             final calculatedAmount = baseAmount * multiplier;
+            final canUseJackpot = familyNumber.length == 3 &&
+                (sessionOverride ?? _session) == 'Open' &&
+                entry.isJackpot;
+            final jackpotEntries = canUseJackpot
+                ? _filledJackpotEntries(entry, multiplier: multiplier)
+                : const <_JackpotLine>[];
+            final totalAmount =
+                calculatedAmount + _jackpotAmountTotal(jackpotEntries);
             lines.add(_ReceiptLine(
               backendType: familyNumber.length == 2 ? 'Jodi' : 'Patti',
               betType: familyNumber.length == 2 ? 'JODI' : 'PANNA',
               betSubtype: 'family',
               number: familyNumber,
-              amount: _formatAmount(calculatedAmount),
+              amount: _formatAmount(totalAmount),
               displayAmount: _formatAmount(baseAmount),
               isManual: true,
-              isJackpot: false,
+              isJackpot: canUseJackpot,
               isFamily: true,
               familyMultiplier: multiplier,
+              jackpotEntries: jackpotEntries,
               sessionOverride: sessionOverride,
             ));
             continue;
@@ -1278,9 +1293,7 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
                 amount: e.amount.text,
                 isJackpot: (_session == 'Close' ||
                         (e.sessionOverride ?? _session) == 'Close' ||
-                        _cpJodiNumber(e.number.text) != null ||
-                        _familyNumber(e.number.text) != null ||
-                        _isManualSangamNumber(e.number.text))
+                        _isManualJackpotBlockedNumber(e.number.text))
                     ? false
                     : e.isJackpot,
                 jackpotEntries: List<JackpotEntryData>.generate(
@@ -1343,9 +1356,7 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
       )
         ..isJackpot = (_session == 'Close' ||
                 entry.sessionOverride == 'Close' ||
-                _cpJodiNumber(entry.number) != null ||
-                _familyNumber(entry.number) != null ||
-                _isManualSangamNumber(entry.number))
+                _isManualJackpotBlockedNumber(entry.number))
             ? false
             : entry.isJackpot
         ..sessionOverride = _session == 'Close' ? null : entry.sessionOverride);
@@ -1359,9 +1370,7 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
               amount: entry.amount.text,
               isJackpot: (_session == 'Close' ||
                       (entry.sessionOverride ?? _session) == 'Close' ||
-                      _cpJodiNumber(entry.number.text) != null ||
-                      _familyNumber(entry.number.text) != null ||
-                      _isManualSangamNumber(entry.number.text))
+                      _isManualJackpotBlockedNumber(entry.number.text))
                   ? false
                   : entry.isJackpot,
               jackpotEntries: List<JackpotEntryData>.generate(
@@ -1411,9 +1420,7 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
       }
       if (_session == 'Close' ||
           effectiveSession == 'Close' ||
-          _cpJodiNumber(raw) != null ||
-          _familyNumber(raw) != null ||
-          _isManualSangamNumber(raw)) {
+          _isManualJackpotBlockedNumber(raw)) {
         entry.isJackpot = false;
       }
     }
@@ -2813,9 +2820,7 @@ class _BetTable extends StatelessWidget {
             _effectiveEntrySession(session, entry.sessionOverride);
         final raw = entry.number.text.trim();
         final shouldClearJackpot = (effectiveSession == 'Close' ||
-                _cpJodiNumber(raw) != null ||
-                _familyNumber(raw) != null ||
-                _isManualSangamNumber(raw)) &&
+                _isManualJackpotBlockedNumber(raw)) &&
             entry.isJackpot;
         if (shouldClearJackpot) entry.isJackpot = false;
         entry.error = _manualNumberError(
@@ -2855,10 +2860,8 @@ class _BetTable extends StatelessWidget {
         if (!ownsController) continue;
 
         final raw = entry.number.text;
-        final canUseJackpot = session == 'Open' &&
-            _cpJodiNumber(raw) == null &&
-            _familyNumber(raw) == null &&
-            !_isManualSangamNumber(raw);
+        final canUseJackpot =
+            session == 'Open' && !_isManualJackpotBlockedNumber(raw);
         if (!canUseJackpot) return null;
 
         entry.isJackpot = !entry.isJackpot;
@@ -3047,9 +3050,7 @@ class _BetRowState extends State<_BetRow> {
     final raw = entry.number.text.trim();
     final effectiveSession = entry.sessionOverride ?? session;
     final shouldClearJackpot = (effectiveSession == 'Close' ||
-            _cpJodiNumber(raw) != null ||
-            _familyNumber(raw) != null ||
-            _isManualSangamNumber(raw)) &&
+            _isManualJackpotBlockedNumber(raw)) &&
         entry.isJackpot;
     final newError = _manualNumberError(
       raw,
@@ -3217,12 +3218,32 @@ class _BetRowState extends State<_BetRow> {
     _focusJackpotNumber(newIndex);
   }
 
+  void _deleteJackpotRow(int rowIndex) {
+    if (rowIndex < 0 || rowIndex >= entry.jackpotRowCount) return;
+    setState(() {
+      if (entry.jackpotRowCount == 1) {
+        entry.jackpotNumbers.first.clear();
+        entry.jackpotAmounts.first.clear();
+        return;
+      }
+      for (var index = rowIndex; index < entry.jackpotRowCount - 1; index++) {
+        entry.jackpotNumbers[index].text = entry.jackpotNumbers[index + 1].text;
+        entry.jackpotAmounts[index].text = entry.jackpotAmounts[index + 1].text;
+      }
+      final lastIndex = entry.jackpotRowCount - 1;
+      entry.jackpotNumbers[lastIndex].clear();
+      entry.jackpotAmounts[lastIndex].clear();
+      entry.jackpotRowCount--;
+    });
+    onChanged();
+    final nextFocusIndex =
+        rowIndex >= entry.jackpotRowCount ? entry.jackpotRowCount - 1 : rowIndex;
+    _focusJackpotNumber(nextFocusIndex);
+  }
+
   TextEditingController? _openJackpot() {
-    final isFamily = _familyNumber(entry.number.text) != null;
-    final isCpJodi = _cpJodiNumber(entry.number.text) != null;
-    final isSangam = _isManualSangamNumber(entry.number.text);
     final canUseJackpot =
-        session == 'Open' && !isCpJodi && !isFamily && !isSangam;
+        session == 'Open' && !_isManualJackpotBlockedNumber(entry.number.text);
     if (!canUseJackpot) return null;
     setState(() {
       entry.isJackpot = !entry.isJackpot;
@@ -3252,12 +3273,9 @@ class _BetRowState extends State<_BetRow> {
 
   @override
   Widget build(BuildContext context) {
-    final isFamily = _familyNumber(entry.number.text) != null;
-    final isCpJodi = _cpJodiNumber(entry.number.text) != null;
-    final isSangam = _isManualSangamNumber(entry.number.text);
     final effectiveSession = entry.sessionOverride ?? session;
-    final canUseJackpot =
-        effectiveSession == 'Open' && !isCpJodi && !isFamily && !isSangam;
+    final canUseJackpot = effectiveSession == 'Open' &&
+        !_isManualJackpotBlockedNumber(entry.number.text);
     final showJackpotBoxes = entry.isJackpot && canUseJackpot;
     return Container(
       padding: EdgeInsets.symmetric(
@@ -3448,6 +3466,7 @@ class _BetRowState extends State<_BetRow> {
                 onNumberSubmitted: _submitJackpotNumber,
                 onAmountSubmitted: _submitJackpotAmount,
                 onMobileAmountFill: _fillJackpotAmountBelow,
+                onDeleteRow: _deleteJackpotRow,
                 keypadOnJackpot: widget.keypadOnJackpot,
                 keypadBackTargetFor: _keypadBackTargetFor,
                 keypadNextTargetFor: _keypadNextTargetFor,
@@ -3480,6 +3499,7 @@ class _JackpotEntryRows extends StatelessWidget {
     required this.onNumberSubmitted,
     required this.onAmountSubmitted,
     required this.onMobileAmountFill,
+    required this.onDeleteRow,
     required this.keypadOnJackpot,
     required this.keypadBackTargetFor,
     required this.keypadNextTargetFor,
@@ -3503,6 +3523,7 @@ class _JackpotEntryRows extends StatelessWidget {
   final ValueChanged<int> onNumberSubmitted;
   final ValueChanged<int> onAmountSubmitted;
   final ValueChanged<int> onMobileAmountFill;
+  final ValueChanged<int> onDeleteRow;
   final TextEditingController? Function() keypadOnJackpot;
   final TextEditingController? Function(TextEditingController controller)
       keypadBackTargetFor;
@@ -3599,6 +3620,22 @@ class _JackpotEntryRows extends StatelessWidget {
                   onSubmitted: () => onAmountSubmitted(index),
                   onMobileFill: () => onMobileAmountFill(index),
                   onChanged: onChanged,
+                ),
+                SizedBox(width: compact ? 3 : 5),
+                SizedBox(
+                  width: compact ? 24 : 28,
+                  height: height,
+                  child: IconButton(
+                    tooltip: context.tr('Delete jackpot row'),
+                    onPressed: () => onDeleteRow(index),
+                    padding: EdgeInsets.zero,
+                    visualDensity: VisualDensity.compact,
+                    icon: Icon(
+                      Icons.delete_outline,
+                      size: compact ? 15 : 17,
+                      color: _NewEntryPageState._red,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -3810,6 +3847,19 @@ const _nonNumericKeypadInputKeys = {
 bool _isNonNumericInputKey(String key) =>
     _nonNumericKeypadInputKeys.contains(key);
 
+const _compoundKeypadInputKeys = ['SP', 'DP', 'CP', 'CT', 'CM', 'BZ'];
+
+String _removeLastKeypadInput(String text) {
+  if (text.isEmpty) return text;
+  final upperText = text.toUpperCase();
+  for (final key in _compoundKeypadInputKeys) {
+    if (upperText.endsWith(key)) {
+      return text.substring(0, text.length - key.length);
+    }
+  }
+  return text.substring(0, text.length - 1);
+}
+
 class MatkaNumberKeypadSheet extends StatefulWidget {
   const MatkaNumberKeypadSheet({
     required this.controller,
@@ -3952,7 +4002,7 @@ class _MatkaNumberKeypadSheetState extends State<MatkaNumberKeypadSheet> {
     }
     if (controller.text.isEmpty) return;
 
-    final text = controller.text.substring(0, controller.text.length - 1);
+    final text = _removeLastKeypadInput(controller.text);
     controller.value = controller.value.copyWith(
       text: text,
       selection: TextSelection.collapsed(offset: text.length),
@@ -4103,6 +4153,7 @@ class _MatkaKey extends StatelessWidget {
     final isNavigation = label == 'back' || label == 'next';
     final isJackpot = label == 'Jackpot';
     final isRemove = label == 'remove';
+    final isNumber = label.length == 1 && int.tryParse(label) != null;
     final isAction = isNavigation ||
         isJackpot ||
         isRemove ||
@@ -4149,7 +4200,7 @@ class _MatkaKey extends StatelessWidget {
                 : const Color(0xFFD8E0EA);
 
     return SizedBox(
-      height: 38,
+      height: isNumber ? 44 : 38,
       child: Material(
         color: enabled && label == 'Enter'
             ? const Color(0xFF064DB5)
