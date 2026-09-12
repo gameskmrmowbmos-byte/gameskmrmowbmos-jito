@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:matka_management/core/language/app_localizations.dart';
 import 'package:matka_management/core/widgets/loading_view.dart';
 import 'package:matka_management/features/entries/data/receipt_models.dart';
 import 'package:matka_management/features/entries/data/receipt_repository.dart';

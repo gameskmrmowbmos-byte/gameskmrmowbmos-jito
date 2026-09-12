@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart' hide TextDirection;
+import 'package:matka_management/core/language/app_localizations.dart';
 import 'package:matka_management/features/entries/data/receipt_models.dart';
 import 'package:matka_management/shared/widgets/aligned_jackpot_marker.dart';
 
