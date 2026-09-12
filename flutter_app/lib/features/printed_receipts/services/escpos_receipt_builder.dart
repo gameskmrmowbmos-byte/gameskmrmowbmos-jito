@@ -9,6 +9,8 @@ import 'package:matka_management/core/language/app_localizations.dart';
 import 'package:matka_management/features/entries/data/receipt_models.dart';
 import 'package:matka_management/features/entries/presentation/parchi_render_model.dart';
 
+const _parchiEntriesPerPage = 10;
+const _receiptFeedBeforeCut = 0;
 const _receiptImageWidth = 372.0;
 const _receiptTicketWidth = 338.0;
 const _receiptTicketX = (_receiptImageWidth - _receiptTicketWidth) / 2;
@@ -42,7 +44,7 @@ const _receiptIndicFontFallback = <String>[
 
 const _topLabelStyle = TextStyle(
   color: _receiptInk,
-  fontSize: 18,
+  fontSize: 17,
   fontWeight: FontWeight.w800,
   height: 1.15,
 );
@@ -96,6 +98,44 @@ const _jackpotStyle = TextStyle(
   fontWeight: FontWeight.w500,
   height: 1,
   shadows: _receiptStrongTextShadow,
+);
+const _entryNumberStyle = TextStyle(
+  color: _receiptInk,
+  fontSize: 30,
+  fontWeight: FontWeight.w600,
+  height: 1,
+);
+const _entryMarkerStyle = TextStyle(
+  color: _receiptInk,
+  fontSize: 29,
+  fontWeight: FontWeight.w900,
+  height: 1,
+  shadows: _receiptStrongTextShadow,
+);
+const _entryAmountStyle = TextStyle(
+  color: _receiptInk,
+  fontSize: 27,
+  fontWeight: FontWeight.w600,
+  height: 1,
+);
+const _jackpotNumberStyle = TextStyle(
+  color: _receiptInk,
+  fontSize: 28,
+  fontWeight: FontWeight.w600,
+  height: 1,
+);
+const _jackpotMarkerStyle = TextStyle(
+  color: _receiptInk,
+  fontSize: 27,
+  fontWeight: FontWeight.w900,
+  height: 1,
+  shadows: _receiptStrongTextShadow,
+);
+const _jackpotAmountStyle = TextStyle(
+  color: _receiptInk,
+  fontSize: 25,
+  fontWeight: FontWeight.w600,
+  height: 1,
 );
 const _totalStyle = TextStyle(
   color: _receiptInk,
@@ -423,13 +463,8 @@ class _EscPosReceiptRow {
 }
 
 class _EscPosJackpotRow {
-  const _EscPosJackpotRow({
-    required this.parentNumber,
-    required this.number,
-    required this.amount,
-  });
+  const _EscPosJackpotRow({required this.number, required this.amount});
 
-  final String parentNumber;
   final String number;
   final String amount;
 }
@@ -568,13 +603,7 @@ double _layoutReceiptImage({
     textAlign: TextAlign.right,
   );
   y += 28;
-  _paintText(
-    canvas,
-    session.toUpperCase(),
-    _receiptSessionStyle,
-    _receiptPaddingX,
-    y,
-  );
+  _paintText(canvas, session.toUpperCase(), _sessionStyle, _receiptPaddingX, y);
   y += 28;
 
   final owner = ownerName?.trim() ?? '';
@@ -707,7 +736,7 @@ double _layoutReceiptImage({
     AppLocalizations.trCurrent(
       'Please check the receipt. No complaints will be accepted later.',
     ),
-    _receiptInstructionStyle,
+    _instructionStyle,
     _receiptPaddingX,
     y,
     width: _receiptContentWidth,
