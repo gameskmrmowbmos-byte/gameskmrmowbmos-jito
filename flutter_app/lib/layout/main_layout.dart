@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:matka_management/core/language/app_localizations.dart';
+import 'package:matka_management/core/language/language_switcher.dart';
 import 'package:matka_management/shared/widgets/app_sidebar.dart';
 
 class MainLayout extends StatelessWidget {
@@ -26,6 +27,15 @@ class MainLayout extends StatelessWidget {
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
           ),
           centerTitle: true,
+          actions: [
+            if (width >= 320)
+              IconButton(
+                tooltip: context.tr('Save'),
+                icon: const Icon(Icons.save_outlined),
+                onPressed: () {},
+              ),
+            if (width >= 280) const LanguageSwitcher(compact: true),
+          ],
         ),
         drawer: const AppNavigationDrawer(),
         body: child,

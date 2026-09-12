@@ -265,11 +265,9 @@ class _HeaderRow extends StatelessWidget {
       child: Row(
         children: [
           SizedBox(
-            width: fontSize * 12,
+            width: fontSize * 9,
             child: Text(
               context.trMaybe(label),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: fontSize,
                 fontWeight: FontWeight.w800,

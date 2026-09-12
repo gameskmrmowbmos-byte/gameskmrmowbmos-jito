@@ -466,10 +466,7 @@ String _parchiNoForPage(String parchiNo, int pageIndex) {
 }
 
 String _receiptRows(List<_ParchiPrintItem> items, String session) {
-  final buffer = StringBuffer();
-  String? currentPageGroupLabel;
-
-  for (final pageItem in items) {
+  return items.map((pageItem) {
     final item = pageItem.item;
     final formattedNumber = _localizeDigits(
       _normalizePrintedFamilyNumber(
@@ -483,31 +480,26 @@ String _receiptRows(List<_ParchiPrintItem> items, String session) {
       <div class="jackpot-amt">${_escapeHtml(_localizeDigits(entry.amount))}</div>
     ''';
     }).join();
-    final groupLabel = pageItem.showMainEntry ? _itemGroupLabel(item) : null;
-    final topLabel = groupLabel != null && groupLabel != currentPageGroupLabel
-        ? '<div class="item-label">${_escapeHtml(groupLabel)}</div>'
-        : '';
+    final topLabel = !pageItem.showMainEntry
+        ? ''
+        : item.isBazarSangam
+            ? '<div class="item-label">BAZAR</div>'
+            : item.isMotorPana
+                ? '<div class="item-label">MP</div>'
+                : '';
     final mainRow = pageItem.showMainEntry
         ? '''
       <div class="num">${_numberHtml(formattedNumber)}</div>
       <div class="amt">${_escapeHtml(_localizeDigits(item.effectiveDisplayAmount))}</div>
 '''
         : '';
-    currentPageGroupLabel = groupLabel;
 
-    buffer.write('''
+    return '''
       $topLabel
       $mainRow
       $jackpotRows
-    ''');
-  }
-  return buffer.toString();
-}
-
-String? _itemGroupLabel(ReceiptItemModel item) {
-  if (item.isBazarSangam) return 'BAZAR';
-  if (item.isMotorPana) return 'MP';
-  return null;
+    ''';
+  }).join();
 }
 
 String _numberHtml(String rawText) {

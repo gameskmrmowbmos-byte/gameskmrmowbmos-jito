@@ -1,13 +1,53 @@
 const crypto = require('crypto');
 const User = require('../models/User');
-const Settings = require('../models/Settings');
 const ApiError = require('../utils/apiError');
 const tokenService = require('./token.service');
 
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCK_DURATION_MS = 15 * 60 * 1000;
+const MIN_DEVICE_ID_LENGTH = 16;
+const DEVICE_BOUND_MESSAGE =
+  'This account is already logged in on another device. Please logout from that device first.';
 const USERNAME_PATTERN = /^[a-z0-9_.-]{3,40}$/;
 const VALID_ROLES = new Set(['admin', 'operator']);
+
+function normalizedDeviceId(deviceId) {
+  return `${deviceId || ''}`.trim();
+}
+
+function clearDeviceBinding(user) {
+  user.activeDeviceIdHash = undefined;
+  user.activeDeviceIdMasked = undefined;
+  user.activeDeviceBoundAt = undefined;
+  user.activeDeviceLastSeenAt = undefined;
+}
+
+function enforceSingleDevice(user, deviceId, { unauthorizedOnMissing = false } = {}) {
+  const normalized = normalizedDeviceId(deviceId);
+  if (normalized.length < MIN_DEVICE_ID_LENGTH) {
+    if (unauthorizedOnMissing) {
+      throw ApiError.unauthorized(
+        'Device session is missing. Please login again.',
+        'DEVICE_ID_REQUIRED',
+      );
+    }
+    throw ApiError.badRequest(
+      'A valid device identifier is required.',
+      [],
+      'DEVICE_ID_REQUIRED',
+    );
+  }
+
+  if (!user.activeDeviceIdHash) {
+    user.bindDevice(normalized);
+  } else if (!user.matchesDevice(normalized)) {
+    throw ApiError.forbidden(DEVICE_BOUND_MESSAGE, 'DEVICE_ALREADY_BOUND');
+  } else {
+    user.activeDeviceLastSeenAt = new Date();
+  }
+
+  return normalized;
+}
 
 function usernameBaseFrom(user) {
   const suffix = user._id.toString().slice(-6);
@@ -113,33 +153,18 @@ async function authenticate(identifier, password, { deviceId } = {}) {
     throw ApiError.forbidden('Your account was not approved.', 'ACCOUNT_REJECTED');
   }
 
-  const settings = await Settings.getApplicationSettings();
-  if (user.role !== 'admin' && settings.singleDeviceLoginEnabled === true) {
-    if (!deviceId || `${deviceId}`.length < 16) {
-      throw ApiError.badRequest('A valid device identifier is required.', [], 'DEVICE_ID_REQUIRED');
-    }
-    if (!user.activeDeviceIdHash) {
-      user.bindDevice(deviceId);
-    } else if (!user.matchesDevice(deviceId)) {
-      throw ApiError.forbidden(
-        'This account is already logged in on another device. Please logout from that device or contact the administrator.',
-        'DEVICE_ALREADY_BOUND',
-      );
-    } else {
-      user.activeDeviceLastSeenAt = new Date();
-    }
-  }
+  const sessionDeviceId = enforceSingleDevice(user, deviceId);
 
   user.failedLoginAttempts = 0;
   user.lockUntil = undefined;
   user.lastLogin = new Date();
-  const tokens = tokenService.createTokenPair(user, deviceId);
+  const tokens = tokenService.createTokenPair(user, sessionDeviceId);
   user.setRefreshToken(tokens.refreshToken);
   await user.save();
   return { user, tokens };
 }
 
-async function rotateRefreshToken(rawToken) {
+async function rotateRefreshToken(rawToken, { deviceId } = {}) {
   const payload = tokenService.verifyRefreshToken(rawToken);
   const user = await User.findById(payload.sub).select(
     '+refreshTokenHash +tokenVersion +activeDeviceIdHash',
@@ -157,43 +182,48 @@ async function rotateRefreshToken(rawToken) {
     throw ApiError.unauthorized('Refresh session is no longer valid', 'SESSION_REVOKED');
   }
 
-  const settings = await Settings.getApplicationSettings();
-  if (user.role !== 'admin' && settings.singleDeviceLoginEnabled === true) {
-    if (!payload.deviceId) {
-      throw ApiError.unauthorized('Refresh session is no longer valid', 'SESSION_REVOKED');
-    }
-    if (!user.activeDeviceIdHash) {
-      user.bindDevice(payload.deviceId);
-    } else if (!user.matchesDevice(payload.deviceId)) {
-      throw ApiError.forbidden(
-        'This account is already logged in on another device. Please logout from that device or contact the administrator.',
-        'DEVICE_ALREADY_BOUND',
-      );
-    } else {
-      user.activeDeviceLastSeenAt = new Date();
-    }
+  const requestDeviceId = normalizedDeviceId(deviceId);
+  const tokenDeviceId = normalizedDeviceId(payload.deviceId);
+  const tokenDeviceHash = normalizedDeviceId(payload.deviceIdHash);
+  const requestDeviceHash = requestDeviceId ? user.deviceHash(requestDeviceId) : '';
+  if (
+    tokenDeviceHash &&
+    tokenDeviceHash !== requestDeviceHash
+  ) {
+    throw ApiError.unauthorized('Refresh session is no longer valid', 'SESSION_REVOKED');
   }
+  if (tokenDeviceId && tokenDeviceId !== requestDeviceId) {
+    throw ApiError.unauthorized('Refresh session is no longer valid', 'SESSION_REVOKED');
+  }
+  const sessionDeviceId = enforceSingleDevice(user, requestDeviceId || tokenDeviceId, {
+    unauthorizedOnMissing: true,
+  });
 
-  const tokens = tokenService.createTokenPair(user, payload.deviceId);
+  const tokens = tokenService.createTokenPair(user, sessionDeviceId);
   user.setRefreshToken(tokens.refreshToken);
   await user.save();
   return { user, tokens };
 }
 
-async function invalidateRefreshToken(rawToken) {
+async function invalidateRefreshToken(rawToken, { deviceId } = {}) {
   if (!rawToken) return;
   try {
     const payload = tokenService.verifyRefreshToken(rawToken);
     const user = await User.findById(payload.sub).select(
-      '+refreshTokenHash +activeDeviceIdHash',
+      '+refreshTokenHash +activeDeviceIdHash +tokenVersion',
     );
     if (user && user.matchesRefreshToken(rawToken)) {
+      const requestDeviceId = normalizedDeviceId(deviceId);
+      const tokenDeviceId = normalizedDeviceId(payload.deviceId);
+      const tokenDeviceHash = normalizedDeviceId(payload.deviceIdHash);
+      const logoutDeviceId = requestDeviceId || tokenDeviceId;
+      const logoutDeviceMatches = logoutDeviceId
+        ? user.matchesDevice(logoutDeviceId)
+        : tokenDeviceHash && user.activeDeviceIdHash === tokenDeviceHash;
       user.refreshTokenHash = undefined;
-      if (payload.deviceId && user.matchesDevice(payload.deviceId)) {
-        user.activeDeviceIdHash = undefined;
-        user.activeDeviceIdMasked = undefined;
-        user.activeDeviceBoundAt = undefined;
-        user.activeDeviceLastSeenAt = undefined;
+      user.tokenVersion = (user.tokenVersion || 0) + 1;
+      if (logoutDeviceMatches) {
+        clearDeviceBinding(user);
       }
       await user.save();
     }
@@ -237,4 +267,3 @@ module.exports = {
   createResetToken,
   resetPassword,
 };
-
