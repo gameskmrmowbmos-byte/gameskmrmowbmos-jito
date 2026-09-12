@@ -485,6 +485,10 @@ bool _isManualJackpotBlockedNumber(String rawNumber) =>
     _isFamilyJodiNumber(rawNumber) ||
     _isManualSangamNumber(rawNumber);
 
+bool _canUseManualJackpot(String rawNumber, String session) {
+  return session == 'Open' && !_isManualJackpotBlockedNumber(rawNumber);
+}
+
 String? _commonNumber(String rawNumber) {
   final match = _commonInputPattern.firstMatch(rawNumber.trim());
   if (match == null) return null;
@@ -1066,9 +1070,9 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
             final baseAmount = _parseAmount(entry.amount.text);
             final multiplier = _familyMultiplierFor(familyNumber);
             final calculatedAmount = baseAmount * multiplier;
-            final canUseJackpot = familyNumber.length == 3 &&
-                (sessionOverride ?? _session) == 'Open' &&
-                entry.isJackpot;
+            final canUseJackpot =
+                _canUseManualJackpot(rawNumber, sessionOverride ?? _session) &&
+                    entry.isJackpot;
             final jackpotEntries = canUseJackpot
                 ? _filledJackpotEntries(entry, multiplier: multiplier)
                 : const <_JackpotLine>[];
@@ -2860,8 +2864,7 @@ class _BetTable extends StatelessWidget {
         if (!ownsController) continue;
 
         final raw = entry.number.text;
-        final canUseJackpot =
-            session == 'Open' && !_isManualJackpotBlockedNumber(raw);
+        final canUseJackpot = _canUseManualJackpot(raw, session);
         if (!canUseJackpot) return null;
 
         entry.isJackpot = !entry.isJackpot;
@@ -3242,8 +3245,7 @@ class _BetRowState extends State<_BetRow> {
   }
 
   TextEditingController? _openJackpot() {
-    final canUseJackpot =
-        session == 'Open' && !_isManualJackpotBlockedNumber(entry.number.text);
+    final canUseJackpot = _canUseManualJackpot(entry.number.text, session);
     if (!canUseJackpot) return null;
     setState(() {
       entry.isJackpot = !entry.isJackpot;
@@ -3274,8 +3276,8 @@ class _BetRowState extends State<_BetRow> {
   @override
   Widget build(BuildContext context) {
     final effectiveSession = entry.sessionOverride ?? session;
-    final canUseJackpot = effectiveSession == 'Open' &&
-        !_isManualJackpotBlockedNumber(entry.number.text);
+    final canUseJackpot =
+        _canUseManualJackpot(entry.number.text, effectiveSession);
     final showJackpotBoxes = entry.isJackpot && canUseJackpot;
     return Container(
       padding: EdgeInsets.symmetric(
