@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import 'package:matka_management/core/language/app_localizations.dart';
 import 'package:matka_management/core/language/language_provider.dart';
+import 'package:matka_management/core/language/language_switcher.dart';
 import 'package:matka_management/features/auth/data/models/access_status.dart';
 import 'package:matka_management/features/auth/presentation/providers/auth_provider.dart';
 import 'package:matka_management/features/entries/data/receipt_models.dart';
@@ -2107,11 +2108,18 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _SectionTitle(
-          number: null,
-          label: 'NEW ENTRY',
-          icon: Icons.edit_outlined,
-          large: true,
+        Row(
+          children: [
+            const Expanded(
+              child: _SectionTitle(
+                number: null,
+                label: 'NEW ENTRY',
+                icon: Icons.edit_outlined,
+                large: true,
+              ),
+            ),
+            const LanguageSwitcher(compact: true),
+          ],
         ),
         const SizedBox(height: 18),
         _SectionTitle(number: '1.', label: 'SELECT MARKET'),
@@ -2273,6 +2281,20 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        Row(
+          children: [
+            const Expanded(
+              child: _SectionTitle(
+                number: null,
+                label: 'NEW ENTRY',
+                icon: Icons.edit_outlined,
+                large: true,
+              ),
+            ),
+            const LanguageSwitcher(compact: true),
+          ],
+        ),
+        const SizedBox(height: 14),
         const _SectionTitle(number: '1.', label: 'MARKET'),
         const SizedBox(height: 8),
         if (_isLoadingData && _markets.isEmpty)

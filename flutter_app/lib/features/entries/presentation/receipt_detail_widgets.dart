@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart' hide TextDirection;
+import 'package:matka_management/core/language/app_localizations.dart';
 import 'package:matka_management/features/entries/data/receipt_models.dart';
 import 'package:matka_management/shared/widgets/aligned_jackpot_marker.dart';
 
@@ -129,7 +130,7 @@ class EntryPageHeader extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                title,
+                context.tr(title),
                 style: const TextStyle(
                   color: entryBlue,
                   fontSize: 24,
@@ -138,7 +139,10 @@ class EntryPageHeader extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 3),
-              Text(subtitle, style: const TextStyle(color: Color(0xFF334155))),
+              Text(
+                context.tr(subtitle),
+                style: const TextStyle(color: Color(0xFF334155)),
+              ),
             ],
           ),
         ),
@@ -157,7 +161,7 @@ class NumberedTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(
-      '$number. $title',
+      context.tr('$number. $title'),
       style: const TextStyle(
         color: entryBlue,
         fontSize: 14,
@@ -192,7 +196,7 @@ class StatusBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(5),
       ),
       child: Text(
-        label,
+        context.trMaybe(label),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         textAlign: TextAlign.center,
@@ -223,7 +227,7 @@ class DetailRow extends StatelessWidget {
           SizedBox(
             width: 104,
             child: Text(
-              label,
+              context.tr(label),
               style: const TextStyle(fontWeight: FontWeight.w800),
             ),
           ),
@@ -274,9 +278,9 @@ class ReceiptDetailsPanel extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Parchi No.',
-                      style: TextStyle(fontWeight: FontWeight.w800),
+                    Text(
+                      context.tr('Parchi No.'),
+                      style: const TextStyle(fontWeight: FontWeight.w800),
                     ),
                     const SizedBox(height: 4),
                     InkWell(
@@ -286,8 +290,8 @@ class ReceiptDetailsPanel extends StatelessWidget {
                         );
                         if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Parchi number copied'),
+                          SnackBar(
+                            content: Text(context.tr('Parchi number copied')),
                           ),
                         );
                       },
@@ -308,23 +312,32 @@ class ReceiptDetailsPanel extends StatelessWidget {
             ],
           ),
           const Divider(height: 22),
-          DetailRow('Market', receipt.market?.name ?? '-'),
-          DetailRow('Session', receipt.session.toUpperCase()),
+          DetailRow(
+            'Market',
+            AppLocalizations.localizeMarketName(receipt.market?.name ?? '-'),
+          ),
+          DetailRow('Session', context.tr(receipt.session.toUpperCase())),
           DetailRow('Date & Time', formatDateTime(receipt.date)),
-          DetailRow('Entry Mode', _entryMode(detail)),
+          DetailRow('Entry Mode', context.tr(_entryMode(detail))),
           DetailRow('Operator', receipt.operator?.name ?? '-'),
           if (receipt.customerName != null)
             DetailRow('Customer', receipt.customerName!),
           if (receipt.customerMobile != null)
             DetailRow('Mobile', receipt.customerMobile!),
-          DetailRow('Items', '${receipt.totalItems}'),
+          DetailRow(
+            'Items',
+            AppLocalizations.localizeDigits('${receipt.totalItems}'),
+          ),
           DetailRow(
             'Total Amount',
-            '$rupee ${receipt.totalAmountText}${receipt.isOtc ? ' OTC' : ''}',
+            '$rupee ${AppLocalizations.localizeDigits(receipt.totalAmountText)}${receipt.isOtc ? ' ${context.tr('OTC')}' : ''}',
           ),
           DetailRow('Print Status', '',
               valueWidget: StatusBadge(receipt.printStatus)),
-          DetailRow('Print Count', '${detail.printCount}'),
+          DetailRow(
+            'Print Count',
+            AppLocalizations.localizeDigits('${detail.printCount}'),
+          ),
           DetailRow(
             'Reprints',
             '',
@@ -332,7 +345,7 @@ class ReceiptDetailsPanel extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  '${detail.reprintCount}',
+                  AppLocalizations.localizeDigits('${detail.reprintCount}'),
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
                 if (detail.reprintCount > 0 && onViewReprints != null) ...[
@@ -340,7 +353,7 @@ class ReceiptDetailsPanel extends StatelessWidget {
                   SizedBox.square(
                     dimension: 28,
                     child: IconButton(
-                      tooltip: 'View reprint reasons',
+                      tooltip: context.tr('View reprint reasons'),
                       padding: EdgeInsets.zero,
                       visualDensity: VisualDensity.compact,
                       onPressed: onViewReprints,
@@ -370,7 +383,7 @@ class ReceiptDetailsPanel extends StatelessWidget {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.delete_outline),
-              label: const Text('Delete Parchi'),
+              label: Text(context.tr('Delete Parchi')),
               style: OutlinedButton.styleFrom(
                 foregroundColor: entryRed,
                 side: const BorderSide(color: entryRed),
@@ -402,7 +415,7 @@ class ReceiptItemsTable extends StatelessWidget {
               decoration: _panelDecoration(),
               child: Row(
                 children: [
-                  Text('${index + 1}',
+                  Text(AppLocalizations.localizeDigits('${index + 1}'),
                       style: const TextStyle(fontWeight: FontWeight.w900)),
                   const SizedBox(width: 12),
                   Expanded(
@@ -412,7 +425,7 @@ class ReceiptItemsTable extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    '$rupee ${items[index].effectiveDisplayAmount}',
+                    '$rupee ${AppLocalizations.localizeDigits(items[index].effectiveDisplayAmount)}',
                     style: const TextStyle(fontWeight: FontWeight.w900),
                   ),
                 ],
@@ -427,15 +440,20 @@ class ReceiptItemsTable extends StatelessWidget {
       child: Column(
         children: [
           _itemRow(
-            const ['SR.', 'TYPE', 'NUMBER', 'AMOUNT ($rupee)'],
+            [
+              context.tr('SR.'),
+              context.tr('TYPE'),
+              context.tr('NUMBER'),
+              context.tr('AMOUNT ($rupee)'),
+            ],
             header: true,
           ),
           for (var index = 0; index < items.length; index++)
             _itemRow([
-              '${index + 1}',
-              items[index].displayType,
-              items[index].displayNumber,
-              items[index].effectiveDisplayAmount,
+              AppLocalizations.localizeDigits('${index + 1}'),
+              context.trMaybe(items[index].displayType),
+              AppLocalizations.localizeDigits(items[index].displayNumber),
+              AppLocalizations.localizeDigits(items[index].effectiveDisplayAmount),
             ]),
         ],
       ),
@@ -495,7 +513,7 @@ class PrintHistoryView extends StatelessWidget {
       return Container(
         padding: const EdgeInsets.all(18),
         decoration: _panelDecoration(),
-        child: const Text('No print history found.'),
+        child: Text(context.tr('No print history found.')),
       );
     }
     if (compact) {
@@ -522,12 +540,27 @@ class PrintHistoryView extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '${log.printType}  #${log.printNumber ?? '-'}  ${formatDateTime(log.printedAt)}',
+                    '${context.trMaybe(log.printType)}  #${AppLocalizations.localizeDigits('${log.printNumber ?? '-'}')}  ${formatDateTime(log.printedAt)}',
                   ),
-                  Text('Printer: ${log.printerName}'),
-                  Text('Created At: ${formatDateTime(log.createdAt)}'),
+                  Text(
+                    context.tr(
+                      'Printer: {printer}',
+                      params: {'printer': log.printerName},
+                    ),
+                  ),
+                  Text(
+                    context.tr(
+                      'Created At: {date}',
+                      params: {'date': formatDateTime(log.createdAt)},
+                    ),
+                  ),
                   if (log.reprintReason != null || log.retryReason != null)
-                    Text('Reason: ${log.reprintReason ?? log.retryReason}'),
+                    Text(
+                      context.tr(
+                        'Reason: {reason}',
+                        params: {'reason': log.reprintReason ?? log.retryReason},
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -539,25 +572,25 @@ class PrintHistoryView extends StatelessWidget {
       child: Column(
         children: [
           _printRow(
-            const [
-              'SR.',
-              'PRINT ID',
-              'TYPE',
-              'PRINT NO.',
-              'PRINT TIME',
-              'PRINTER',
-              'CREATED AT',
-              'REASON',
-              'STATUS'
+            [
+              context.tr('SR.'),
+              context.tr('PRINT ID'),
+              context.tr('TYPE'),
+              context.tr('PRINT NO.'),
+              context.tr('PRINT TIME'),
+              context.tr('PRINTER'),
+              context.tr('CREATED AT'),
+              context.tr('REASON'),
+              context.tr('STATUS')
             ],
             header: true,
           ),
           for (var index = 0; index < logs.length; index++)
             _printRow([
-              '${index + 1}',
+              AppLocalizations.localizeDigits('${index + 1}'),
               logs[index].printId,
-              logs[index].printType,
-              '${logs[index].printNumber ?? '-'}',
+              context.trMaybe(logs[index].printType),
+              AppLocalizations.localizeDigits('${logs[index].printNumber ?? '-'}'),
               formatDateTime(logs[index].printedAt),
               logs[index].printerName,
               formatDateTime(logs[index].createdAt),

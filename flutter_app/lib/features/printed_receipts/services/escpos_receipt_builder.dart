@@ -9,13 +9,13 @@ import 'package:matka_management/core/language/app_localizations.dart';
 import 'package:matka_management/features/entries/data/receipt_models.dart';
 
 const _parchiEntriesPerPage = 10;
-const _receiptFeedBeforeCut = 2;
+const _receiptFeedBeforeCut = 0;
 const _receiptImageWidth = 372.0;
 const _receiptTicketWidth = 368.0;
 const _receiptTicketX = (_receiptImageWidth - _receiptTicketWidth) / 2;
 const _receiptPaddingX = _receiptTicketX + 3.0;
 const _receiptPaddingTop = 18.0;
-const _receiptPaddingBottom = 8.0;
+const _receiptPaddingBottom = 2.0;
 const _receiptContentWidth = _receiptTicketWidth - 6.0;
 const _receiptTableMaxWidth = 320.0;
 const _receiptTableGap = 36.0;

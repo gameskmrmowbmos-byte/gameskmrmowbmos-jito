@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:matka_management/core/constants/app_constants.dart';
 import 'package:matka_management/core/language/app_localizations.dart';
-import 'package:matka_management/core/language/language_switcher.dart';
 import 'package:matka_management/core/widgets/responsive.dart';
 import 'package:matka_management/features/auth/presentation/providers/auth_provider.dart';
 import 'package:matka_management/features/new_entry/presentation/new_entry_draft_provider.dart';
@@ -88,7 +87,7 @@ class ResponsiveShell extends ConsumerWidget {
       return Scaffold(
         appBar: AppBar(
           title: Text(context.tr(AppConstants.applicationName)),
-          actions: const [LanguageSwitcher(compact: true), _ProfileMenu()],
+          actions: const [_ProfileMenu()],
         ),
         body: Row(
           children: [
@@ -124,7 +123,7 @@ class ResponsiveShell extends ConsumerWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
-        actions: const [LanguageSwitcher(compact: true), _ProfileMenu()],
+        actions: const [_ProfileMenu()],
       ),
       drawer: NavigationDrawer(
         selectedIndex: effectiveIndex,
@@ -236,11 +235,6 @@ class _Sidebar extends StatelessWidget {
                   },
                 ),
               ),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 12),
-                child: LanguageSwitcher(),
-              ),
-              const Divider(),
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Text(
@@ -278,7 +272,6 @@ class _TopBar extends StatelessWidget {
             ),
             const SizedBox(width: 16),
             Text(userName),
-            const LanguageSwitcher(compact: true),
             const _ProfileMenu(),
           ],
         ),
