@@ -75,13 +75,10 @@ ParchiRenderModel buildParchiRenderModel(
   final pages = <ParchiRenderPage>[];
   for (var pageIndex = 0; pageIndex < itemPages.length; pageIndex++) {
     final pageItems = itemPages[pageIndex];
-    final pageTotal = itemPages.length == 1
-        ? receipt.totalAmount
-        : _pageTotalAmount(pageItems, receipt.isOtc);
     pages.add(
       ParchiRenderPage(
         parchiNo: _parchiNoForPage(baseParchiNo, pageIndex),
-        totalAmount: pageTotal,
+        totalAmount: receipt.totalAmount,
         isOtc: receipt.isOtc,
         lines: [
           for (var index = 0; index < pageItems.length; index++)
@@ -289,15 +286,6 @@ List<JackpotEntryModel> _visibleJackpotEntries(ReceiptItemModel item) {
   return item.jackpotEntries
       .where((entry) => entry.number.isNotEmpty || entry.amount.isNotEmpty)
       .toList(growable: false);
-}
-
-num _pageTotalAmount(List<_ParchiPageItem> items, bool isOtc) {
-  final baseTotal = items.fold<num>(
-    0,
-    (total, pageItem) =>
-        total + (pageItem.showMainEntry ? pageItem.item.amount : 0),
-  );
-  return isOtc ? baseTotal * 2 : baseTotal;
 }
 
 String _parchiNoForPage(String parchiNo, int pageIndex) {

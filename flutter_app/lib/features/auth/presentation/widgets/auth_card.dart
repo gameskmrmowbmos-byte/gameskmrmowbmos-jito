@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:matka_management/core/constants/app_constants.dart';
 import 'package:matka_management/core/language/app_localizations.dart';
+import 'package:matka_management/core/language/language_switcher.dart';
 
 class AuthCard extends StatelessWidget {
   const AuthCard({
@@ -53,6 +54,11 @@ class AuthCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        const Align(
+                          alignment: Alignment.centerRight,
+                          child: LanguageSwitcher(),
+                        ),
+                        const SizedBox(height: 8),
                         Center(
                           child: Container(
                             padding: const EdgeInsets.all(16),

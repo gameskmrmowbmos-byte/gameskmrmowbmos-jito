@@ -40,7 +40,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
-    final loading = auth.busy;
+    final loading = auth.status == AuthStatus.initializing;
     return AuthCard(
       title: 'Welcome back',
       subtitle: 'Sign in as an administrator or operator',
@@ -61,9 +61,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 labelText: context.tr('Email or username'),
                 prefixIcon: const Icon(Icons.person_outline),
               ),
-              validator: (value) => value == null || value.trim().isEmpty
-                  ? context.tr('Required')
-                  : null,
+              validator: (value) =>
+                  value == null || value.trim().isEmpty
+                      ? context.tr('Required')
+                      : null,
             ),
             const SizedBox(height: 14),
             TextFormField(
@@ -89,9 +90,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                 ),
               ),
-              validator: (value) => value == null || value.isEmpty
-                  ? context.tr('Required')
-                  : null,
+              validator: (value) =>
+                  value == null || value.isEmpty ? context.tr('Required') : null,
             ),
             const SizedBox(height: 6),
             Row(
