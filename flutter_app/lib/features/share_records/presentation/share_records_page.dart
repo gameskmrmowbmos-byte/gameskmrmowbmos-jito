@@ -1,4 +1,6 @@
+import 'dart:math' as math;
 import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -246,7 +248,9 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final mobileFilterWidth = (constraints.maxWidth - 12) / 2;
+          final mobileFilterWidth = constraints.maxWidth <= 12
+              ? constraints.maxWidth
+              : (constraints.maxWidth - 12) / 2;
           return Wrap(
             spacing: 12,
             runSpacing: 12,
@@ -292,87 +296,93 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
                 ),
               ),
 
-          // Market Filter
-          SizedBox(
-            width: isMobile ? double.infinity : 200,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  context.tr('MARKET'),
-                  style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w900,
-                      color: Color(0xFF475569)),
-                ),
-                const SizedBox(height: 6),
-                DropdownButtonFormField<String>(
-                  initialValue: state.selectedMarketId ?? '',
-                  isExpanded: true,
-                  decoration: const InputDecoration(
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    border: OutlineInputBorder(),
-                  ),
-                  items: [
-                    DropdownMenuItem(
-                      value: '',
-                      child: Text(context.tr('ALL MARKETS')),
+              // Market Filter
+              SizedBox(
+                width: isMobile ? mobileFilterWidth : 200,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.tr('MARKET'),
+                      style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF475569)),
                     ),
-                    for (final market in state.markets)
-                      DropdownMenuItem(
-                        value: market.id,
-                        child: Text(
-                          AppLocalizations.localizeMarketName(market.name),
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                    const SizedBox(height: 6),
+                    DropdownButtonFormField<String>(
+                      initialValue: state.selectedMarketId ?? '',
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        border: OutlineInputBorder(),
                       ),
-                  ],
-                  onChanged: (val) => notifier.setMarketId(val),
-                ),
-              ],
-            ),
-          ),
-
-          // Session Filter
-          SizedBox(
-            width: isMobile ? double.infinity : 170,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  context.tr('SESSION'),
-                  style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w900,
-                      color: Color(0xFF475569)),
-                ),
-                const SizedBox(height: 6),
-                DropdownButtonFormField<String>(
-                  initialValue: state.selectedSession,
-                  isExpanded: true,
-                  decoration: const InputDecoration(
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    border: OutlineInputBorder(),
-                  ),
-                  items: [
-                    DropdownMenuItem(
-                        value: 'Open', child: Text(context.tr('OPEN'))),
-                    DropdownMenuItem(
-                        value: 'Close', child: Text(context.tr('CLOSE'))),
-                    DropdownMenuItem(
-                      value: 'All',
-                      child: Text(context.tr('ALL SESSIONS')),
+                      items: [
+                        DropdownMenuItem(
+                          value: '',
+                          child: Text(
+                            context.tr('ALL MARKETS'),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        for (final market in state.markets)
+                          DropdownMenuItem(
+                            value: market.id,
+                            child: Text(
+                              AppLocalizations.localizeMarketName(market.name),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                      ],
+                      onChanged: (val) => notifier.setMarketId(val),
                     ),
                   ],
-                  onChanged: (val) {
-                    if (val != null) notifier.setSession(val);
-                  },
                 ),
-              ],
-            ),
-          ),
+              ),
+
+              // Session Filter
+              SizedBox(
+                width: isMobile ? mobileFilterWidth : 170,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.tr('SESSION'),
+                      style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF475569)),
+                    ),
+                    const SizedBox(height: 6),
+                    DropdownButtonFormField<String>(
+                      initialValue: state.selectedSession,
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        border: OutlineInputBorder(),
+                      ),
+                      items: [
+                        DropdownMenuItem(
+                            value: 'Open', child: Text(context.tr('OPEN'))),
+                        DropdownMenuItem(
+                            value: 'Close', child: Text(context.tr('CLOSE'))),
+                        DropdownMenuItem(
+                          value: 'All',
+                          child: Text(
+                            context.tr('ALL SESSIONS'),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) notifier.setSession(val);
+                      },
+                    ),
+                  ],
+                ),
+              ),
 
               // Search Button
               SizedBox(
@@ -411,9 +421,17 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
   }
 
   Widget _buildDesktopLayout(ShareRecordsState state) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const minDesktopHeight = 560.0;
+        final contentHeight = constraints.hasBoundedHeight
+            ? math.max(constraints.maxHeight, minDesktopHeight)
+            : minDesktopHeight;
+        final content = SizedBox(
+          height: contentHeight,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
         // Left Column: 1. OVERALL PREVIEW (ALL PAGES) (~28% width)
         Expanded(
           flex: 28,
@@ -622,7 +640,16 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
             ),
           ),
         ),
-      ],
+            ],
+          ),
+        );
+
+        if (constraints.hasBoundedHeight &&
+            constraints.maxHeight < minDesktopHeight) {
+          return SingleChildScrollView(child: content);
+        }
+        return content;
+      },
     );
   }
 

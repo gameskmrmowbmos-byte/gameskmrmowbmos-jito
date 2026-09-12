@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import 'package:matka_management/core/language/app_localizations.dart';
 import 'package:matka_management/core/language/language_provider.dart';
+import 'package:matka_management/core/language/language_switcher.dart';
 import 'package:matka_management/features/auth/data/models/access_status.dart';
 import 'package:matka_management/features/auth/presentation/providers/auth_provider.dart';
 import 'package:matka_management/features/entries/data/receipt_models.dart';
@@ -31,6 +32,19 @@ const _previewIndicFontFallback = <String>[
   'Nirmala UI',
   'Mangal',
 ];
+
+String _removeLastKeypadToken(String value) {
+  if (value.isEmpty) return value;
+  final normalized = AppLocalizations.normalizeDigits(value);
+  final tokenMatch = RegExp(
+    r'\s*(?:sp|dp|cp|ct|cm|bz|f)\s*$',
+    caseSensitive: false,
+  ).firstMatch(normalized);
+  if (tokenMatch != null) {
+    return normalized.substring(0, tokenMatch.start);
+  }
+  return normalized.substring(0, normalized.length - 1);
+}
 
 class NewEntryPage extends ConsumerStatefulWidget {
   const NewEntryPage({super.key});
@@ -61,7 +75,7 @@ class _LocalizedDigitsController extends TextEditingController {
 
   void removeLastKeypadValue() {
     if (text.isEmpty) return;
-    text = text.substring(0, text.length - 1);
+    text = _removeLastKeypadToken(text);
     selection = TextSelection.collapsed(offset: text.length);
   }
 
@@ -625,16 +639,24 @@ String _effectiveEntrySession(String session, String? override) {
   return value == 'Close' || value == 'Open' ? value! : session;
 }
 
+bool _canUseJackpotForManualNumber(String rawNumber, String session) {
+  if (session != 'Open') return false;
+  if (_cpJodiNumber(rawNumber) != null) return false;
+  if (_isManualSangamNumber(rawNumber)) return false;
+  final familyNumber = _familyNumber(rawNumber);
+  if (familyNumber != null) return familyNumber.length == 3;
+  return !_isManualJodiNumber(rawNumber);
+}
+
 List<_JackpotLine> _filledJackpotEntries(
   _BetEntry entry, {
   int multiplier = 1,
   bool allowJackpot = true,
+  String session = 'Open',
 }) {
   if (!allowJackpot ||
       !entry.isJackpot ||
-      _cpJodiNumber(entry.number.text) != null ||
-      _familyNumber(entry.number.text) != null ||
-      _isManualSangamNumber(entry.number.text)) {
+      !_canUseJackpotForManualNumber(entry.number.text, session)) {
     return const [];
   }
   final rows = <_JackpotLine>[];
@@ -962,12 +984,14 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
   }
 
   String? _manualEntryError(_BetEntry entry) {
-    final isCloseSession = _effectiveManualSession(entry) == 'Close';
+    final effectiveSession = _effectiveManualSession(entry);
+    final isCloseSession = effectiveSession == 'Close';
     if (isCloseSession && entry.isJackpot) {
       return 'Jackpot not allowed in Close';
     }
-    if (_isManualJodiNumber(entry.number.text) && entry.isJackpot) {
-      return 'Jackpot not allowed in Jodi';
+    if (entry.isJackpot &&
+        !_canUseJackpotForManualNumber(entry.number.text, effectiveSession)) {
+      return 'Jackpot not allowed for this number';
     }
     if (entry.isJackpot) {
       for (var index = 0; index < entry.jackpotRowCount; index++) {
@@ -986,8 +1010,10 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
       if (_session == 'Close') {
         entry.sessionOverride = null;
       }
-      if (_effectiveManualSession(entry) == 'Close' ||
-          _isManualJodiNumber(entry.number.text)) {
+      if (!_canUseJackpotForManualNumber(
+        entry.number.text,
+        _effectiveManualSession(entry),
+      )) {
         entry.isJackpot = false;
       }
       entry.error = _manualEntryError(entry);
@@ -1065,17 +1091,31 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
             final baseAmount = _parseAmount(entry.amount.text);
             final multiplier = _familyMultiplierFor(familyNumber);
             final calculatedAmount = baseAmount * multiplier;
+            final canUseJackpot = _canUseJackpotForManualNumber(
+              rawNumber,
+              sessionOverride ?? _session,
+            ) && entry.isJackpot;
+            final jackpotEntries = canUseJackpot
+                ? _filledJackpotEntries(
+                    entry,
+                    multiplier: multiplier,
+                    session: sessionOverride ?? _session,
+                  )
+                : const <_JackpotLine>[];
+            final totalAmount =
+                calculatedAmount + _jackpotAmountTotal(jackpotEntries);
             lines.add(_ReceiptLine(
               backendType: familyNumber.length == 2 ? 'Jodi' : 'Patti',
               betType: familyNumber.length == 2 ? 'JODI' : 'PANNA',
               betSubtype: 'family',
               number: familyNumber,
-              amount: _formatAmount(calculatedAmount),
+              amount: _formatAmount(totalAmount),
               displayAmount: _formatAmount(baseAmount),
               isManual: true,
-              isJackpot: false,
+              isJackpot: canUseJackpot,
               isFamily: true,
               familyMultiplier: multiplier,
+              jackpotEntries: jackpotEntries,
               sessionOverride: sessionOverride,
             ));
             continue;
@@ -1281,11 +1321,10 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
           .map((e) => BetEntryData(
                 number: e.number.text,
                 amount: e.amount.text,
-                isJackpot: (_session == 'Close' ||
-                        (e.sessionOverride ?? _session) == 'Close' ||
-                        _cpJodiNumber(e.number.text) != null ||
-                        _familyNumber(e.number.text) != null ||
-                        _isManualSangamNumber(e.number.text))
+                isJackpot: !_canUseJackpotForManualNumber(
+                  e.number.text,
+                  e.sessionOverride ?? _session,
+                )
                     ? false
                     : e.isJackpot,
                 jackpotEntries: List<JackpotEntryData>.generate(
@@ -1346,11 +1385,10 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
         amount: entry.amount,
         jackpotEntries: entry.jackpotEntries,
       )
-        ..isJackpot = (_session == 'Close' ||
-                entry.sessionOverride == 'Close' ||
-                _cpJodiNumber(entry.number) != null ||
-                _familyNumber(entry.number) != null ||
-                _isManualSangamNumber(entry.number))
+        ..isJackpot = !_canUseJackpotForManualNumber(
+          entry.number,
+          entry.sessionOverride ?? _session,
+        )
             ? false
             : entry.isJackpot
         ..sessionOverride = _session == 'Close' ? null : entry.sessionOverride);
@@ -1362,11 +1400,10 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
         .map((entry) => BetEntryData(
               number: entry.number.text,
               amount: entry.amount.text,
-              isJackpot: (_session == 'Close' ||
-                      (entry.sessionOverride ?? _session) == 'Close' ||
-                      _cpJodiNumber(entry.number.text) != null ||
-                      _familyNumber(entry.number.text) != null ||
-                      _isManualSangamNumber(entry.number.text))
+              isJackpot: !_canUseJackpotForManualNumber(
+                entry.number.text,
+                entry.sessionOverride ?? _session,
+              )
                   ? false
                   : entry.isJackpot,
               jackpotEntries: List<JackpotEntryData>.generate(
@@ -1414,11 +1451,7 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
       if (_session == 'Close') {
         entry.sessionOverride = null;
       }
-      if (_session == 'Close' ||
-          effectiveSession == 'Close' ||
-          _cpJodiNumber(raw) != null ||
-          _familyNumber(raw) != null ||
-          _isManualSangamNumber(raw)) {
+      if (!_canUseJackpotForManualNumber(raw, effectiveSession)) {
         entry.isJackpot = false;
       }
     }
@@ -1863,50 +1896,16 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
     });
 
     try {
-      final savedReceipts = <ReceiptDetail>[];
-      if (pageCount > 1) {
-        for (var pageIndex = 0; pageIndex < pages.length; pageIndex++) {
-          final pageItems = pages[pageIndex].map(_receiptLinePayload).toList();
-          if (pageItems.isEmpty) continue;
-          final receipt =
-              await ref.read(newEntryControllerProvider.notifier).saveReceipt(
-                    market: market.id,
-                    marketName: market.name,
-                    session: _session,
-                    items: pageItems,
-                    isOtc: activeOtcPages.contains(pageIndex),
-                    shouldPrint: shouldPrint,
-                  );
-          if (receipt == null) {
-            if (!mounted) return;
-            throw StateError(
-              AppLocalizations.trCurrent(
-                'Receipt page {page} was not saved.',
-                params: {'page': pageIndex + 1},
-              ),
-            );
-          }
-          savedReceipts.add(receipt);
-        }
-      } else {
-        final receipt =
-            await ref.read(newEntryControllerProvider.notifier).saveReceipt(
-                  market: market.id,
-                  marketName: market.name,
-                  session: _session,
-                  items: items,
-                  isOtc: activeOtcPages.isNotEmpty,
-                  shouldPrint: shouldPrint,
-                );
-        if (receipt == null) {
-          if (!mounted) return;
-          throw StateError(
-              AppLocalizations.trCurrent('Receipt was not saved.'));
-        }
-        savedReceipts.add(receipt);
-      }
-
-      if (savedReceipts.isEmpty) {
+      final receipt =
+          await ref.read(newEntryControllerProvider.notifier).saveReceipt(
+                market: market.id,
+                marketName: market.name,
+                session: _session,
+                items: items,
+                isOtc: activeOtcPages.isNotEmpty,
+                shouldPrint: shouldPrint,
+              );
+      if (receipt == null) {
         if (!mounted) return;
         throw StateError(AppLocalizations.trCurrent('Receipt was not saved.'));
       }
@@ -1932,21 +1931,14 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            savedReceipts.length == 1
-                ? context.tr(
-                    print
-                        ? 'Receipt {receipt} saved. Print job added.'
-                        : 'Receipt {receipt} saved.',
-                    params: {
-                      'receipt': savedReceipts.first.receipt.receiptNumber,
-                    },
-                  )
-                : context.tr(
-                    print
-                        ? '{count} receipts saved. Print jobs added.'
-                        : '{count} receipts saved.',
-                    params: {'count': savedReceipts.length},
-                  ),
+            context.tr(
+              print
+                  ? 'Receipt {receipt} saved. Print job added.'
+                  : 'Receipt {receipt} saved.',
+              params: {
+                'receipt': receipt.receipt.receiptNumber,
+              },
+            ),
           ),
         ),
       );
@@ -2098,11 +2090,18 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _SectionTitle(
-          number: null,
-          label: 'NEW ENTRY',
-          icon: Icons.edit_outlined,
-          large: true,
+        Row(
+          children: [
+            Expanded(
+              child: _SectionTitle(
+                number: null,
+                label: 'NEW ENTRY',
+                icon: Icons.edit_outlined,
+                large: true,
+              ),
+            ),
+            const LanguageSwitcher(compact: true),
+          ],
         ),
         const SizedBox(height: 18),
         _SectionTitle(number: '1.', label: 'SELECT MARKET'),
@@ -2264,6 +2263,20 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        Row(
+          children: [
+            Expanded(
+              child: _SectionTitle(
+                number: null,
+                label: 'NEW ENTRY',
+                icon: Icons.edit_outlined,
+                large: true,
+              ),
+            ),
+            const LanguageSwitcher(compact: true),
+          ],
+        ),
+        const SizedBox(height: 14),
         const _SectionTitle(number: '1.', label: 'MARKET'),
         const SizedBox(height: 8),
         if (_isLoadingData && _markets.isEmpty)
@@ -2814,11 +2827,9 @@ class _BetTable extends StatelessWidget {
         final effectiveSession =
             _effectiveEntrySession(session, entry.sessionOverride);
         final raw = entry.number.text.trim();
-        final shouldClearJackpot = (effectiveSession == 'Close' ||
-                _cpJodiNumber(raw) != null ||
-                _familyNumber(raw) != null ||
-                _isManualSangamNumber(raw)) &&
-            entry.isJackpot;
+        final shouldClearJackpot =
+            !_canUseJackpotForManualNumber(raw, effectiveSession) &&
+                entry.isJackpot;
         if (shouldClearJackpot) entry.isJackpot = false;
         entry.error = _manualNumberError(
           raw,
@@ -2857,10 +2868,10 @@ class _BetTable extends StatelessWidget {
         if (!ownsController) continue;
 
         final raw = entry.number.text;
-        final canUseJackpot = session == 'Open' &&
-            _cpJodiNumber(raw) == null &&
-            _familyNumber(raw) == null &&
-            !_isManualSangamNumber(raw);
+        final canUseJackpot = _canUseJackpotForManualNumber(
+          raw,
+          _effectiveEntrySession(session, entry.sessionOverride),
+        );
         if (!canUseJackpot) return null;
 
         entry.isJackpot = !entry.isJackpot;
@@ -3048,11 +3059,9 @@ class _BetRowState extends State<_BetRow> {
   void _validateNumber() {
     final raw = entry.number.text.trim();
     final effectiveSession = entry.sessionOverride ?? session;
-    final shouldClearJackpot = (effectiveSession == 'Close' ||
-            _cpJodiNumber(raw) != null ||
-            _familyNumber(raw) != null ||
-            _isManualSangamNumber(raw)) &&
-        entry.isJackpot;
+    final shouldClearJackpot =
+        !_canUseJackpotForManualNumber(raw, effectiveSession) &&
+            entry.isJackpot;
     final newError = _manualNumberError(
       raw,
       isCloseSession: effectiveSession == 'Close',
@@ -3219,12 +3228,35 @@ class _BetRowState extends State<_BetRow> {
     _focusJackpotNumber(newIndex);
   }
 
+  void _removeJackpotRow(int rowIndex) {
+    if (rowIndex < 0 || rowIndex >= entry.jackpotRowCount) return;
+    setState(() {
+      if (entry.jackpotRowCount <= 1) {
+        entry.jackpotNumbers.first.clear();
+        entry.jackpotAmounts.first.clear();
+      } else {
+        for (var index = rowIndex; index < entry.jackpotRowCount - 1; index++) {
+          entry.jackpotNumbers[index].text =
+              entry.jackpotNumbers[index + 1].text;
+          entry.jackpotAmounts[index].text =
+              entry.jackpotAmounts[index + 1].text;
+        }
+        final lastIndex = entry.jackpotRowCount - 1;
+        entry.jackpotNumbers[lastIndex].clear();
+        entry.jackpotAmounts[lastIndex].clear();
+        entry.jackpotRowCount--;
+      }
+    });
+    onChanged();
+    final nextFocusIndex = rowIndex >= entry.jackpotRowCount
+        ? entry.jackpotRowCount - 1
+        : rowIndex;
+    if (nextFocusIndex >= 0) _focusJackpotNumber(nextFocusIndex);
+  }
+
   TextEditingController? _openJackpot() {
-    final isFamily = _familyNumber(entry.number.text) != null;
-    final isCpJodi = _cpJodiNumber(entry.number.text) != null;
-    final isSangam = _isManualSangamNumber(entry.number.text);
     final canUseJackpot =
-        session == 'Open' && !isCpJodi && !isFamily && !isSangam;
+        _canUseJackpotForManualNumber(entry.number.text, effectiveSession);
     if (!canUseJackpot) return null;
     setState(() {
       entry.isJackpot = !entry.isJackpot;
@@ -3254,12 +3286,9 @@ class _BetRowState extends State<_BetRow> {
 
   @override
   Widget build(BuildContext context) {
-    final isFamily = _familyNumber(entry.number.text) != null;
-    final isCpJodi = _cpJodiNumber(entry.number.text) != null;
-    final isSangam = _isManualSangamNumber(entry.number.text);
     final effectiveSession = entry.sessionOverride ?? session;
     final canUseJackpot =
-        effectiveSession == 'Open' && !isCpJodi && !isFamily && !isSangam;
+        _canUseJackpotForManualNumber(entry.number.text, effectiveSession);
     final showJackpotBoxes = entry.isJackpot && canUseJackpot;
     return Container(
       padding: EdgeInsets.symmetric(
@@ -3445,6 +3474,7 @@ class _BetRowState extends State<_BetRow> {
                 rowCount: entry.jackpotRowCount,
                 compact: compact,
                 onAdd: entry.jackpotRowCount >= 10 ? null : _addJackpotRow,
+                onRemove: _removeJackpotRow,
                 mainAmountController: entry.amount,
                 mainAmountFocus: entry.amountFocus,
                 onNumberSubmitted: _submitJackpotNumber,
@@ -3477,6 +3507,7 @@ class _JackpotEntryRows extends StatelessWidget {
     required this.rowCount,
     required this.compact,
     required this.onAdd,
+    required this.onRemove,
     required this.mainAmountController,
     required this.mainAmountFocus,
     required this.onNumberSubmitted,
@@ -3500,6 +3531,7 @@ class _JackpotEntryRows extends StatelessWidget {
   final int rowCount;
   final bool compact;
   final VoidCallback? onAdd;
+  final ValueChanged<int> onRemove;
   final TextEditingController mainAmountController;
   final FocusNode mainAmountFocus;
   final ValueChanged<int> onNumberSubmitted;
@@ -3522,6 +3554,7 @@ class _JackpotEntryRows extends StatelessWidget {
   Widget build(BuildContext context) {
     final numberWidth = compact ? 32.0 : 38.0;
     final amountWidth = compact ? 58.0 : 68.0;
+    final deleteWidth = compact ? 24.0 : 28.0;
     final height = compact ? 24.0 : 28.0;
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -3601,6 +3634,22 @@ class _JackpotEntryRows extends StatelessWidget {
                   onSubmitted: () => onAmountSubmitted(index),
                   onMobileFill: () => onMobileAmountFill(index),
                   onChanged: onChanged,
+                ),
+                SizedBox(width: compact ? 3 : 5),
+                SizedBox(
+                  width: deleteWidth,
+                  height: height,
+                  child: IconButton(
+                    tooltip: context.tr('Delete row'),
+                    onPressed: () => onRemove(index),
+                    padding: EdgeInsets.zero,
+                    visualDensity: VisualDensity.compact,
+                    icon: Icon(
+                      Icons.close,
+                      size: compact ? 14 : 16,
+                      color: _NewEntryPageState._red,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -3954,7 +4003,7 @@ class _MatkaNumberKeypadSheetState extends State<MatkaNumberKeypadSheet> {
     }
     if (controller.text.isEmpty) return;
 
-    final text = controller.text.substring(0, controller.text.length - 1);
+    final text = _removeLastKeypadToken(controller.text);
     controller.value = controller.value.copyWith(
       text: text,
       selection: TextSelection.collapsed(offset: text.length),

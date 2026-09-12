@@ -4,6 +4,7 @@ import 'dart:js_interop';
 import 'package:intl/intl.dart';
 import 'package:matka_management/core/language/app_localizations.dart';
 import 'package:matka_management/features/entries/data/receipt_models.dart';
+import 'package:matka_management/features/entries/presentation/parchi_render_model.dart';
 import 'package:matka_management/features/printed_receipts/services/printer_service_common.dart';
 import 'package:web/web.dart' as web;
 
@@ -69,11 +70,15 @@ String _buildReceiptHtml(
   final pages = _receiptItemPages(items);
   final displayedParchiNo =
       overrideParchiNo ?? canonicalParchiNumber(receipt.receiptNumber);
+  final pageTotals = computeParchiPageTotals(
+    items,
+    isOtc: receipt.isOtc,
+  );
   final otcMarker = receipt.isOtc ? '<div class="otc-marker">OTC</div>' : '';
   final tickets = List.generate(pages.length, (pageIndex) {
     final pageItems = pages[pageIndex];
     final pageParchiNo = _parchiNoForPage(displayedParchiNo, pageIndex);
-    final totalAmount = _localizeDigits(_formatAmount(receipt.totalAmount));
+    final totalAmount = _localizeDigits(_formatAmount(pageTotals[pageIndex]));
     final totalBlock = '''
     $otcMarker
       <div class="grid-rule"></div>
@@ -150,13 +155,13 @@ String _buildReceiptHtml(
     }
 
     .parchi-label {
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 700;
       line-height: 1.25;
     }
 
     .parchi-number {
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 800;
       line-height: 1.2;
     }
@@ -164,7 +169,7 @@ String _buildReceiptHtml(
     .session-label {
       margin-top: 2px;
       color: #111820;
-      font-size: 10px;
+      font-size: 11px;
       font-weight: 800;
       line-height: 1.2;
       letter-spacing: 0;
@@ -173,7 +178,7 @@ String _buildReceiptHtml(
     .market {
       margin: 12px 0 8px;
       text-align: center;
-      font-size: 15px;
+      font-size: 16px;
       font-weight: 800;
       line-height: 1.25;
       letter-spacing: 0;
@@ -191,7 +196,7 @@ String _buildReceiptHtml(
     .datetime {
       color: #111820;
       text-align: right;
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 700;
       line-height: 1.25;
       letter-spacing: 0;
@@ -267,6 +272,9 @@ String _buildReceiptHtml(
     }
 
     .jackpot-num {
+      display: flex;
+      align-items: center;
+      gap: 2px;
       font-size: 10px;
       font-weight: 900;
       letter-spacing: 0;
@@ -275,8 +283,7 @@ String _buildReceiptHtml(
       text-align: left;
       line-height: 1;
       white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      overflow: visible;
     }
 
     .jackpot-amt {
@@ -289,10 +296,24 @@ String _buildReceiptHtml(
 
     .jackpot-arrow {
       display: inline-block;
-      font-size: 13px;
-      line-height: 1;
-      font-weight: 900;
-      letter-spacing: 0;
+      position: relative;
+      flex: 0 0 8mm;
+      height: 0;
+      border-top: 1.4px solid #111820;
+      transform: translateY(0.5px);
+    }
+
+    .jackpot-arrow::after {
+      content: '';
+      position: absolute;
+      right: -1px;
+      top: -4px;
+      width: 7px;
+      height: 7px;
+      border-top: 1.4px solid #111820;
+      border-right: 1.4px solid #111820;
+      transform: rotate(45deg);
+      transform-origin: center;
     }
 
     .item-label {
@@ -337,11 +358,11 @@ String _buildReceiptHtml(
       max-width: 50mm;
       box-sizing: border-box;
       padding: 0 1mm;
-      margin: 2mm auto 0;
+      margin: 4mm auto 0;
       text-align: center;
-      font-size: 9px;
-      font-weight: 700;
-      line-height: 1.3;
+      font-size: 10px;
+      font-weight: 900;
+      line-height: 1.2;
       overflow-wrap: anywhere;
     }
 
@@ -474,9 +495,8 @@ String _receiptRows(List<_ParchiPrintItem> items, String session) {
       ),
     );
     final jackpotRows = pageItem.jackpotEntries.map((entry) {
-      final jackpotArrow = _jackpotArrowFor(formattedNumber, entry.number);
       return '''
-      <div class="jackpot-num"><span class="jackpot-arrow">${_escapeHtml(jackpotArrow)}</span>${_escapeHtml(_localizeDigits(entry.number))} &gt;</div>
+      <div class="jackpot-num"><span class="jackpot-arrow"></span>${_escapeHtml(_localizeDigits(entry.number))} &gt;</div>
       <div class="jackpot-amt">${_escapeHtml(_localizeDigits(entry.amount))}</div>
     ''';
     }).join();
@@ -525,15 +545,6 @@ String _normalizePrintedFamilyNumber(String value) {
   final number = match.group(2) ?? '';
   final arrow = match.group(3)?.trim() ?? '';
   return '$prefix${number}F$arrow';
-}
-
-String _jackpotArrowFor(String parentNumber, String jackpotNumber) {
-  final markerIndex = parentNumber.lastIndexOf('>');
-  if (markerIndex == -1) return '->';
-  final parentPrefixLength = parentNumber.substring(0, markerIndex).length;
-  final dashCount = parentPrefixLength - jackpotNumber.trim().length - 2;
-  final line = '─' * (dashCount < 1 ? 1 : dashCount);
-  return '$line>';
 }
 
 String _marketTitle(ReceiptSummary receipt, [String? marketName]) {

@@ -121,22 +121,19 @@ class _JackpotArrowPainter extends CustomPainter {
       ..color = color
       ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.square
+      ..strokeJoin = StrokeJoin.miter
       ..style = PaintingStyle.stroke;
     final centerY = size.height / 2;
     final headLength = size.width < 6 ? size.width : 6.0;
     final shaftEnd = size.width - headLength;
-    canvas.drawLine(Offset.zero.translate(0, centerY),
-        Offset(shaftEnd, centerY), paint);
-    canvas.drawLine(
-      Offset(shaftEnd, centerY - headLength / 2),
-      Offset(size.width, centerY),
-      paint,
-    );
-    canvas.drawLine(
-      Offset(shaftEnd, centerY + headLength / 2),
-      Offset(size.width, centerY),
-      paint,
-    );
+    final path = Path()
+      ..moveTo(0, centerY)
+      ..lineTo(shaftEnd, centerY)
+      ..lineTo(size.width, centerY)
+      ..moveTo(shaftEnd, centerY - headLength / 2)
+      ..lineTo(size.width, centerY)
+      ..lineTo(shaftEnd, centerY + headLength / 2);
+    canvas.drawPath(path, paint);
   }
 
   @override

@@ -266,10 +266,9 @@ class ParchiTicketWidget extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: const Color(0xFF111820),
-                    fontSize:
-                        compact ? (isIndic ? 9 : 7) : (isIndic ? 10 : 8),
-                    fontWeight: FontWeight.w700,
-                    height: isIndic ? 1.3 : 1.1,
+                    fontSize: compact ? 10 : 12,
+                    fontWeight: FontWeight.w900,
+                    height: isIndic ? 1.25 : 1.1,
                     fontFamilyFallback: _parchiFontFallback(isIndic),
                   ),
                 ),
@@ -583,7 +582,7 @@ TextStyle _parchiNumberTextStyle(bool compact) {
   return TextStyle(
     color: const Color(0xFF111820),
     fontSize: compact ? 9 : 11,
-    fontWeight: FontWeight.w800,
+    fontWeight: FontWeight.w500,
     height: 1,
     letterSpacing: 0,
   );
@@ -601,7 +600,7 @@ TextStyle _parchiAmountTextStyle(bool compact) {
   return TextStyle(
     color: const Color(0xFF111820),
     fontSize: compact ? 9 : 11,
-    fontWeight: FontWeight.w900,
+    fontWeight: FontWeight.w500,
     height: 1,
     letterSpacing: 0,
   );
@@ -611,7 +610,7 @@ TextStyle _parchiJackpotTextStyle(bool compact) {
   return TextStyle(
     color: const Color(0xFF111820),
     fontSize: compact ? 9 : 11,
-    fontWeight: FontWeight.w900,
+    fontWeight: FontWeight.w500,
     height: 1,
     letterSpacing: 0,
   );
@@ -630,7 +629,7 @@ TextStyle _parchiTotalAmountTextStyle(bool compact) {
   return TextStyle(
     color: const Color(0xFF111820),
     fontSize: compact ? 12 : 14,
-    fontWeight: FontWeight.w900,
+    fontWeight: FontWeight.w500,
     letterSpacing: 0,
   );
 }
