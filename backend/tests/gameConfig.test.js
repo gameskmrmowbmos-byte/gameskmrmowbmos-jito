@@ -129,6 +129,51 @@ test('manual Family uses display amount as base when amount is already calculate
   });
 });
 
+test('manual Family preserves jackpot entries and includes their calculated total', () => {
+  assert.deepEqual(normalizeManualItem({
+    type: 'Patti',
+    number: '123F',
+    amount: 8,
+    isJackpot: true,
+    components: {
+      displayAmount: '1',
+      jackpotEntries: [{ number: '4', amount: '2', calculatedAmount: '16' }],
+    },
+  }, 0), {
+    type: 'Patti',
+    number: '123',
+    amount: 24,
+    mode: 'Manual',
+    betType: 'PANNA',
+    betSubtype: 'FAMILY',
+    isJackpot: true,
+    components: {
+      displayAmount: '1',
+      family: true,
+      familyMultiplier: 8,
+      jackpotEntries: [{
+        number: '4',
+        amount: '2',
+        calculatedAmount: '16',
+      }],
+    },
+  });
+});
+
+test('manual Family infers jackpot flag when jackpot entries are supplied', () => {
+  const normalized = normalizeManualItem({
+    type: 'Patti',
+    number: '123F',
+    amount: 8,
+    components: {
+      jackpotEntries: [{ number: '4', amount: '2', calculatedAmount: '16' }],
+    },
+  }, 0);
+
+  assert.equal(normalized.isJackpot, true);
+  assert.equal(normalized.amount, 80);
+});
+
 test('manual CP Jodi entries keep base amount and calculate 10x total', () => {
   assert.deepEqual(normalizeManualItem({
     type: 'Jodi',

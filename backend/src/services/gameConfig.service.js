@@ -1211,13 +1211,15 @@ function normalizeManualItem(item, index, session = 'Open') {
       throw ApiError.badRequest(`Item ${index + 1} Family number must be 2 or 3 digits`);
     }
     const display = normalizeDisplayAmountComponent(item, index);
+    const jackpotComponents = normalizeJackpotComponents(item, index);
     const baseAmount = display ? Number(display.displayAmount) : amount;
     const multiplier = familyMultiplierFor(number);
     const isJodiFamily = number.length === 2;
-    amount = baseAmount * multiplier;
+    amount = baseAmount * multiplier + jackpotCalculatedTotal(jackpotComponents, multiplier);
     const components = combineComponents(
       { displayAmount: display?.displayAmount ?? `${baseAmount}` },
       { family: true, familyMultiplier: multiplier },
+      jackpotComponents,
     );
     return {
       type: isJodiFamily ? 'Jodi' : 'Patti',
@@ -1226,7 +1228,7 @@ function normalizeManualItem(item, index, session = 'Open') {
       mode: 'Manual',
       betType: isJodiFamily ? 'JODI' : 'PANNA',
       betSubtype: 'FAMILY',
-      isJackpot: false,
+      isJackpot: !!item.isJackpot || Boolean(jackpotComponents),
       ...(components ? { components } : {}),
     };
   }

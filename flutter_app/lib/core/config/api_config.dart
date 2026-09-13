@@ -14,10 +14,9 @@ class ApiConfig {
   static List<String> get baseUrls {
     if (_definedBaseUrl.isNotEmpty) return [_normalize(_definedBaseUrl)];
 
-    return <String>[
-      _renderBaseUrl,
-      _localBaseUrl,
-    ];
+    return kReleaseMode
+        ? <String>[_renderBaseUrl, _localBaseUrl]
+        : <String>[_localBaseUrl, _renderBaseUrl];
   }
 
   static String? fallbackBaseUrl(String currentBaseUrl) {

@@ -382,7 +382,6 @@ List<List<_ParchiPageItem>> _receiptItemPages(List<ReceiptItemModel> items) {
 }
 
 List<JackpotEntryModel> _visibleJackpotEntries(ReceiptItemModel item) {
-  if (!item.isJackpot) return const <JackpotEntryModel>[];
   return item.jackpotEntries
       .where((entry) => entry.number.isNotEmpty || entry.amount.isNotEmpty)
       .toList(growable: false);

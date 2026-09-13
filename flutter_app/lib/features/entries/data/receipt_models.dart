@@ -315,6 +315,7 @@ class ReceiptItemModel {
   }
 
   factory ReceiptItemModel.fromJson(Map<String, dynamic> json) {
+    final jackpotEntries = _jackpotEntries(json['components']);
     return ReceiptItemModel(
       id: _stringValue(json['_id'] ?? json['id']),
       type: _stringValue(json['type']),
@@ -323,7 +324,7 @@ class ReceiptItemModel {
       mode: _stringValue(json['mode']),
       betType: _stringValue(json['betType']),
       betSubtype: _stringValue(json['betSubtype']),
-      isJackpot: json['isJackpot'] == true,
+      isJackpot: json['isJackpot'] == true || jackpotEntries.isNotEmpty,
       isBazarSangam: _isBazarSangam(json['components']),
       isFamily: _isFamily(json['components']),
       isCpJodi: _isCpJodi(
@@ -339,7 +340,7 @@ class ReceiptItemModel {
         betSubtype: _stringValue(json['betSubtype']),
       ),
       displayAmount: _displayAmount(json['components']),
-      jackpotEntries: _jackpotEntries(json['components']),
+      jackpotEntries: jackpotEntries,
       sessionOverride: json['sessionOverride'] as String?,
     );
   }
