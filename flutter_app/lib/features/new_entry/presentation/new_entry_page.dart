@@ -1092,9 +1092,10 @@ class _NewEntryPageState extends ConsumerState<NewEntryPage> {
             final multiplier = _familyMultiplierFor(familyNumber);
             final calculatedAmount = baseAmount * multiplier;
             final canUseJackpot = _canUseJackpotForManualNumber(
-              rawNumber,
-              sessionOverride ?? _session,
-            ) && entry.isJackpot;
+                  rawNumber,
+                  sessionOverride ?? _session,
+                ) &&
+                entry.isJackpot;
             final jackpotEntries = canUseJackpot
                 ? _filledJackpotEntries(
                     entry,
@@ -3554,7 +3555,7 @@ class _JackpotEntryRows extends StatelessWidget {
   Widget build(BuildContext context) {
     final numberWidth = compact ? 32.0 : 38.0;
     final amountWidth = compact ? 58.0 : 68.0;
-    final deleteWidth = compact ? 24.0 : 28.0;
+    final deleteWidth = compact ? 34.0 : 40.0;
     final height = compact ? 24.0 : 28.0;
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -3639,15 +3640,28 @@ class _JackpotEntryRows extends StatelessWidget {
                 SizedBox(
                   width: deleteWidth,
                   height: height,
-                  child: IconButton(
-                    tooltip: context.tr('Delete row'),
-                    onPressed: () => onRemove(index),
-                    padding: EdgeInsets.zero,
-                    visualDensity: VisualDensity.compact,
-                    icon: Icon(
-                      Icons.close,
-                      size: compact ? 14 : 16,
-                      color: _NewEntryPageState._red,
+                  child: Tooltip(
+                    message: context.tr('Delete row'),
+                    child: OutlinedButton(
+                      onPressed: () => onRemove(index),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: _NewEntryPageState._red,
+                        padding: EdgeInsets.zero,
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        side: BorderSide(
+                          color: _NewEntryPageState._red.withValues(
+                            alpha: 0.65,
+                          ),
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.delete_outline,
+                        size: compact ? 15 : 17,
+                      ),
                     ),
                   ),
                 ),
@@ -6627,9 +6641,8 @@ class _ReceiptPreviewTicket extends StatelessWidget {
                                     ? 10
                                     : 9
                                 : 11,
-                            fontWeight: isIndic
-                                ? FontWeight.w800
-                                : FontWeight.w900,
+                            fontWeight:
+                                isIndic ? FontWeight.w800 : FontWeight.w900,
                             height: isIndic ? 1.2 : 1,
                             fontFamilyFallback: _previewFontFallback(isIndic),
                             letterSpacing: 0,
