@@ -182,8 +182,10 @@ class NumberDisplayParts {
       'SP',
       'DP',
       'CUT P',
+      'CT',
       'F',
       'BAZAR',
+      'BZ',
       'MP',
       'COMMON',
       'CM',
@@ -200,7 +202,7 @@ class NumberDisplayParts {
     }
 
     final match = RegExp(
-      r'^(.*?)(\s*(?:COMMON|BAZAR|CUT\s+P|CP|SP|DP|MP|CM|F))$',
+      r'^(.*?)(\s*(?:COMMON|BAZAR|CUT\s+P|CP|SP|DP|CT|BZ|MP|CM|F))$',
       caseSensitive: false,
     ).firstMatch(value.trim());
     if (match == null) {
@@ -379,10 +381,20 @@ String formatParchiNumber(ReceiptItemModel item, String session) {
 }
 
 class JackpotEntryModel {
-  const JackpotEntryModel({required this.number, required this.amount});
+  const JackpotEntryModel({
+    required this.number,
+    required this.amount,
+    this.calculatedAmount = '',
+  });
 
   final String number;
   final String amount;
+  final String calculatedAmount;
+
+  String get displayAmount => amount.isNotEmpty ? amount : calculatedAmount;
+
+  String get totalAmount =>
+      calculatedAmount.isNotEmpty ? calculatedAmount : amount;
 }
 
 class PrintLogModel {
@@ -588,9 +600,13 @@ List<JackpotEntryModel> _jackpotEntries(Object? components) {
     return entries
         .map((value) {
           final entry = _objectValue(value);
+          final amount = _stringValue(
+            entry?['amount'] ?? entry?['calculatedAmount'],
+          ).trim();
           return JackpotEntryModel(
             number: _stringValue(entry?['number']).trim(),
-            amount: _stringValue(entry?['amount']).trim(),
+            amount: amount,
+            calculatedAmount: _stringValue(entry?['calculatedAmount']).trim(),
           );
         })
         .where((entry) => entry.number.isNotEmpty || entry.amount.isNotEmpty)

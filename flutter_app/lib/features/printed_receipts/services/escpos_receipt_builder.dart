@@ -9,20 +9,18 @@ import 'package:matka_management/core/language/app_localizations.dart';
 import 'package:matka_management/features/entries/data/receipt_models.dart';
 import 'package:matka_management/features/entries/presentation/parchi_render_model.dart';
 
-const _parchiEntriesPerPage = 10;
-const _receiptFeedBeforeCut = 0;
 const _receiptImageWidth = 372.0;
 const _receiptTicketWidth = 338.0;
 const _receiptTicketX = (_receiptImageWidth - _receiptTicketWidth) / 2;
 const _receiptPaddingX = _receiptTicketX + 17.0;
 const _receiptPaddingTop = 22.0;
-const _receiptPaddingBottom = 30.0;
+const _receiptPaddingBottom = 10.0;
 const _receiptContentWidth = _receiptTicketWidth - 34.0;
 const _receiptTableMaxWidth = 286.0;
 const _receiptTableGap = 34.0;
 const _receiptRuleHeight = 3.0;
 const int _parchiEntriesPerPage = 10;
-const int _receiptFeedBeforeCut = 3;
+const int _receiptFeedBeforeCut = 1;
 const _receiptInk = ui.Color(0xFF111820);
 const _receiptWhite = ui.Color(0xFFFFFFFF);
 const _receiptStrongTextShadow = <ui.Shadow>[
@@ -99,44 +97,6 @@ const _jackpotStyle = TextStyle(
   height: 1,
   shadows: _receiptStrongTextShadow,
 );
-const _entryNumberStyle = TextStyle(
-  color: _receiptInk,
-  fontSize: 30,
-  fontWeight: FontWeight.w600,
-  height: 1,
-);
-const _entryMarkerStyle = TextStyle(
-  color: _receiptInk,
-  fontSize: 29,
-  fontWeight: FontWeight.w900,
-  height: 1,
-  shadows: _receiptStrongTextShadow,
-);
-const _entryAmountStyle = TextStyle(
-  color: _receiptInk,
-  fontSize: 27,
-  fontWeight: FontWeight.w600,
-  height: 1,
-);
-const _jackpotNumberStyle = TextStyle(
-  color: _receiptInk,
-  fontSize: 28,
-  fontWeight: FontWeight.w600,
-  height: 1,
-);
-const _jackpotMarkerStyle = TextStyle(
-  color: _receiptInk,
-  fontSize: 27,
-  fontWeight: FontWeight.w900,
-  height: 1,
-  shadows: _receiptStrongTextShadow,
-);
-const _jackpotAmountStyle = TextStyle(
-  color: _receiptInk,
-  fontSize: 25,
-  fontWeight: FontWeight.w600,
-  height: 1,
-);
 const _totalStyle = TextStyle(
   color: _receiptInk,
   fontSize: 27,
@@ -153,10 +113,10 @@ const _totalAmountStyle = TextStyle(
 );
 const _instructionStyle = TextStyle(
   color: _receiptInk,
-  fontSize: 20,
-  fontWeight: FontWeight.w900,
-  height: 1.1,
-  shadows: _receiptHeaderTextShadow,
+  fontSize: 19,
+  fontWeight: FontWeight.w700,
+  height: 1.12,
+  shadows: _receiptIndicTextShadow,
 );
 
 bool get _isIndicReceiptLanguage {
@@ -246,13 +206,18 @@ TextStyle get _receiptTotalAmountStyle => _isIndicReceiptLanguage
 
 TextStyle get _receiptInstructionStyle => _isIndicReceiptLanguage
     ? _instructionStyle.copyWith(
-        fontSize: 18,
-        fontWeight: FontWeight.w900,
-        height: 1.15,
-        shadows: _receiptIndicTextShadow,
+        fontSize: 17,
+        fontWeight: FontWeight.w700,
+        height: 1.18,
+        shadows: const <ui.Shadow>[],
         fontFamilyFallback: _receiptIndicFontFallback,
       )
     : _instructionStyle;
+
+TextStyle get _receiptEntryMarkerStyle => _entryStyle.copyWith(
+      fontWeight: FontWeight.w900,
+      shadows: _receiptStrongTextShadow,
+    );
 
 List<List<_EscPosReceiptRow>> _buildRowPages(
   List<ReceiptItemModel> items,
@@ -263,6 +228,7 @@ List<List<_EscPosReceiptRow>> _buildRowPages(
   final pages = <List<_EscPosReceiptRow>>[];
   var currentPage = <_EscPosReceiptRow>[];
   var currentEntryCount = 0;
+  var previousMainEntryWasMotor = false;
 
   void pushCurrentPage() {
     if (currentPage.isEmpty) return;
@@ -278,8 +244,9 @@ List<List<_EscPosReceiptRow>> _buildRowPages(
   }
 
   for (final item in items) {
-    final jackpotEntries = item.jackpotEntries
-        .where((entry) => entry.number.isNotEmpty || entry.amount.isNotEmpty)
+    final jackpotEntries = _visibleJackpotEntries(item)
+        .where((entry) =>
+            entry.number.isNotEmpty || entry.displayAmount.isNotEmpty)
         .toList(growable: false);
     final requiredEntryCount = 1 + jackpotEntries.length;
 
@@ -300,6 +267,7 @@ List<List<_EscPosReceiptRow>> _buildRowPages(
     final parentNumber = AppLocalizations.localizeDigits(
       formatParchiNumber(item, item.sessionOverride ?? receiptSession),
     );
+    final showMotorLabel = item.isMotorPana && !previousMainEntryWasMotor;
 
     currentPage.add(_EscPosReceiptRow(
       number: parentNumber,
@@ -307,7 +275,7 @@ List<List<_EscPosReceiptRow>> _buildRowPages(
       showMainEntry: true,
       topLabel: item.isBazarSangam
           ? 'BAZAR'
-          : item.isMotorPana
+          : showMotorLabel
               ? 'MP'
               : null,
       jackpotEntries: [
@@ -317,10 +285,11 @@ List<List<_EscPosReceiptRow>> _buildRowPages(
             number: AppLocalizations.localizeDigits(
               jackpot.number,
             ),
-            amount: AppLocalizations.localizeDigits(jackpot.amount),
+            amount: AppLocalizations.localizeDigits(jackpot.displayAmount),
           ),
       ],
     ));
+    previousMainEntryWasMotor = item.isMotorPana;
     currentEntryCount += 1 + mainJackpotCount;
 
     var jackpotIndex = mainJackpotCount;
@@ -344,7 +313,7 @@ List<List<_EscPosReceiptRow>> _buildRowPages(
               number: AppLocalizations.localizeDigits(
                 jackpot.number,
               ),
-              amount: AppLocalizations.localizeDigits(jackpot.amount),
+              amount: AppLocalizations.localizeDigits(jackpot.displayAmount),
             ),
         ],
       ));
@@ -463,8 +432,13 @@ class _EscPosReceiptRow {
 }
 
 class _EscPosJackpotRow {
-  const _EscPosJackpotRow({required this.number, required this.amount});
+  const _EscPosJackpotRow({
+    required this.parentNumber,
+    required this.number,
+    required this.amount,
+  });
 
+  final String parentNumber;
   final String number;
   final String amount;
 }
@@ -603,7 +577,13 @@ double _layoutReceiptImage({
     textAlign: TextAlign.right,
   );
   y += 28;
-  _paintText(canvas, session.toUpperCase(), _sessionStyle, _receiptPaddingX, y);
+  _paintText(
+    canvas,
+    session.toUpperCase(),
+    _receiptSessionStyle,
+    _receiptPaddingX,
+    y,
+  );
   y += 28;
 
   final owner = ownerName?.trim() ?? '';
@@ -659,7 +639,7 @@ double _layoutReceiptImage({
       y += _paintTableText(
         canvas,
         row.topLabel!,
-        _entryStyle,
+        _receiptEntryMarkerStyle,
         tableX,
         y,
         metrics.totalWidth,
@@ -667,8 +647,13 @@ double _layoutReceiptImage({
       y += 9;
     }
     if (row.showMainEntry) {
-      _paintTableText(
-          canvas, row.number, _entryStyle, tableX, y, metrics.numberWidth);
+      _paintReceiptNumber(
+        canvas,
+        row.number,
+        tableX,
+        y,
+        metrics.numberWidth,
+      );
       y += _paintTableText(
         canvas,
         row.amount,
@@ -736,7 +721,7 @@ double _layoutReceiptImage({
     AppLocalizations.trCurrent(
       'Please check the receipt. No complaints will be accepted later.',
     ),
-    _instructionStyle,
+    _receiptInstructionStyle,
     _receiptPaddingX,
     y,
     width: _receiptContentWidth,
@@ -764,19 +749,20 @@ _ReceiptImageMetrics _imageTableMetrics(
 
   for (final row in rows) {
     if (row.topLabel != null) {
-      numberWidth =
-          _maxDouble(numberWidth, _measureText(row.topLabel!, _entryStyle));
+      numberWidth = _maxDouble(
+        numberWidth,
+        _measureText(row.topLabel!, _receiptEntryMarkerStyle),
+      );
     }
     if (row.showMainEntry) {
-      numberWidth =
-          _maxDouble(numberWidth, _measureText(row.number, _entryStyle));
+      numberWidth = _maxDouble(numberWidth, _measureReceiptNumber(row.number));
       amountWidth =
           _maxDouble(amountWidth, _measureText(row.amount, _entryStyle));
     }
     for (final jackpot in row.jackpotEntries) {
       numberWidth = _maxDouble(
         numberWidth,
-        _measureText(jackpot.parentNumber, _entryStyle),
+        _measureReceiptNumber(jackpot.parentNumber),
       );
       numberWidth = _maxDouble(
         numberWidth,
@@ -839,6 +825,43 @@ double _paintTableText(
   );
 }
 
+double _paintReceiptNumber(
+  ui.Canvas? canvas,
+  String text,
+  double x,
+  double y,
+  double width,
+) {
+  return _paintTextSpan(
+    canvas,
+    _receiptNumberSpan(text),
+    x,
+    y,
+    maxWidth: width,
+    maxLines: 1,
+  );
+}
+
+TextSpan _receiptNumberSpan(String text) {
+  final parts = NumberDisplayParts.fromDisplay(text);
+  final markerStyle = _receiptEntryMarkerStyle;
+  return TextSpan(
+    children: [
+      if (parts.leadingArrow.isNotEmpty)
+        TextSpan(text: '${parts.leadingArrow} ', style: markerStyle),
+      if (parts.beforeSuffix.isNotEmpty)
+        TextSpan(text: parts.beforeSuffix, style: _entryStyle),
+      if (parts.suffix.isNotEmpty)
+        TextSpan(
+          text: '${parts.beforeSuffix.isEmpty ? '' : ' '}${parts.suffix}',
+          style: markerStyle,
+        ),
+      if (parts.trailingArrow.isNotEmpty)
+        TextSpan(text: ' ${parts.trailingArrow}', style: markerStyle),
+    ],
+  );
+}
+
 double _paintJackpotNumber(
   ui.Canvas? canvas,
   _EscPosJackpotRow jackpot,
@@ -846,10 +869,9 @@ double _paintJackpotNumber(
   double y,
   double width,
 ) {
-  final parentWidth =
-      _measureText(jackpot.parentNumber.trimRight(), _entryStyle)
-          .clamp(1.0, width)
-          .toDouble();
+  final parentWidth = _measureReceiptNumber(jackpot.parentNumber.trimRight())
+      .clamp(1.0, width)
+      .toDouble();
   final endingWidth = _measureText('>', _jackpotStyle);
   final gapWidth = _measureText(' ', _jackpotStyle);
   final maxNumberWidth = (parentWidth - endingWidth - gapWidth * 2)
@@ -946,8 +968,16 @@ double _paintTextSpan(
 }
 
 double _measureText(String text, TextStyle style) {
+  return _measureTextSpan(TextSpan(text: text, style: style));
+}
+
+double _measureReceiptNumber(String text) {
+  return _measureTextSpan(_receiptNumberSpan(text));
+}
+
+double _measureTextSpan(InlineSpan span) {
   final painter = TextPainter(
-    text: TextSpan(text: text, style: style),
+    text: span,
     maxLines: 1,
     textDirection: ui.TextDirection.ltr,
     textScaler: TextScaler.noScaling,
@@ -982,4 +1012,11 @@ List<num> computeReceiptPageTotals(
   required bool isOtc,
 }) {
   return computeParchiPageTotals(items, isOtc: isOtc);
+}
+
+List<JackpotEntryModel> _visibleJackpotEntries(ReceiptItemModel item) {
+  if (!item.isJackpot && item.jackpotEntries.isEmpty) {
+    return const <JackpotEntryModel>[];
+  }
+  return item.jackpotEntries;
 }

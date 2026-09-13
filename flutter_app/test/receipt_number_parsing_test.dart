@@ -26,5 +26,14 @@ void main() {
     expect(common.beforeSuffix, '5');
     expect(common.suffix, 'COMMON');
     expect(common.trailingArrow, '>');
+
+    final cut = NumberDisplayParts.fromDisplay('7ct >');
+    expect(cut.beforeSuffix, '7');
+    expect(cut.suffix, 'CT');
+    expect(cut.trailingArrow, '>');
+
+    final bazarCode = NumberDisplayParts.fromDisplay('12*34 bz');
+    expect(bazarCode.beforeSuffix, '12*34');
+    expect(bazarCode.suffix, 'BZ');
   });
 }

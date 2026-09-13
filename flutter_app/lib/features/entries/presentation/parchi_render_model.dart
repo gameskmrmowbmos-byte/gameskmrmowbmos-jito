@@ -173,11 +173,11 @@ List<num> computeParchiPageTotals(
         : availableOnMain;
     final jackpotTotal = jackpotEntries.fold<double>(
       0,
-      (total, entry) => total + _parseReceiptAmount(entry.amount),
+      (total, entry) => total + _parseReceiptAmount(entry.totalAmount),
     );
     final mainJackpotTotal = jackpotEntries.take(mainJackpotCount).fold<double>(
           0,
-          (total, entry) => total + _parseReceiptAmount(entry.amount),
+          (total, entry) => total + _parseReceiptAmount(entry.totalAmount),
         );
     final mainAmount = item.amount.toDouble() - jackpotTotal + mainJackpotTotal;
     currentPageTotal += mainAmount < 0 ? 0 : mainAmount;
@@ -193,7 +193,8 @@ List<num> computeParchiPageTotals(
       currentPageTotal +=
           jackpotEntries.sublist(jackpotIndex, nextIndex).fold<double>(
                 0,
-                (total, entry) => total + _parseReceiptAmount(entry.amount),
+                (total, entry) =>
+                    total + _parseReceiptAmount(entry.totalAmount),
               );
       currentEntryCount += nextIndex - jackpotIndex;
       jackpotIndex = nextIndex;
