@@ -276,7 +276,7 @@ String _buildReceiptHtml(
       align-items: center;
       gap: 2px;
       font-size: 10px;
-      font-weight: 900;
+      font-weight: 400;
       letter-spacing: 0;
       min-width: 0;
       max-width: 25mm;
@@ -291,7 +291,7 @@ String _buildReceiptHtml(
       text-align: right;
       line-height: 1;
       font-size: 10px;
-      font-weight: 900;
+      font-weight: 400;
     }
 
     .jackpot-arrow {

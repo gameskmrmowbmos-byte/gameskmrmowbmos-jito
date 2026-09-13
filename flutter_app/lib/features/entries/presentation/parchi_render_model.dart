@@ -95,7 +95,7 @@ ParchiRenderModel buildParchiRenderModel(
                   pageItem.item,
                   pageItem.item.sessionOverride ?? receipt.session,
                 ),
-                amount: pageItem.item.effectiveDisplayAmount,
+                amount: pageItem.displayAmount,
                 topLabel: !pageItem.showMainEntry
                     ? null
                     : pageItem.item.isBazarSangam
@@ -289,11 +289,16 @@ class _ParchiPageItem {
     required this.item,
     required this.jackpotEntries,
     this.showMainEntry = true,
+    this.amountText,
   });
 
   final ReceiptItemModel item;
   final List<JackpotEntryModel> jackpotEntries;
   final bool showMainEntry;
+  final String? amountText;
+
+  String get displayAmount =>
+      item.displayAmount ?? amountText ?? item.amountText;
 }
 
 List<List<_ParchiPageItem>> _receiptItemPages(List<ReceiptItemModel> items) {
@@ -315,16 +320,34 @@ List<List<_ParchiPageItem>> _receiptItemPages(List<ReceiptItemModel> items) {
 
   for (final item in items) {
     final jackpotEntries = _visibleJackpotEntries(item);
+    final requiredEntryCount = 1 + jackpotEntries.length;
+    if (currentEntryCount > 0 &&
+        currentEntryCount + requiredEntryCount > parchiEntriesPerPage) {
+      pushCurrentPage();
+    }
     ensurePageSpace();
+
+    final fullJackpotTotal = jackpotEntries.fold<num>(
+      0,
+      (total, entry) => total + _parseReceiptAmount(entry.totalAmount),
+    );
+    var mainAmount = item.amount - fullJackpotTotal;
+    if (mainAmount < 0) mainAmount = 0;
 
     final jackpotSpaceOnMainPage = parchiEntriesPerPage - currentEntryCount - 1;
     final mainJackpotCount = jackpotEntries.length < jackpotSpaceOnMainPage
         ? jackpotEntries.length
         : jackpotSpaceOnMainPage;
+    final mainJackpotEntries = jackpotEntries.sublist(0, mainJackpotCount);
+    final mainJackpotTotal = mainJackpotEntries.fold<num>(
+      0,
+      (total, entry) => total + _parseReceiptAmount(entry.totalAmount),
+    );
     currentPage.add(
       _ParchiPageItem(
         item: item,
-        jackpotEntries: jackpotEntries.sublist(0, mainJackpotCount),
+        jackpotEntries: mainJackpotEntries,
+        amountText: formatParchiAmount(mainAmount + mainJackpotTotal),
       ),
     );
     currentEntryCount += 1 + mainJackpotCount;
@@ -336,11 +359,18 @@ List<List<_ParchiPageItem>> _receiptItemPages(List<ReceiptItemModel> items) {
       final nextIndex = jackpotIndex + available > jackpotEntries.length
           ? jackpotEntries.length
           : jackpotIndex + available;
+      final continuationEntries =
+          jackpotEntries.sublist(jackpotIndex, nextIndex);
+      final continuationTotal = continuationEntries.fold<num>(
+        0,
+        (total, entry) => total + _parseReceiptAmount(entry.totalAmount),
+      );
       currentPage.add(
         _ParchiPageItem(
           item: item,
-          jackpotEntries: jackpotEntries.sublist(jackpotIndex, nextIndex),
+          jackpotEntries: continuationEntries,
           showMainEntry: false,
+          amountText: formatParchiAmount(continuationTotal),
         ),
       );
       currentEntryCount += nextIndex - jackpotIndex;

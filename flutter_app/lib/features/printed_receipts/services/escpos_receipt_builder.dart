@@ -95,7 +95,6 @@ const _jackpotStyle = TextStyle(
   fontSize: 22,
   fontWeight: FontWeight.w500,
   height: 1,
-  shadows: _receiptStrongTextShadow,
 );
 const _totalStyle = TextStyle(
   color: _receiptInk,

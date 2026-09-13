@@ -74,7 +74,8 @@ class ShareRecordsChunker {
     for (final item in items) {
       final jackpotEntries = _visibleJackpotEntries(item);
       final mainLineCount = _mainVisualLineCount(item);
-      ensureSpace(mainLineCount);
+      final requiredLineCount = mainLineCount + jackpotEntries.length;
+      ensureSpace(requiredLineCount);
 
       final fullJackpotTotal = _jackpotAmountTotal(jackpotEntries);
       var mainAmount = item.amount - fullJackpotTotal;
@@ -144,7 +145,7 @@ class ShareRecordsChunker {
   static num _jackpotAmountTotal(List<ShareRecordJackpotEntry> entries) {
     return entries.fold<num>(
       0,
-      (sum, entry) => sum + (num.tryParse(entry.amount.trim()) ?? 0),
+      (sum, entry) => sum + (num.tryParse(entry.totalAmount.trim()) ?? 0),
     );
   }
 

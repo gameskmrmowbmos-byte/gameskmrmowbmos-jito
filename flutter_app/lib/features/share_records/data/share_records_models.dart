@@ -122,6 +122,7 @@ class ShareRecordItem {
       isBazarSangam: isBazarSangam,
       isFamily: isFamily,
       isCpJodi: isCpJodi,
+      isCommon: isCommon,
       displayAmount: displayAmount,
       jackpotEntries: jackpotEntries,
       showMainEntry: showMainEntry,
@@ -130,10 +131,18 @@ class ShareRecordItem {
 }
 
 class ShareRecordJackpotEntry {
-  const ShareRecordJackpotEntry({required this.number, required this.amount});
+  const ShareRecordJackpotEntry({
+    required this.number,
+    required this.amount,
+    this.calculatedAmount = '',
+  });
 
   final String number;
   final String amount;
+  final String calculatedAmount;
+
+  String get totalAmount =>
+      calculatedAmount.isNotEmpty ? calculatedAmount : amount;
 }
 
 class ShareRecordMarket {
@@ -382,6 +391,8 @@ List<ShareRecordJackpotEntry> _jackpotEntries(Object? components) {
           return ShareRecordJackpotEntry(
             number: _stringValue(entry?['number']).trim(),
             amount: _stringValue(entry?['amount']).trim(),
+            calculatedAmount:
+                _stringValue(entry?['calculatedAmount']).trim(),
           );
         })
         .where((entry) => entry.number.isNotEmpty || entry.amount.isNotEmpty)

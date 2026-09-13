@@ -351,7 +351,7 @@ class _ParchiItemRow extends StatelessWidget {
     final jackpotTextStyle = TextStyle(
       color: const Color(0xFF111820),
       fontSize: compact ? 9 : 11,
-      fontWeight: FontWeight.w900,
+      fontWeight: FontWeight.w500,
       height: 1,
       letterSpacing: 0,
     );

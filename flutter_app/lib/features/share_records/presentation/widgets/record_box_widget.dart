@@ -32,7 +32,7 @@ class RecordBoxWidget extends StatelessWidget {
     final receiptTitle = box.receiptNumber.trim().isNotEmpty
         ? box.receiptNumber.trim()
         : box.displayName;
-    final parchiNo = receiptTitle;
+    final parchiNo = _parchiNoForPage(receiptTitle, box.partIndex - 1);
     final marketTitle = box.marketName.trim().isEmpty
         ? '-'
         : AppLocalizations.localizeMarketName(box.marketName.trim())
@@ -359,6 +359,20 @@ double _measureShareText(
   return painter.width;
 }
 
+String _parchiNoForPage(String parchiNo, int pageIndex) {
+  if (pageIndex <= 0) return parchiNo;
+  final match = RegExp(r'^(.*?)(\d+)$').firstMatch(parchiNo.trim());
+  if (match == null) return '$parchiNo-${pageIndex + 1}';
+  final prefix = match.group(1) ?? '';
+  final numberText = match.group(2) ?? '';
+  final number = int.tryParse(numberText);
+  if (number == null) return '$parchiNo-${pageIndex + 1}';
+  return '$prefix${(number + pageIndex).toString().padLeft(
+        numberText.length,
+        '0',
+      )}';
+}
+
 class _ShareReceiptItemRow extends StatelessWidget {
   const _ShareReceiptItemRow({
     required this.item,
@@ -405,7 +419,7 @@ class _ShareReceiptItemRow extends StatelessWidget {
     final jackpotTextStyle = TextStyle(
       color: const Color(0xFF111820),
       fontSize: fontSize,
-      fontWeight: FontWeight.w900,
+      fontWeight: FontWeight.w500,
       height: 1,
       letterSpacing: 0,
     );
@@ -542,7 +556,7 @@ class _ShareReceiptItemRow extends StatelessWidget {
                                   textAlign: TextAlign.right,
                                   fontSize: fontSize,
                                   color: const Color(0xFF111820),
-                                  weight: FontWeight.w900,
+                                  weight: FontWeight.w500,
                                 ),
                               ),
                             ],

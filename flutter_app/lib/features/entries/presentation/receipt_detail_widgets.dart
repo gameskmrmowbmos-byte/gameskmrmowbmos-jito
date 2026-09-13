@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import 'package:matka_management/core/language/app_localizations.dart';
 import 'package:matka_management/features/entries/data/receipt_models.dart';
+import 'package:matka_management/features/entries/presentation/parchi_receipt_widget.dart';
 import 'package:matka_management/features/entries/presentation/parchi_render_model.dart';
 import 'package:matka_management/shared/widgets/aligned_jackpot_marker.dart';
 
@@ -680,34 +681,7 @@ class PrintedReceiptPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final receipt = detail.receipt;
-    final pages = _receiptItemPages(detail.consolidatedItems);
-    final pageTotals = computeParchiPageTotals(
-      detail.consolidatedItems,
-      isOtc: receipt.isOtc,
-    );
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (var pageIndex = 0; pageIndex < pages.length; pageIndex++)
-            Padding(
-              padding: EdgeInsets.only(
-                bottom: pageIndex == pages.length - 1 ? 0 : 18,
-              ),
-              child: _PrintedReceiptTicket(
-                receipt: receipt,
-                parchiNo: _parchiNoForPage(
-                  canonicalParchiNumber(receipt.receiptNumber),
-                  pageIndex,
-                ),
-                items: pages[pageIndex],
-                pageTotal: pageTotals[pageIndex],
-              ),
-            ),
-        ],
-      ),
-    );
+    return ParchiReceiptPreview(detail: detail);
   }
 }
 
@@ -1022,14 +996,14 @@ class _ParchiItemRow extends StatelessWidget {
     const jackpotTextStyle = TextStyle(
       color: Color(0xFF111820),
       fontSize: 10,
-      fontWeight: FontWeight.w900,
+      fontWeight: FontWeight.w500,
       height: 1,
       letterSpacing: 0,
     );
     const jackpotArrowStyle = TextStyle(
       color: Color(0xFF111820),
       fontSize: 13,
-      fontWeight: FontWeight.w900,
+      fontWeight: FontWeight.w500,
       height: 1,
       letterSpacing: 0,
     );
@@ -1144,7 +1118,7 @@ class _ParchiItemRow extends StatelessWidget {
                         style: const TextStyle(
                           color: Color(0xFF111820),
                           fontSize: 10,
-                          fontWeight: FontWeight.w900,
+                          fontWeight: FontWeight.w500,
                           height: 1,
                           letterSpacing: 0,
                         ),
