@@ -45,8 +45,11 @@ class MainActivity : FlutterActivity() {
 					return@setMethodCallHandler
 				}
 				val bytes = call.argument<ByteArray>("bytes")
-				val filename = call.argument<String>("filename") ?: "matka-record.png"
 				val mimeType = call.argument<String>("mimeType") ?: "image/png"
+				val filename = cleanImageFilename(
+					call.argument<String>("filename") ?: "matka-record.png",
+					mimeType
+				)
 				if (bytes == null || bytes.isEmpty()) {
 					result.error("EMPTY_IMAGE", "Image file is empty", null)
 					return@setMethodCallHandler
@@ -65,6 +68,8 @@ class MainActivity : FlutterActivity() {
 			saveLegacyImageToGallery(bytes, filename, mimeType, result)
 			return
 		}
+		val nowMillis = System.currentTimeMillis()
+		val nowSeconds = nowMillis / 1000
 		val values = ContentValues().apply {
 			put(MediaStore.Images.Media.DISPLAY_NAME, filename)
 			put(MediaStore.Images.Media.MIME_TYPE, mimeType)
@@ -72,6 +77,9 @@ class MainActivity : FlutterActivity() {
 				MediaStore.Images.Media.RELATIVE_PATH,
 				"${Environment.DIRECTORY_PICTURES}/Matka Management"
 			)
+			put(MediaStore.Images.Media.DATE_ADDED, nowSeconds)
+			put(MediaStore.Images.Media.DATE_MODIFIED, nowSeconds)
+			put(MediaStore.Images.Media.DATE_TAKEN, nowMillis)
 			put(MediaStore.Images.Media.IS_PENDING, 1)
 		}
 		val resolver = contentResolver
@@ -83,9 +91,11 @@ class MainActivity : FlutterActivity() {
 		try {
 			resolver.openOutputStream(uri)?.use { output ->
 				output.write(bytes)
+				output.flush()
 			} ?: throw IllegalStateException("Unable to open image output stream")
 			values.clear()
 			values.put(MediaStore.Images.Media.IS_PENDING, 0)
+			values.put(MediaStore.Images.Media.DATE_MODIFIED, System.currentTimeMillis() / 1000)
 			resolver.update(uri, values, null, null)
 			result.success(uri.toString())
 		} catch (error: Exception) {
@@ -120,6 +130,21 @@ class MainActivity : FlutterActivity() {
 		} catch (error: Exception) {
 			result.error("SAVE_FAILED", error.message ?: "Unable to save image", null)
 		}
+	}
+
+	private fun cleanImageFilename(filename: String, mimeType: String): String {
+		val cleaned = filename
+			.trim()
+			.replace(Regex("""[\\/:*?"<>|]+"""), "-")
+			.ifEmpty { "matka-record" }
+		if (cleaned.substringAfterLast('.', "").isNotEmpty()) return cleaned
+
+		val extension = when (mimeType.lowercase()) {
+			"image/jpeg", "image/jpg" -> "jpg"
+			"image/webp" -> "webp"
+			else -> "png"
+		}
+		return "$cleaned.$extension"
 	}
 
 	private fun printHtml(html: String, result: MethodChannel.Result) {

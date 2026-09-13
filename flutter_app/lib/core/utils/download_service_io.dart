@@ -17,7 +17,9 @@ Future<String> saveDownloadedFile(
         final sdkInt = await _galleryChannel.invokeMethod<int>('androidSdkInt');
         if (sdkInt != null && sdkInt <= 28) {
           final permission = await Permission.storage.request();
-          if (!permission.isGranted) return _saveToAppDocuments(bytes, filename);
+          if (!permission.isGranted) {
+            throw StateError('Storage permission denied. PNG was not saved.');
+          }
         }
       }
       final savedUri = await _galleryChannel.invokeMethod<String>(
@@ -29,9 +31,20 @@ Future<String> saveDownloadedFile(
         },
       );
       if (savedUri != null && savedUri.isNotEmpty) return savedUri;
-    } on PlatformException {
+    } on PlatformException catch (error) {
+      if (Platform.isAndroid) {
+        final message = error.message?.trim();
+        throw StateError(
+          message?.isNotEmpty == true
+              ? 'Gallery save failed: $message'
+              : 'Gallery save failed.',
+        );
+      }
       // Fall back to app documents if the platform gallery path is unavailable.
     } on MissingPluginException {
+      if (Platform.isAndroid) {
+        throw StateError('Gallery save is not available on this Android build.');
+      }
       // Desktop builds do not register the Android gallery channel.
     }
   }
