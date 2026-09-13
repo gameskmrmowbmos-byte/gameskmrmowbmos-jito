@@ -930,14 +930,11 @@ void _paintJoinedArrow(
     ..strokeJoin = ui.StrokeJoin.miter
     ..style = ui.PaintingStyle.stroke;
 
-  final path = ui.Path()
-    ..moveTo(x, centerY)
-    ..lineTo(shaftEnd, centerY)
-    ..lineTo(x + width, centerY)
-    ..moveTo(shaftEnd, centerY - headLength / 2)
-    ..lineTo(x + width, centerY)
-    ..lineTo(shaftEnd, centerY + headLength / 2);
-  canvas.drawPath(path, paint);
+  final tip = ui.Offset(x + width, centerY);
+  canvas
+    ..drawLine(ui.Offset(x, centerY), tip, paint)
+    ..drawLine(ui.Offset(shaftEnd, centerY - headLength / 2), tip, paint)
+    ..drawLine(ui.Offset(shaftEnd, centerY + headLength / 2), tip, paint);
 }
 
 double _paintTextSpan(

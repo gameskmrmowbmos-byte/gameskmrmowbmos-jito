@@ -42,7 +42,7 @@ function normalizeJwtDuration(value, fallback) {
 module.exports = Object.freeze({
   nodeEnv: process.env.NODE_ENV || 'development',
   isProduction: process.env.NODE_ENV === 'production',
-  port: getPortFromEnv(process.env.PORT) || 5002,
+  port: getPortFromEnv(process.env.PORT) || 5003,
   host: process.env.HOST || '0.0.0.0',
   mongoUri:
     process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/matka_management',

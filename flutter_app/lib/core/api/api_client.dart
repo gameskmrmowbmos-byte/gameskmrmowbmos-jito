@@ -70,7 +70,6 @@ class ApiClient {
         onError: (error, handler) async {
           final request = error.requestOptions;
           if (_isTransportError(error) &&
-              request.path != ApiEndpoints.login &&
               request.extra['apiFailoverAttempted'] != true) {
             final fallbackBaseUrl = ApiConfig.fallbackBaseUrl(request.baseUrl);
             if (fallbackBaseUrl != null) {

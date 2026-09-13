@@ -8,15 +8,15 @@ HTTP-only refresh-cookie support on web.
 
 ```bash
 flutter pub get
-flutter run -d windows --dart-define=API_BASE_URL=http://localhost:5002/api
-flutter run -d chrome --dart-define=API_BASE_URL=http://localhost:5002/api
-flutter run -d android --dart-define=API_BASE_URL=http://10.0.2.2:5002/api
+flutter run -d windows --dart-define=API_BASE_URL=http://localhost:5003/api
+flutter run -d chrome --dart-define=API_BASE_URL=http://localhost:5003/api
+flutter run -d android --dart-define=API_BASE_URL=http://10.0.2.2:5003/api
 ```
 
 For a real Android device, replace the URL with the computer's LAN IP:
 
 ```bash
-flutter run --dart-define=API_BASE_URL=http://192.168.1.10:5002/api
+flutter run --dart-define=API_BASE_URL=http://192.168.1.10:5003/api
 ```
 
 The API host must allow the web application's origin through `FRONTEND_URL`.

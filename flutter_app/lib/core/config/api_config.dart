@@ -4,8 +4,8 @@ class ApiConfig {
   ApiConfig._();
 
   static const _definedBaseUrl = String.fromEnvironment('API_BASE_URL');
-  static const _renderBaseUrl =
-      'https://gameskmrmowbmos-jito.onrender.com/api';
+  static const _renderBaseUrl = 'https://gameskmrmowbmos-jito.onrender.com/api';
+  static const _localPort = 5003;
 
   static String get baseUrl {
     return baseUrls.first;
@@ -14,9 +14,7 @@ class ApiConfig {
   static List<String> get baseUrls {
     if (_definedBaseUrl.isNotEmpty) return [_normalize(_definedBaseUrl)];
 
-    return kReleaseMode
-        ? <String>[_renderBaseUrl, _localBaseUrl]
-        : <String>[_localBaseUrl, _renderBaseUrl];
+    return <String>[_renderBaseUrl, _localBaseUrl];
   }
 
   static String? fallbackBaseUrl(String currentBaseUrl) {
@@ -28,11 +26,11 @@ class ApiConfig {
   }
 
   static String get _localBaseUrl {
-    if (kIsWeb) return 'http://localhost:5002/api';
+    if (kIsWeb) return 'http://localhost:$_localPort/api';
     if (defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:5002/api';
+      return 'http://10.0.2.2:$_localPort/api';
     }
-    return 'http://localhost:5002/api';
+    return 'http://localhost:$_localPort/api';
   }
 
   static String _normalize(String value) =>

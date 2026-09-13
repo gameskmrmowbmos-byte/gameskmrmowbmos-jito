@@ -86,10 +86,11 @@ class AuthController extends StateNotifier<AuthState> {
 
   String _loginErrorMessage(Object error) {
     if (error is ApiException &&
-        (error.code == 'connectionTimeout' ||
+        (error.code == 'connectionError' ||
+            error.code == 'connectionTimeout' ||
             error.code == 'receiveTimeout' ||
             error.code == 'sendTimeout')) {
-      return 'The server is taking longer to start. Please try signing in again shortly.';
+      return 'Cannot reach the backend. Check the server URL, port, and network, then try again.';
     }
     return error.toString();
   }

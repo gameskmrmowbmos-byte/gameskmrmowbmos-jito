@@ -34,10 +34,9 @@ class AlignedJackpotMarker extends StatelessWidget {
         final gapWidth = boundaryWidth > endingWidth + naturalGapWidth * 2
             ? naturalGapWidth
             : 0.0;
-        final maxChildNumberWidth =
-            (boundaryWidth - endingWidth - gapWidth * 2)
-                .clamp(0.0, boundaryWidth)
-                .toDouble();
+        final maxChildNumberWidth = (boundaryWidth - endingWidth - gapWidth * 2)
+            .clamp(0.0, boundaryWidth)
+            .toDouble();
         final childNumberWidth = _measureText(
           childNumber,
           childStyle,
@@ -126,14 +125,11 @@ class _JackpotArrowPainter extends CustomPainter {
     final centerY = size.height / 2;
     final headLength = size.width < 6 ? size.width : 6.0;
     final shaftEnd = size.width - headLength;
-    final path = Path()
-      ..moveTo(0, centerY)
-      ..lineTo(shaftEnd, centerY)
-      ..lineTo(size.width, centerY)
-      ..moveTo(shaftEnd, centerY - headLength / 2)
-      ..lineTo(size.width, centerY)
-      ..lineTo(shaftEnd, centerY + headLength / 2);
-    canvas.drawPath(path, paint);
+    final tip = Offset(size.width, centerY);
+    canvas
+      ..drawLine(Offset(0, centerY), tip, paint)
+      ..drawLine(Offset(shaftEnd, centerY - headLength / 2), tip, paint)
+      ..drawLine(Offset(shaftEnd, centerY + headLength / 2), tip, paint);
   }
 
   @override
