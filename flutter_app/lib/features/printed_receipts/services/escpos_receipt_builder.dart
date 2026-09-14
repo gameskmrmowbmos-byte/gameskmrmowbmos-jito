@@ -538,6 +538,12 @@ double _layoutReceiptImage({
     DateFormat('hh:mm a').format(createdAt),
   );
 
+  final localizedParchi = AppLocalizations.localizeDigits(parchi);
+  final topNumberStyle = _fitReceiptTopNumberStyle(
+    localizedParchi,
+    leftWidth,
+  );
+
   _paintText(
     canvas,
     AppLocalizations.trCurrent('PARCHI NO.'),
@@ -559,8 +565,8 @@ double _layoutReceiptImage({
   y += 25;
   _paintText(
     canvas,
-    AppLocalizations.localizeDigits(parchi),
-    _receiptTopNumberStyle,
+    localizedParchi,
+    topNumberStyle,
     _receiptPaddingX,
     y,
     width: leftWidth,
@@ -965,6 +971,18 @@ double _paintTextSpan(
 
 double _measureText(String text, TextStyle style) {
   return _measureTextSpan(TextSpan(text: text, style: style));
+}
+
+TextStyle _fitReceiptTopNumberStyle(String text, double maxWidth) {
+  final measuredWidth = _measureText(text, _receiptTopNumberStyle);
+  if (measuredWidth <= maxWidth - 2) return _receiptTopNumberStyle;
+
+  final fittedSize = (_receiptTopNumberStyle.fontSize! *
+          (maxWidth - 2) /
+          measuredWidth)
+      .clamp(10.0, _receiptTopNumberStyle.fontSize!)
+      .toDouble();
+  return _receiptTopNumberStyle.copyWith(fontSize: fittedSize);
 }
 
 double _measureReceiptNumber(String text) {
