@@ -172,8 +172,6 @@ class ShareRecordsChunker {
 
     final totalPeople = records.length;
     final totalBets = records.fold<int>(0, (sum, r) => sum + r.items.length);
-    final totalAmount = records.fold<num>(0, (sum, r) => sum + r.totalAmount);
-
     final operatorName =
         (records.isNotEmpty && records.first.operator.name.isNotEmpty)
             ? records.first.operator.name
@@ -187,6 +185,10 @@ class ShareRecordsChunker {
           ? start + maxBoxesPerPage
           : boxes.length;
       final pageBoxes = boxes.sublist(start, end);
+      final pageTotalAmount = pageBoxes.fold<num>(
+        0,
+        (sum, box) => sum + (box.isOtc ? box.boxSubtotal * 2 : box.boxSubtotal),
+      );
 
       pages.add(
         A4RecordPageData(
@@ -201,7 +203,7 @@ class ShareRecordsChunker {
               : AppLocalizations.trCurrent(sessionName.toUpperCase()),
           totalPeople: totalPeople,
           totalBets: totalBets,
-          totalAmount: totalAmount,
+          totalAmount: pageTotalAmount,
           operatorName: operatorName.toUpperCase(),
           timeStr: timeStr,
           boxes: pageBoxes,
