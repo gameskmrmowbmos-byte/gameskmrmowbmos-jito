@@ -403,7 +403,7 @@ final _cpJodiDraftPattern = RegExp(
   r'^(?:[cC][pP]? *[0-9]{0,2}|[0-9]{0,2} *(?:[cC][pP]?)?)$',
 );
 final _letterPattern = RegExp(r'[A-Za-z]');
-final _amountPattern = RegExp(r'^\d+(?:\.\d{1,2})?$');
+final _amountPattern = RegExp(r'^(?:\d+(?:\.5)?|\.5)$');
 final _jackpotNumberPattern = RegExp(r'^\d$');
 const _commonMultiplier = 36;
 const _familyDigitPairs = {
@@ -3993,8 +3993,55 @@ class _MatkaNumberKeypadSheetState extends State<MatkaNumberKeypadSheet> {
   bool get _numbersOnlyActive =>
       widget.numbersOnlyForController?.call(_activeController) ?? false;
 
+  bool get _canAppendAmountPoint {
+    if (!_numbersOnlyActive) return false;
+    final current = AppLocalizations.normalizeDigits(_activeController.text);
+    if (current.contains('.')) return false;
+    final text = '$current.5';
+    return _DecimalAmountInputFormatter.isValidDraft(text);
+  }
+
+  void _setControllerText(TextEditingController controller, String text) {
+    final normalized = AppLocalizations.normalizeDigits(text);
+    if (controller is _LocalizedDigitsController) {
+      controller.text = normalized;
+      controller.selection =
+          TextSelection.collapsed(offset: controller.text.length);
+      if (mounted) setState(() {});
+      return;
+    }
+    controller.value = controller.value.copyWith(
+      text: normalized,
+      selection: TextSelection.collapsed(offset: normalized.length),
+      composing: TextRange.empty,
+    );
+    if (mounted) setState(() {});
+  }
+
+  bool _appendAmountKey(String key) {
+    final controller = _activeController;
+    final current = AppLocalizations.normalizeDigits(controller.text);
+    final normalizedKey = AppLocalizations.normalizeDigits(key);
+    if (normalizedKey == '.') {
+      if (current.contains('.')) return false;
+      final text = '$current.5';
+      if (!_DecimalAmountInputFormatter.isValidDraft(text)) return false;
+      _setControllerText(controller, text);
+      return true;
+    }
+
+    final text = current + normalizedKey;
+    if (!_DecimalAmountInputFormatter.isValidDraft(text)) return false;
+    _setControllerText(controller, text);
+    return true;
+  }
+
   void _appendKey(String key) {
-    if (_numbersOnlyActive && _isNonNumericInputKey(key)) return;
+    if (_numbersOnlyActive) {
+      if (_isNonNumericInputKey(key)) return;
+      _appendAmountKey(key);
+      return;
+    }
     final controller = _activeController;
     if (controller is _LocalizedDigitsController) {
       controller.applyKeypadValue(key);
@@ -4009,8 +4056,22 @@ class _MatkaNumberKeypadSheetState extends State<MatkaNumberKeypadSheet> {
     );
   }
 
+  String _removeLastAmountKeypadToken(String value) {
+    final normalized = AppLocalizations.normalizeDigits(value);
+    if (normalized.endsWith('.5')) {
+      return normalized.substring(0, normalized.length - 2);
+    }
+    return _removeLastKeypadToken(normalized);
+  }
+
   void _removeLastKey() {
     final controller = _activeController;
+    if (_numbersOnlyActive) {
+      if (controller.text.isEmpty) return;
+      _setControllerText(
+          controller, _removeLastAmountKeypadToken(controller.text));
+      return;
+    }
     if (controller is _LocalizedDigitsController) {
       controller.removeLastKeypadValue();
       return;
@@ -4027,15 +4088,15 @@ class _MatkaNumberKeypadSheetState extends State<MatkaNumberKeypadSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final numbersOnly = _numbersOnlyActive;
     final entries = <List<String>>[
       ['SP', 'DP', 'CP', 'CM'],
       ['CT', 'F', 'BZ'],
       ['7', '8', '9', widget.onJackpot == null ? 'remove' : 'Jackpot'],
       ['4', '5', '6', 'back'],
       ['1', '2', '3', widget.onJackpot == null ? 'next' : 'remove'],
-      ['0', '*', 'Enter'],
+      ['.', '0', '*', 'Enter'],
     ];
-    final numbersOnly = _numbersOnlyActive;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(6, 6, 6, 7),
@@ -4071,8 +4132,9 @@ class _MatkaNumberKeypadSheetState extends State<MatkaNumberKeypadSheet> {
                           padding: const EdgeInsets.symmetric(horizontal: 1.5),
                           child: _MatkaKey(
                             label: key,
-                            enabled:
-                                !numbersOnly || !_isNonNumericInputKey(key),
+                            enabled: key == '.'
+                                ? _canAppendAmountPoint
+                                : !numbersOnly || !_isNonNumericInputKey(key),
                             onTap: () {
                               if (key == 'remove') {
                                 _removeLastKey();
@@ -4719,7 +4781,12 @@ class _AmountFillField extends StatelessWidget {
 class _DecimalAmountInputFormatter extends TextInputFormatter {
   const _DecimalAmountInputFormatter();
 
-  static final _draftPattern = RegExp(r'^\d{0,6}(?:\.\d{0,2})?$');
+  static final _draftPattern = RegExp(r'^\d{0,6}(?:\.5?)?$');
+
+  static bool isValidDraft(String text) {
+    final normalized = AppLocalizations.normalizeDigits(text);
+    return normalized.isEmpty || _draftPattern.hasMatch(normalized);
+  }
 
   @override
   TextEditingValue formatEditUpdate(
@@ -4728,7 +4795,7 @@ class _DecimalAmountInputFormatter extends TextInputFormatter {
   ) {
     final text = AppLocalizations.normalizeDigits(newValue.text);
     if (text.isEmpty) return newValue;
-    return _draftPattern.hasMatch(text)
+    return isValidDraft(text)
         ? newValue.copyWith(
             text: AppLocalizations.normalizeDigits(text),
           )
