@@ -19,6 +19,7 @@ const _receiptContentWidth = _receiptTicketWidth - 34.0;
 const _receiptTableMaxWidth = 286.0;
 const _receiptTableGap = 34.0;
 const _receiptRuleHeight = 3.0;
+const _receiptMiddleTextScale = 1.5;
 const int _parchiEntriesPerPage = 10;
 const int _receiptFeedBeforeCut = 1;
 const _receiptInk = ui.Color(0xFF111820);
@@ -213,7 +214,18 @@ TextStyle get _receiptInstructionStyle => _isIndicReceiptLanguage
       )
     : _instructionStyle;
 
-TextStyle get _receiptEntryMarkerStyle => _entryStyle.copyWith(
+TextStyle _scaledMiddleStyle(TextStyle style) => style.copyWith(
+      fontSize: (style.fontSize ?? 14) * _receiptMiddleTextScale,
+    );
+
+TextStyle get _receiptMiddleTableHeaderStyle =>
+    _scaledMiddleStyle(_receiptTableHeaderStyle);
+
+TextStyle get _receiptMiddleEntryStyle => _scaledMiddleStyle(_entryStyle);
+
+TextStyle get _receiptMiddleJackpotStyle => _scaledMiddleStyle(_jackpotStyle);
+
+TextStyle get _receiptEntryMarkerStyle => _receiptMiddleEntryStyle.copyWith(
       fontWeight: FontWeight.w900,
       shadows: _receiptStrongTextShadow,
     );
@@ -623,7 +635,7 @@ double _layoutReceiptImage({
   _paintTableText(
     canvas,
     AppLocalizations.trCurrent('NUMBER'),
-    _receiptTableHeaderStyle,
+    _receiptMiddleTableHeaderStyle,
     tableX,
     y,
     metrics.numberWidth,
@@ -631,7 +643,7 @@ double _layoutReceiptImage({
   _paintTableText(
     canvas,
     AppLocalizations.trCurrent('AMT'),
-    _receiptTableHeaderStyle,
+    _receiptMiddleTableHeaderStyle,
     tableX + metrics.numberWidth + _receiptTableGap,
     y,
     metrics.amountWidth,
@@ -652,35 +664,38 @@ double _layoutReceiptImage({
       y += 9;
     }
     if (row.showMainEntry) {
-      _paintReceiptNumber(
+      final numberHeight = _paintReceiptNumber(
         canvas,
         row.number,
         tableX,
         y,
         metrics.numberWidth,
       );
-      y += _paintTableText(
+      final amountHeight = _paintTableText(
         canvas,
         row.amount,
-        _entryStyle,
+        _receiptMiddleEntryStyle,
         tableX + metrics.numberWidth + _receiptTableGap,
         y,
         metrics.amountWidth,
         textAlign: TextAlign.right,
       );
+      y += _maxDouble(numberHeight, amountHeight);
       y += 10;
     }
     for (final jackpot in row.jackpotEntries) {
-      _paintJackpotNumber(canvas, jackpot, tableX, y, metrics.numberWidth);
-      y += _paintTableText(
+      final jackpotNumberHeight =
+          _paintJackpotNumber(canvas, jackpot, tableX, y, metrics.numberWidth);
+      final jackpotAmountHeight = _paintTableText(
         canvas,
         jackpot.amount,
-        _jackpotStyle,
+        _receiptMiddleJackpotStyle,
         tableX + metrics.numberWidth + _receiptTableGap,
         y,
         metrics.amountWidth,
         textAlign: TextAlign.right,
       );
+      y += _maxDouble(jackpotNumberHeight, jackpotAmountHeight);
       y += 9;
     }
   }
@@ -690,7 +705,7 @@ double _layoutReceiptImage({
     y += _paintText(
       canvas,
       'OTC',
-      _entryStyle,
+      _receiptMiddleEntryStyle,
       tableX,
       y,
       width: metrics.totalWidth,
@@ -743,9 +758,9 @@ _ReceiptImageMetrics _imageTableMetrics(
   String totalText,
 ) {
   var numberWidth = _measureText(
-      AppLocalizations.trCurrent('NUMBER'), _receiptTableHeaderStyle);
-  var amountWidth =
-      _measureText(AppLocalizations.trCurrent('AMT'), _receiptTableHeaderStyle);
+      AppLocalizations.trCurrent('NUMBER'), _receiptMiddleTableHeaderStyle);
+  var amountWidth = _measureText(
+      AppLocalizations.trCurrent('AMT'), _receiptMiddleTableHeaderStyle);
   numberWidth = _maxDouble(
     numberWidth,
     _measureText(AppLocalizations.trCurrent('TOTAL'), _totalStyle),
@@ -761,8 +776,8 @@ _ReceiptImageMetrics _imageTableMetrics(
     }
     if (row.showMainEntry) {
       numberWidth = _maxDouble(numberWidth, _measureReceiptNumber(row.number));
-      amountWidth =
-          _maxDouble(amountWidth, _measureText(row.amount, _entryStyle));
+      amountWidth = _maxDouble(
+          amountWidth, _measureText(row.amount, _receiptMiddleEntryStyle));
     }
     for (final jackpot in row.jackpotEntries) {
       numberWidth = _maxDouble(
@@ -771,10 +786,12 @@ _ReceiptImageMetrics _imageTableMetrics(
       );
       numberWidth = _maxDouble(
         numberWidth,
-        _measureText('${jackpot.number} >', _jackpotStyle),
+        _measureText('${jackpot.number} >', _receiptMiddleJackpotStyle),
       );
-      amountWidth =
-          _maxDouble(amountWidth, _measureText(jackpot.amount, _jackpotStyle));
+      amountWidth = _maxDouble(
+        amountWidth,
+        _measureText(jackpot.amount, _receiptMiddleJackpotStyle),
+      );
     }
   }
 
@@ -855,7 +872,7 @@ TextSpan _receiptNumberSpan(String text) {
       if (parts.leadingArrow.isNotEmpty)
         TextSpan(text: '${parts.leadingArrow} ', style: markerStyle),
       if (parts.beforeSuffix.isNotEmpty)
-        TextSpan(text: parts.beforeSuffix, style: _entryStyle),
+        TextSpan(text: parts.beforeSuffix, style: _receiptMiddleEntryStyle),
       if (parts.suffix.isNotEmpty)
         TextSpan(
           text: '${parts.beforeSuffix.isEmpty ? '' : ' '}${parts.suffix}',
@@ -877,12 +894,13 @@ double _paintJackpotNumber(
   final parentWidth = _measureReceiptNumber(jackpot.parentNumber.trimRight())
       .clamp(1.0, width)
       .toDouble();
-  final endingWidth = _measureText('>', _jackpotStyle);
-  final gapWidth = _measureText(' ', _jackpotStyle);
+  final jackpotStyle = _receiptMiddleJackpotStyle;
+  final endingWidth = _measureText('>', jackpotStyle);
+  final gapWidth = _measureText(' ', jackpotStyle);
   final maxNumberWidth = (parentWidth - endingWidth - gapWidth * 2)
       .clamp(0.0, parentWidth)
       .toDouble();
-  final childNumberWidth = _measureText(jackpot.number, _jackpotStyle)
+  final childNumberWidth = _measureText(jackpot.number, jackpotStyle)
       .clamp(0.0, maxNumberWidth)
       .toDouble();
   final arrowWidth = (parentWidth - childNumberWidth - endingWidth - gapWidth)
@@ -893,7 +911,7 @@ double _paintJackpotNumber(
     _paintJoinedArrow(
       canvas,
       x,
-      y + ((_jackpotStyle.fontSize ?? 22) * 0.42),
+      y + ((jackpotStyle.fontSize ?? 33) * 0.42),
       arrowWidth,
     );
   }
@@ -902,7 +920,7 @@ double _paintJackpotNumber(
   final textHeight = _paintText(
     canvas,
     jackpot.number,
-    _jackpotStyle,
+    jackpotStyle,
     textX,
     y,
     width: childNumberWidth,
@@ -912,7 +930,7 @@ double _paintJackpotNumber(
   _paintText(
     canvas,
     '>',
-    _jackpotStyle,
+    jackpotStyle,
     textX + childNumberWidth + gapWidth,
     y,
     width: endingWidth,
@@ -977,11 +995,10 @@ TextStyle _fitReceiptTopNumberStyle(String text, double maxWidth) {
   final measuredWidth = _measureText(text, _receiptTopNumberStyle);
   if (measuredWidth <= maxWidth - 2) return _receiptTopNumberStyle;
 
-  final fittedSize = (_receiptTopNumberStyle.fontSize! *
-          (maxWidth - 2) /
-          measuredWidth)
-      .clamp(10.0, _receiptTopNumberStyle.fontSize!)
-      .toDouble();
+  final fittedSize =
+      (_receiptTopNumberStyle.fontSize! * (maxWidth - 2) / measuredWidth)
+          .clamp(10.0, _receiptTopNumberStyle.fontSize!)
+          .toDouble();
   return _receiptTopNumberStyle.copyWith(fontSize: fittedSize);
 }
 
