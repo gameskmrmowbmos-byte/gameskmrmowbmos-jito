@@ -2899,20 +2899,30 @@ class _BetTable extends StatelessWidget {
             Container(
               color: const Color(0xFF111820),
               padding: EdgeInsets.symmetric(
-                horizontal: compact ? 8 : 14,
+                horizontal: compact ? 4 : 14,
                 vertical: compact ? 8 : 12,
               ),
               child: Row(
                 children: [
-                  _HeaderCell('#', flex: compact ? 5 : 7, style: headerStyle),
+                  _HeaderCell('#', flex: compact ? 4 : 6, style: headerStyle),
                   if (showJackpotColumn)
-                    _HeaderCell('JACKPOT', flex: 15, style: headerStyle),
-                  _HeaderCell('NO.', flex: 20, style: headerStyle),
-                  _HeaderCell('AMOUNT ($_rs)', flex: 16, style: headerStyle),
+                    _HeaderCell(
+                      'JACKPOT',
+                      flex: compact ? 10 : 13,
+                      style: headerStyle,
+                    ),
+                  _HeaderCell('NO.',
+                      flex: compact ? 35 : 28, style: headerStyle),
+                  _HeaderCell(
+                    'AMOUNT ($_rs)',
+                    flex: 16,
+                    style: headerStyle,
+                  ),
                   if (showSessionToggle)
-                    _HeaderCell('O/C', flex: 15, style: headerStyle),
+                    _HeaderCell('O/C',
+                        flex: compact ? 10 : 12, style: headerStyle),
                   _HeaderCell(compact ? 'DEL' : 'ACTION',
-                      flex: 12, style: headerStyle),
+                      flex: compact ? 8 : 10, style: headerStyle),
                 ],
               ),
             ),
@@ -3293,8 +3303,8 @@ class _BetRowState extends State<_BetRow> {
     final showJackpotBoxes = entry.isJackpot && canUseJackpot;
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: compact ? 6 : 10,
-        vertical: compact ? 2 : 4,
+        horizontal: compact ? 4 : 10,
+        vertical: compact ? 4 : 5,
       ),
       decoration: BoxDecoration(
         border: Border(top: BorderSide(color: _NewEntryPageState._line)),
@@ -3304,7 +3314,7 @@ class _BetRowState extends State<_BetRow> {
         children: [
           Row(
             children: [
-              _DataCell(Text('${index + 1}'), flex: compact ? 5 : 7),
+              _DataCell(Text('${index + 1}'), flex: compact ? 4 : 6),
               if (session == 'Open')
                 _DataCell(
                   !canUseJackpot
@@ -3312,13 +3322,17 @@ class _BetRowState extends State<_BetRow> {
                       : IconButton(
                           tooltip: context.tr('Jackpot'),
                           padding: EdgeInsets.zero,
+                          constraints: BoxConstraints.tightFor(
+                            width: compact ? 32 : 40,
+                            height: compact ? 36 : 42,
+                          ),
                           isSelected: entry.isJackpot,
                           icon: const Icon(Icons.stars_outlined, size: 18),
                           selectedIcon: const Icon(Icons.stars, size: 18),
                           color: entry.isJackpot ? Colors.green : Colors.grey,
                           onPressed: _openJackpot,
                         ),
-                  flex: 15,
+                  flex: compact ? 10 : 13,
                 ),
               _DataCell(
                 _EntryTextField(
@@ -3365,7 +3379,7 @@ class _BetRowState extends State<_BetRow> {
                     _validateNumber();
                   },
                 ),
-                flex: 20,
+                flex: compact ? 35 : 28,
               ),
               _DataCell(
                 _AmountFillField(
@@ -3442,20 +3456,25 @@ class _BetRowState extends State<_BetRow> {
                       ),
                     ),
                   ),
-                  flex: 15,
+                  flex: compact ? 10 : 12,
                 ),
               _DataCell(
                 IconButton(
                   tooltip: context.tr('Delete row'),
                   onPressed: onDelete,
                   visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: BoxConstraints.tightFor(
+                    width: compact ? 30 : 40,
+                    height: compact ? 36 : 42,
+                  ),
                   icon: Icon(
                     Icons.delete_outline,
                     color: _NewEntryPageState._red,
                     size: compact ? 17 : 22,
                   ),
                 ),
-                flex: 12,
+                flex: compact ? 8 : 10,
               ),
             ],
           ),
@@ -4546,7 +4565,7 @@ class _EntryTextField extends StatelessWidget {
       onChanged: (_) => onChanged(),
       onSubmitted: (_) => onSubmitted?.call(),
       style: TextStyle(
-        fontSize: compact ? 12 : 14,
+        fontSize: compact ? 13 : 15,
         fontWeight: FontWeight.w800,
       ),
       decoration: InputDecoration(
@@ -4580,7 +4599,7 @@ class _EntryTextField extends StatelessWidget {
             ? null
             : BoxConstraints(
                 minWidth: compact ? 24 : 30,
-                minHeight: compact ? 26 : 34,
+                minHeight: compact ? 36 : 42,
               ),
         suffixIcon: suffixText == null
             ? null
@@ -4593,11 +4612,11 @@ class _EntryTextField extends StatelessWidget {
             ? null
             : BoxConstraints(
                 minWidth: compact ? 24 : 30,
-                minHeight: compact ? 26 : 34,
+                minHeight: compact ? 36 : 42,
               ),
         contentPadding: EdgeInsets.symmetric(
-          horizontal: compact ? 2 : 6,
-          vertical: compact ? 4 : 8,
+          horizontal: compact ? 4 : 8,
+          vertical: compact ? 8 : 10,
         ),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
       ),
