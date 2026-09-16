@@ -12,7 +12,7 @@ class A4RecordPageWidget extends StatelessWidget {
   });
 
   static const double exportWidth = 2200.0;
-  static const int columnsPerRow = 5;
+  static const int columnsPerRow = 4;
   static const int rowsPerPage = 2;
 
   final A4RecordPageData pageData;
@@ -150,7 +150,7 @@ class A4RecordPageWidget extends StatelessWidget {
           ),
           SizedBox(height: width * 0.008),
 
-          // Main 2x5 grid (10 fixed receipt columns)
+          // Main 2x4 grid (8 fixed receipt columns)
           Expanded(
             child: Column(
               children: [
