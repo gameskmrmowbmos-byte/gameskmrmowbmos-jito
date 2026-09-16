@@ -54,16 +54,17 @@ class RecordBoxWidget extends StatelessWidget {
         var visualLineCount = 0;
         for (var index = 0; index < box.items.length; index++) {
           final item = box.items[index];
+          final mainLine = item.showMainEntry ? 1 : 0;
           final labelLines =
               _shareReceiptTopLabelForItem(box.items, index) == null ? 0 : 1;
           final jackpotLines = item.jackpotEntries.length;
-          visualLineCount += 1 + labelLines + jackpotLines;
+          visualLineCount += mainLine + labelLines + jackpotLines;
         }
         final densityScale =
-            visualLineCount > 10 ? 1.6 * 10 / visualLineCount : 1.6;
-        final maxScale = box.items.length >= 9
-            ? densityScale.clamp(0.75, 1.6).toDouble()
-            : 1.85;
+            visualLineCount > 8 ? 2.05 * 8 / visualLineCount : 2.05;
+        final maxScale = visualLineCount >= 8
+            ? densityScale.clamp(1.05, 2.05).toDouble()
+            : 2.2;
         final scale = heightScale < widthScale
             ? heightScale.clamp(0.42, maxScale).toDouble()
             : widthScale.clamp(0.42, maxScale).toDouble();
@@ -73,18 +74,29 @@ class RecordBoxWidget extends StatelessWidget {
         final titleSize = 15 * scale * compactScale;
         final rowSize = 12.5 * scale * compactScale;
         final numberRowSize = rowSize * _shareReceiptNumberScale;
-        final amountColumnWidth =
-            (40 * scale * compactScale).clamp(28.0, 44.0).toDouble();
         final columnGap = 8 * scale;
         final dateColumnWidth =
             (58 * scale * compactScale).clamp(42.0, 62.0).toDouble();
         final totalAmount = box.isOtc ? box.boxSubtotal * 2 : box.boxSubtotal;
+        final totalText = _formatAmount(totalAmount);
+        final totalRowSize = numberRowSize;
         final contentWidth = boxWidth - (16 * scale);
         final numberColumnWidth = _shareNumberColumnWidth(
           context,
           box,
           numberRowSize,
           headerSize,
+          totalRowSize,
+        );
+        final amountColumnWidth = _shareAmountColumnWidth(
+          context,
+          box,
+          rowSize,
+          headerSize,
+          totalRowSize,
+          totalText,
+          scale,
+          compactScale,
         );
         final itemList = Column(
           mainAxisSize: MainAxisSize.min,
@@ -281,7 +293,7 @@ class RecordBoxWidget extends StatelessWidget {
                               width: numberColumnWidth,
                               child: _BoxText(
                                 context.tr('TOTAL'),
-                                fontSize: headerSize,
+                                fontSize: totalRowSize,
                                 color: const Color(0xFF111820),
                                 weight: FontWeight.w900,
                               ),
@@ -291,10 +303,10 @@ class RecordBoxWidget extends StatelessWidget {
                               width: amountColumnWidth,
                               child: _BoxText(
                                 AppLocalizations.localizeDigits(
-                                  _formatAmount(totalAmount),
+                                  totalText,
                                 ),
                                 textAlign: TextAlign.right,
-                                fontSize: headerSize,
+                                fontSize: totalRowSize,
                                 color: const Color(0xFF111820),
                                 weight: FontWeight.w900,
                               ),
@@ -319,11 +331,21 @@ double _shareNumberColumnWidth(
   RecordBoxData box,
   double numberFontSize,
   double headerSize,
+  double totalFontSize,
 ) {
+  final textDirection = Directionality.of(context);
   var width = _measureShareText(
     context.tr('NUMBER'),
     TextStyle(fontSize: headerSize, fontWeight: FontWeight.w900),
-    Directionality.of(context),
+    textDirection,
+  );
+  width = math.max(
+    width,
+    _measureShareText(
+      context.tr('TOTAL'),
+      TextStyle(fontSize: totalFontSize, fontWeight: FontWeight.w900),
+      textDirection,
+    ),
   );
 
   for (final item in box.items) {
@@ -332,7 +354,7 @@ double _shareNumberColumnWidth(
       _measureShareText(
         _formatShareReceiptNumber(item, box.session),
         TextStyle(fontSize: numberFontSize, fontWeight: FontWeight.w800),
-        Directionality.of(context),
+        textDirection,
       ),
     );
     for (final entry in item.jackpotEntries) {
@@ -341,13 +363,68 @@ double _shareNumberColumnWidth(
         _measureShareText(
           '${entry.number} >',
           TextStyle(fontSize: numberFontSize, fontWeight: FontWeight.w900),
-          Directionality.of(context),
+          textDirection,
         ),
       );
     }
   }
 
   return width;
+}
+
+double _shareAmountColumnWidth(
+  BuildContext context,
+  RecordBoxData box,
+  double rowSize,
+  double headerSize,
+  double totalFontSize,
+  String totalText,
+  double scale,
+  double compactScale,
+) {
+  final textDirection = Directionality.of(context);
+  var width = (56 * scale * compactScale).clamp(36.0, 96.0).toDouble();
+  width = math.max(
+    width,
+    _measureShareText(
+      context.tr('AMT'),
+      TextStyle(fontSize: headerSize, fontWeight: FontWeight.w900),
+      textDirection,
+    ),
+  );
+  width = math.max(
+    width,
+    _measureShareText(
+      AppLocalizations.localizeDigits(totalText),
+      TextStyle(fontSize: totalFontSize, fontWeight: FontWeight.w900),
+      textDirection,
+    ),
+  );
+
+  for (final item in box.items) {
+    if (item.showMainEntry) {
+      width = math.max(
+        width,
+        _measureShareText(
+          AppLocalizations.localizeDigits(item.effectiveDisplayAmount),
+          TextStyle(fontSize: rowSize, fontWeight: FontWeight.w900),
+          textDirection,
+        ),
+      );
+    }
+    for (final entry in item.jackpotEntries) {
+      width = math.max(
+        width,
+        _measureShareText(
+          AppLocalizations.localizeDigits(entry.amount),
+          TextStyle(fontSize: rowSize, fontWeight: FontWeight.w500),
+          textDirection,
+        ),
+      );
+    }
+  }
+
+  return width.clamp(36.0, 120.0).toDouble();
 }
 
 String? _shareReceiptTopLabelForItem(List<ShareRecordItem> items, int index) {

@@ -579,7 +579,7 @@ class _ShareRecordsPageState extends ConsumerState<ShareRecordsPage>
                 const SizedBox(height: 10),
                 Text(
                   context.tr(
-                    'Note: Each page contains max 10 records arranged in 2 rows and 5 columns.',
+                    'Note: Each page contains max 8 records arranged in 2 rows and 4 columns.',
                   ),
                   style: const TextStyle(
                       fontSize: 11,

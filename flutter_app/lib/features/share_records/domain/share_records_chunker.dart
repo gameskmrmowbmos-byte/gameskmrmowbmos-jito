@@ -5,9 +5,9 @@ import 'package:matka_management/features/share_records/data/share_records_model
 class ShareRecordsChunker {
   ShareRecordsChunker._();
 
-  static const int maxVisualLinesPerBox = 10;
+  static const int maxVisualLinesPerBox = 8;
   static const int maxEntriesPerBox = maxVisualLinesPerBox;
-  static const int maxBoxesPerPage = 10;
+  static const int maxBoxesPerPage = 8;
 
   static List<RecordBoxData> buildBoxes(List<ShareRecordEntry> records) {
     final boxes = <RecordBoxData>[];
@@ -139,7 +139,8 @@ class ShareRecordsChunker {
   }
 
   static int _mainVisualLineCount(ShareRecordItem item) {
-    return 1;
+    final labelLines = item.isBazarSangam || item.isMotorPana ? 1 : 0;
+    return 1 + labelLines;
   }
 
   static num _jackpotAmountTotal(List<ShareRecordJackpotEntry> entries) {
