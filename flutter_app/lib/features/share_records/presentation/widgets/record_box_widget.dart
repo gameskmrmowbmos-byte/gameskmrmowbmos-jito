@@ -14,6 +14,7 @@ const _receiptAlphabetShadow = <Shadow>[
 const _receiptGreenAlphabetShadow = <Shadow>[
   Shadow(color: Color(0xFF16A34A), offset: Offset(0.18, 0), blurRadius: 0),
 ];
+const _shareReceiptNumberScale = 1.3;
 
 class RecordBoxWidget extends StatelessWidget {
   const RecordBoxWidget({
@@ -50,14 +51,14 @@ class RecordBoxWidget extends StatelessWidget {
             constraints.maxWidth.isFinite ? constraints.maxWidth : 160.0;
         final heightScale = height / 260;
         final widthScale = boxWidth / 170;
-        final visualLineCount = box.items.fold<int>(0, (total, item) {
+        var visualLineCount = 0;
+        for (var index = 0; index < box.items.length; index++) {
+          final item = box.items[index];
           final labelLines =
-              item.showMainEntry && (item.isBazarSangam || item.isMotorPana)
-                  ? 1
-                  : 0;
+              _shareReceiptTopLabelForItem(box.items, index) == null ? 0 : 1;
           final jackpotLines = item.jackpotEntries.length;
-          return total + 1 + labelLines + jackpotLines;
-        });
+          visualLineCount += 1 + labelLines + jackpotLines;
+        }
         final densityScale =
             visualLineCount > 10 ? 1.6 * 10 / visualLineCount : 1.6;
         final maxScale = box.items.length >= 9
@@ -71,6 +72,7 @@ class RecordBoxWidget extends StatelessWidget {
         final headerSize = 10 * scale * compactScale;
         final titleSize = 15 * scale * compactScale;
         final rowSize = 12.5 * scale * compactScale;
+        final numberRowSize = rowSize * _shareReceiptNumberScale;
         final amountColumnWidth =
             (40 * scale * compactScale).clamp(28.0, 44.0).toDouble();
         final columnGap = 8 * scale;
@@ -81,18 +83,20 @@ class RecordBoxWidget extends StatelessWidget {
         final numberColumnWidth = _shareNumberColumnWidth(
           context,
           box,
-          rowSize,
+          numberRowSize,
           headerSize,
         );
         final itemList = Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            for (final item in box.items)
+            for (var index = 0; index < box.items.length; index++)
               _ShareReceiptItemRow(
-                item: item,
+                item: box.items[index],
                 session: box.session,
+                topLabel: _shareReceiptTopLabelForItem(box.items, index),
                 fontSize: rowSize,
+                numberFontSize: numberRowSize,
                 verticalPadding: 2.5 * scale,
                 numberColumnWidth: numberColumnWidth,
                 columnGap: columnGap,
@@ -313,7 +317,7 @@ class RecordBoxWidget extends StatelessWidget {
 double _shareNumberColumnWidth(
   BuildContext context,
   RecordBoxData box,
-  double rowSize,
+  double numberFontSize,
   double headerSize,
 ) {
   var width = _measureShareText(
@@ -327,7 +331,7 @@ double _shareNumberColumnWidth(
       width,
       _measureShareText(
         _formatShareReceiptNumber(item, box.session),
-        TextStyle(fontSize: rowSize, fontWeight: FontWeight.w800),
+        TextStyle(fontSize: numberFontSize, fontWeight: FontWeight.w800),
         Directionality.of(context),
       ),
     );
@@ -336,7 +340,7 @@ double _shareNumberColumnWidth(
         width,
         _measureShareText(
           '${entry.number} >',
-          TextStyle(fontSize: rowSize, fontWeight: FontWeight.w900),
+          TextStyle(fontSize: numberFontSize, fontWeight: FontWeight.w900),
           Directionality.of(context),
         ),
       );
@@ -344,6 +348,16 @@ double _shareNumberColumnWidth(
   }
 
   return width;
+}
+
+String? _shareReceiptTopLabelForItem(List<ShareRecordItem> items, int index) {
+  final item = items[index];
+  if (!item.showMainEntry) return null;
+  if (item.isBazarSangam) return 'BAZAR';
+  if (!item.isMotorPana) return null;
+
+  final previousIsMotorPana = index > 0 && items[index - 1].isMotorPana;
+  return previousIsMotorPana ? null : 'MP';
 }
 
 double _measureShareText(
@@ -377,7 +391,9 @@ class _ShareReceiptItemRow extends StatelessWidget {
   const _ShareReceiptItemRow({
     required this.item,
     required this.session,
+    required this.topLabel,
     required this.fontSize,
+    required this.numberFontSize,
     required this.verticalPadding,
     required this.numberColumnWidth,
     required this.columnGap,
@@ -386,7 +402,9 @@ class _ShareReceiptItemRow extends StatelessWidget {
 
   final ShareRecordItem item;
   final String session;
+  final String? topLabel;
   final double fontSize;
+  final double numberFontSize;
   final double verticalPadding;
   final double numberColumnWidth;
   final double columnGap;
@@ -394,37 +412,31 @@ class _ShareReceiptItemRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final receiptTopLabel = topLabel;
     final visibleJackpotEntries = item.isJackpot
         ? item.jackpotEntries.where(
             (entry) => entry.number.isNotEmpty || entry.amount.isNotEmpty,
           )
         : const Iterable<ShareRecordJackpotEntry>.empty();
-    final topLabel = !item.showMainEntry
-        ? null
-        : item.isBazarSangam
-            ? 'BAZAR'
-            : item.isMotorPana
-                ? 'MP'
-                : null;
     final numberText = _formatShareReceiptNumber(item, session);
     final numberParts = NumberDisplayParts.fromDisplay(numberText);
     final numberTextStyle = TextStyle(
       color: const Color(0xFF111820),
-      fontSize: fontSize,
+      fontSize: numberFontSize,
       fontWeight: FontWeight.w800,
       height: 1,
       letterSpacing: 0,
     );
-    final labelTextStyle = _receiptAlphabetTextStyle(fontSize);
+    final labelTextStyle = _receiptAlphabetTextStyle(numberFontSize);
     final jackpotTextStyle = TextStyle(
       color: const Color(0xFF111820),
-      fontSize: fontSize,
+      fontSize: numberFontSize,
       fontWeight: FontWeight.w500,
       height: 1,
       letterSpacing: 0,
     );
     final jackpotArrowStyle = jackpotTextStyle.copyWith(
-      fontSize: fontSize * 1.45,
+      fontSize: numberFontSize * 1.45,
     );
 
     return LayoutBuilder(
@@ -444,7 +456,7 @@ class _ShareReceiptItemRow extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    if (topLabel != null)
+                    if (receiptTopLabel != null)
                       Padding(
                         padding: EdgeInsets.only(bottom: verticalPadding),
                         child: Align(
@@ -454,7 +466,7 @@ class _ShareReceiptItemRow extends StatelessWidget {
                                 columnGap +
                                 amountColumnWidth,
                             child: _BoxText(
-                              context.trMaybe(topLabel),
+                              context.trMaybe(receiptTopLabel),
                               textAlign: TextAlign.left,
                               fontSize: fontSize,
                               color: Colors.black,

@@ -6810,22 +6810,24 @@ class _ReceiptPreviewTicket extends StatelessWidget {
               const _PreviewRule(),
               SizedBox(height: compact ? 8 : 10),
               _PreviewHeader(compact: compact, metrics: columnMetrics),
-              for (final line in lines)
+              for (var index = 0; index < lines.length; index++)
                 _PreviewParchiRow(
-                  number: line.number,
-                  amount: line.effectiveDisplayAmount,
-                  session: line.sessionOverride ?? session,
+                  number: lines[index].number,
+                  amount: lines[index].effectiveDisplayAmount,
+                  session: lines[index].sessionOverride ?? session,
                   compact: compact,
                   metrics: columnMetrics,
-                  showMainEntry: line.showMainEntry,
-                  isJackpot: line.isJackpot,
-                  isBazarSangam: line.isBazarSangam,
-                  isFamily: line.isFamily,
-                  isCpJodi: line.isCpJodi,
-                  isCommon: line.isCommon,
-                  isSimpleJodi: line.isSimpleJodi,
-                  isMotorPana: line.isMotorPana,
-                  jackpotEntries: line.jackpotEntries,
+                  showMainEntry: lines[index].showMainEntry,
+                  isJackpot: lines[index].isJackpot,
+                  isBazarSangam: lines[index].isBazarSangam,
+                  isFamily: lines[index].isFamily,
+                  isCpJodi: lines[index].isCpJodi,
+                  isCommon: lines[index].isCommon,
+                  isSimpleJodi: lines[index].isSimpleJodi,
+                  isMotorPana: lines[index].isMotorPana,
+                  showMotorLabel: lines[index].isMotorPana &&
+                      (index == 0 || !lines[index - 1].isMotorPana),
+                  jackpotEntries: lines[index].jackpotEntries,
                 ),
               if (lines.isNotEmpty) ...[
                 SizedBox(height: compact ? 8 : 10),
@@ -7255,6 +7257,7 @@ class _PreviewParchiRow extends StatelessWidget {
     this.isCommon = false,
     this.isSimpleJodi = false,
     this.isMotorPana = false,
+    this.showMotorLabel = false,
     this.jackpotEntries = const [],
     this.showMainEntry = true,
   });
@@ -7271,6 +7274,7 @@ class _PreviewParchiRow extends StatelessWidget {
   final bool isCommon;
   final bool isSimpleJodi;
   final bool isMotorPana;
+  final bool showMotorLabel;
   final List<_JackpotLine> jackpotEntries;
   final bool showMainEntry;
 
@@ -7294,7 +7298,7 @@ class _PreviewParchiRow extends StatelessWidget {
         ? null
         : isBazarSangam
             ? 'BAZAR'
-            : isMotorPana
+            : showMotorLabel
                 ? 'MP'
                 : null;
     final numberParts = NumberDisplayParts.fromDisplay(formattedNumber);

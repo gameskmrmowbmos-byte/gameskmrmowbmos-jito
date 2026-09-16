@@ -487,8 +487,12 @@ String _parchiNoForPage(String parchiNo, int pageIndex) {
 }
 
 String _receiptRows(List<_ParchiPrintItem> items, String session) {
-  return items.map((pageItem) {
+  return items.asMap().entries.map((entry) {
+    final index = entry.key;
+    final pageItem = entry.value;
     final item = pageItem.item;
+    final showMotorLabel =
+        item.isMotorPana && (index == 0 || !items[index - 1].item.isMotorPana);
     final formattedNumber = _localizeDigits(
       _normalizePrintedFamilyNumber(
         formatParchiNumber(item, item.sessionOverride ?? session),
@@ -504,7 +508,7 @@ String _receiptRows(List<_ParchiPrintItem> items, String session) {
         ? ''
         : item.isBazarSangam
             ? '<div class="item-label">BAZAR</div>'
-            : item.isMotorPana
+            : showMotorLabel
                 ? '<div class="item-label">MP</div>'
                 : '';
     final mainRow = pageItem.showMainEntry
