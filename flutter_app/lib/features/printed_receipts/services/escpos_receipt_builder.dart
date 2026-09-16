@@ -20,6 +20,7 @@ const _receiptTableMaxWidth = 286.0;
 const _receiptTableGap = 34.0;
 const _receiptRuleHeight = 3.0;
 const _receiptMiddleTextScale = 1.5;
+const _receiptMiddleTotalFontSize = 36.0;
 const int _parchiEntriesPerPage = 10;
 const int _receiptFeedBeforeCut = 1;
 const _receiptInk = ui.Color(0xFF111820);
@@ -99,14 +100,14 @@ const _jackpotStyle = TextStyle(
 );
 const _totalStyle = TextStyle(
   color: _receiptInk,
-  fontSize: 27,
+  fontSize: _receiptMiddleTotalFontSize,
   fontWeight: FontWeight.w900,
   height: 1.1,
   shadows: _receiptStrongTextShadow,
 );
 const _totalAmountStyle = TextStyle(
   color: _receiptInk,
-  fontSize: 27,
+  fontSize: _receiptMiddleTotalFontSize,
   fontWeight: FontWeight.w500,
   height: 1.1,
   shadows: _receiptStrongTextShadow,
@@ -196,7 +197,7 @@ TextStyle get _receiptTableHeaderStyle => _isIndicReceiptLanguage
 
 TextStyle get _receiptTotalAmountStyle => _isIndicReceiptLanguage
     ? _totalAmountStyle.copyWith(
-        fontSize: 24,
+        fontSize: _receiptMiddleTotalFontSize,
         fontWeight: FontWeight.w700,
         height: 1.15,
         shadows: _receiptIndicTextShadow,
