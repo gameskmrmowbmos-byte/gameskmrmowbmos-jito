@@ -26,16 +26,24 @@ const app = express();
 app.disable('x-powered-by');
 app.set('trust proxy', 1);
 
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true;
+  // Always permit local development origins
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return true;
+  const normalized = origin.replace(/\/+$/, '');
+  return env.allowedOrigins.includes(normalized);
+};
+
 app.use(helmet());
 app.use(
   cors({
     origin(origin, callback) {
-      if (!env.isProduction || !origin || env.allowedOrigins.includes(origin)) return callback(null, true);
-      return callback(new Error('Origin is not allowed by CORS'));
+      if (!env.isProduction || isAllowedOrigin(origin)) return callback(null, true);
+      return callback(null, false);
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Client-Platform'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Client-Platform', 'Accept', 'X-Requested-With'],
   }),
 );
 app.use(express.json({ limit: '200kb' }));

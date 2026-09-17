@@ -44,7 +44,9 @@ export default function Login() {
           />
         </label>
         {error && <div className="alert error">{error}</div>}
-        <button type="submit" disabled={loading}>{loading ? 'Signing in...' : 'Login'}</button>
+        <button type="submit" disabled={loading}>
+          {loading ? 'Signing in...' : 'Login'}
+        </button>
       </form>
     </main>
   );

@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5002/api';
+export const RENDER_API_URL = 'https://gameskmrmowbmos-jito.onrender.com/api';
+const baseURL = import.meta.env?.VITE_API_BASE_URL || RENDER_API_URL;
 const adminUserKey = 'matka_admin:v1:user';
 
 let adminAccessToken = null;
