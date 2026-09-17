@@ -18,9 +18,9 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 const splitOrigins = (value) =>
-  (value || 'http://localhost:5173,http://localhost:5000')
+  (value || 'http://localhost:5173,http://localhost:5174,http://localhost:5000,http://127.0.0.1:5173,http://127.0.0.1:5174')
     .split(',')
-    .map((origin) => origin.trim())
+    .map((origin) => origin.trim().replace(/\/+$/, ''))
     .filter(Boolean);
 
 function normalizeJwtDuration(value, fallback) {
