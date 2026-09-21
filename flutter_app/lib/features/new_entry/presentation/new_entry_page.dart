@@ -3951,8 +3951,7 @@ class _MatkaNumberKeypadSheetState extends State<MatkaNumberKeypadSheet> {
   @override
   void initState() {
     super.initState();
-    _activeController =
-        widget.activeControllerNotifier?.value ?? widget.controller;
+    _activeController = widget.controller;
     widget.activeControllerNotifier
         ?.addListener(_handleExternalActiveControllerChange);
     if (widget.activeControllerNotifier != null &&
